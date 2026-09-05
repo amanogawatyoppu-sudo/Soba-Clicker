@@ -157,9 +157,12 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
         <div id="news-ticker">
             <div id="news-text">越前そばの歴史は深い... 最初のそばを打とう！</div>
         </div>
-        <div id="milk-lump-bar" style="display:flex; justify-content:space-between; padding:10px 15px; background:rgba(0,0,0,0.25); border-bottom:1px solid var(--border); font-size:12px;">
-            <span>🥛 ミルク Lv.<span id="milk-level">0</span></span>
+        <div id="dashi-lump-bar" style="display:flex; justify-content:space-between; padding:10px 15px; background:rgba(0,0,0,0.25); border-bottom:1px solid var(--border); font-size:12px;">
+            <span>🍲 だし Lv.<span id="dashi-level">0</span></span>
             <span>🍡 そば粉の塊: <span id="lump-count">0</span></span>
+        </div>
+        <div id="season-bar" style="display:flex; justify-content:center; align-items:center; padding:8px 15px; background:rgba(0,0,0,0.15); border-bottom:1px solid var(--border); font-size:12px;">
+            <span id="season-label">🌸 春の陣</span>
         </div>
         <div id="achievements-mini">
             <h3>実績 <span id="ach-count" style="font-size:10px; color:var(--accent)">0/0</span></h3>
@@ -281,11 +284,11 @@ const UPGRADES = [
     { id: 'upg_global_4', name: '大宇宙の摂理', icon: '🪐', cost: 1e18, type: 'global', mult: 2.5, desc: '全生産2.5倍。', req: { totalSoba: 1e17 } },
     { id: 'upg_global_5', name: '無限ループの真実', icon: '🔁', cost: 1e22, type: 'global', mult: 3, desc: '全生産3倍。', req: { totalSoba: 1e21 } },
     { id: 'upg_global_6', name: '起源への回帰', icon: '🌌', cost: 1e26, type: 'global', mult: 3.5, desc: '全生産3.5倍。', req: { totalSoba: 1e25 } },
-    { id: 'upg_kitten_1', name: '段ボール猫', icon: '📦', cost: 9000, type: 'kitten', kittenPercent: 0.02, desc: 'ミルクLv.1につき全生産+2%。', req: { totalSoba: 5000 } },
-    { id: 'upg_kitten_2', name: 'ミルク猫', icon: '🥛', cost: 90000, type: 'kitten', kittenPercent: 0.04, desc: 'ミルクLv.1につき全生産+4%。', req: { totalSoba: 50000 } },
-    { id: 'upg_kitten_3', name: 'そば猫', icon: '🐈', cost: 900000, type: 'kitten', kittenPercent: 0.06, desc: 'ミルクLv.1につき全生産+6%。', req: { totalSoba: 500000 } },
-    { id: 'upg_kitten_4', name: '越前招き猫', icon: '🐾', cost: 90000000, type: 'kitten', kittenPercent: 0.08, desc: 'ミルクLv.1につき全生産+8%。', req: { totalSoba: 50000000 } },
-    { id: 'upg_kitten_5', name: '猫又そば師匠', icon: '😼', cost: 9000000000, type: 'kitten', kittenPercent: 0.10, desc: 'ミルクLv.1につき全生産+10%。', req: { totalSoba: 5000000000 } },
+    { id: 'upg_kitten_1', name: '段ボール猫', icon: '📦', cost: 9000, type: 'kitten', kittenPercent: 0.02, desc: 'だしLv.1につき全生産+2%。', req: { totalSoba: 5000 } },
+    { id: 'upg_kitten_2', name: 'だし猫', icon: '🍲', cost: 90000, type: 'kitten', kittenPercent: 0.04, desc: 'だしLv.1につき全生産+4%。', req: { totalSoba: 50000 } },
+    { id: 'upg_kitten_3', name: 'そば猫', icon: '🐈', cost: 900000, type: 'kitten', kittenPercent: 0.06, desc: 'だしLv.1につき全生産+6%。', req: { totalSoba: 500000 } },
+    { id: 'upg_kitten_4', name: '越前招き猫', icon: '🐾', cost: 90000000, type: 'kitten', kittenPercent: 0.08, desc: 'だしLv.1につき全生産+8%。', req: { totalSoba: 50000000 } },
+    { id: 'upg_kitten_5', name: '猫又そば師匠', icon: '😼', cost: 9000000000, type: 'kitten', kittenPercent: 0.10, desc: 'だしLv.1につき全生産+10%。', req: { totalSoba: 5000000000 } },
     { id: 'upg_kitchen_2', name: '薪窯の導入', icon: '🔥', cost: 40000, type: 'building', target: 'kitchen', mult: 3, desc: '家庭用厨房の効率さらに3倍。', req: { buildings: { kitchen: 25 } } },
     { id: 'upg_mill_2', name: '水車式石臼', icon: '🌊', cost: 400000, type: 'building', target: 'mill', mult: 3, desc: '石臼製粉機の効率さらに3倍。', req: { buildings: { mill: 25 } } },
     { id: 'upg_shop_2', name: '暖簾分けの拡大', icon: '🏯', cost: 4000000, type: 'building', target: 'shop', mult: 3, desc: 'そば処の効率さらに3倍。', req: { buildings: { shop: 25 } } },
@@ -316,6 +319,22 @@ const SPIRITS = [
     { id: 'spirit_wisdom', name: '知恵の精霊', icon: '📖', desc: 'クリックパワーが+20%される。', effect: 'clickMult', value: 1.2 },
     { id: 'spirit_commerce', name: '商いの精霊', icon: '💴', desc: '施設のコストが少しだけ安くなる。', effect: 'cheaperBuild', value: 0.97 }
 ];
+
+const SEASONS = [
+    { id: 'spring', name: '桜そばの陣', icon: '🌸', months: [3, 4, 5], effect: 'globalMult', value: 1.05, effectDesc: '全生産+5%', specialName: '花見そば', specialIcon: '🌸🍜' },
+    { id: 'summer', name: '冷やしそばの陣', icon: '🍧', months: [6, 7, 8], effect: 'goldenFreq', value: 1.25, effectDesc: 'ゴールデン/呪われしそばの出現率+25%', specialName: '冷やしそば', specialIcon: '🍧🍜' },
+    { id: 'autumn', name: '新そば収穫の陣', icon: '🍁', months: [9, 10, 11], effect: 'clickMult', value: 1.1, effectDesc: 'クリックパワー+10%', specialName: '新そば', specialIcon: '🍁🍜' },
+    { id: 'winter', name: '年越しそばの陣', icon: '❄️', months: [12, 1, 2], effect: 'goldenBonus', value: 1.2, effectDesc: 'ゴールデンそばの報酬+20%', specialName: '年越しそば', specialIcon: '❄️🍜' }
+];
+
+function getSeasonByMonth() {
+    const m = new Date().getMonth() + 1;
+    return SEASONS.find(s => s.months.includes(m)) || SEASONS[0];
+}
+
+function getCurrentSeason() {
+    return getSeasonByMonth();
+}
 
 const ACHIEVEMENTS = [
     { id: 'ach_1', name: '最初の一歩', icon: '👣', desc: 'そばを1杯打つ。', req: { totalSoba: 1 } },
@@ -360,9 +379,9 @@ const ACHIEVEMENTS = [
     { id: 'ach_building_omni', name: '全知への到達', icon: '🧠', desc: '全知のそばを1つ以上所有。', req: { buildings: { omniscience: 1 } } },
     { id: 'ach_upgrade_all', name: '改良の極み', icon: '🏆', desc: '全てのアップグレードを購入する。', req: { allUpgrades: 1 } },
     { id: 'ach_rich_4', name: '想像を絶する生産', icon: '💫', desc: '1秒間に1穣杯生産。', req: { cps: 1e28 } },
-    { id: 'ach_milk_1', name: '初めてのミルク', icon: '🥛', desc: 'ミルクレベル1に到達。', req: { milkLevel: 1 } },
-    { id: 'ach_milk_2', name: '猫まみれ', icon: '🐱', desc: 'ミルクレベル5に到達。', req: { milkLevel: 5 } },
-    { id: 'ach_milk_3', name: 'ミルクの海', icon: '🌊', desc: 'ミルクレベル10に到達。', req: { milkLevel: 10 } },
+    { id: 'ach_dashi_1', name: '初めてのだし', icon: '🍲', desc: 'だしレベル1に到達。', req: { dashiLevel: 1 } },
+    { id: 'ach_dashi_2', name: '猫まみれ', icon: '🐱', desc: 'だしレベル5に到達。', req: { dashiLevel: 5 } },
+    { id: 'ach_dashi_3', name: 'だしの海', icon: '🌊', desc: 'だしレベル10に到達。', req: { dashiLevel: 10 } },
     { id: 'ach_wrath_1', name: '凶兆との遭遇', icon: '😈', desc: '呪われしそばを1回クリック。', req: { wrathClicks: 1 } },
     { id: 'ach_wrath_2', name: '厄払いの達人', icon: '🧿', desc: '呪われしそばを20回クリック。', req: { wrathClicks: 20 } },
     { id: 'ach_lump_1', name: '塊の発見', icon: '🍡', desc: 'そば粉の塊を1個獲得。', req: { totalLumps: 1 } },
@@ -371,7 +390,10 @@ const ACHIEVEMENTS = [
     { id: 'ach_heavenly_1', name: '天界への一歩', icon: '☁️', desc: '天界の力を1つ購入。', req: { heavenlyCount: 1 } },
     { id: 'ach_heavenly_2', name: '天界の支配者', icon: '👼', desc: '天界の力を全て購入。', req: { heavenlyCount: 7 } },
     { id: 'ach_shrine_1', name: '祭壇の目覚め', icon: '⛩️', desc: '初めて精霊を祀る。', req: { spiritsCount: 1 } },
-    { id: 'ach_shrine_2', name: '二柱の加護', icon: '🙏', desc: '2柱の精霊を同時に祀る。', req: { spiritsCount: 2 } }
+    { id: 'ach_shrine_2', name: '二柱の加護', icon: '🙏', desc: '2柱の精霊を同時に祀る。', req: { spiritsCount: 2 } },
+    { id: 'ach_season_1', name: '特別な一杯', icon: '🎐', desc: '季節限定のそばを1回発見する。', req: { seasonSobaClicks: 1 } },
+    { id: 'ach_season_2', name: '季節の探求者', icon: '🗓️', desc: '季節限定のそばを10回発見する。', req: { seasonSobaClicks: 10 } },
+    { id: 'ach_season_all', name: '四季を制覇', icon: '🌗', desc: '春夏秋冬すべての季節を体験する。', req: { seasonsAll: 1 } }
 ];
 
 const NEWS = [
@@ -391,7 +413,7 @@ const NEWS = [
     "宇宙創成の瞬間、そこには既にそばがあったという新説。",
     "転生を繰り返すそば職人、ついに「究極の麺」に到達か？",
     "そばの神髄、ついに一般家庭でも体験可能に（要異次元契約）。",
-    "謎の黒猫が厨房に住み着いた。ミルクの香りがそばを引き立てるらしい。",
+    "謎の黒猫が厨房に住み着いた。だしの香りがそばを引き立てるらしい。",
     "夜な夜な現れる「呪われしそば」に注意――触れる者に幸運と災いを等しくもたらすという。",
     "そば粉の塊が発見された。これを使えば古い施設も生まれ変わるとの噂。",
     "転生を経た者だけが辿り着ける「天界」。そこには更なる力が眠っているという。"
@@ -419,7 +441,9 @@ let state = {
     lastLumpTime: Date.now(),
     heavenlyUpgrades: [],
     wrathClicks: 0,
-    spirits: []
+    spirits: [],
+    seasonsExperienced: [],
+    seasonSobaClicks: 0
 };
 
 function resetState() {
@@ -430,6 +454,7 @@ function resetState() {
     state.upgrades = [];
 }
 resetState();
+if (!state.seasonsExperienced.includes(getSeasonByMonth().id)) state.seasonsExperienced.push(getSeasonByMonth().id);
 
 let cps = 0;
 let isResetting = false;
@@ -443,7 +468,7 @@ let clickTimestamps = [];
 
 // --- Core Logic ---
 
-function getMilkLevel() {
+function getDashiLevel() {
     return Math.floor(state.achievements.length / 7);
 }
 
@@ -460,10 +485,10 @@ function calculateCps() {
     UPGRADES.filter(u => u.type === 'global' && state.upgrades.includes(u.id))
             .forEach(u => newCps *= u.mult);
 
-    // Kitten/Milk upgrades: each purchased kitten scales with current milk level
-    const milkLevel = getMilkLevel();
+    // Kitten/Dashi upgrades: each purchased kitten scales with current dashi level
+    const dashiLevel = getDashiLevel();
     UPGRADES.filter(u => u.type === 'kitten' && state.upgrades.includes(u.id))
-            .forEach(u => newCps *= (1 + u.kittenPercent * milkLevel));
+            .forEach(u => newCps *= (1 + u.kittenPercent * dashiLevel));
 
     // Heavenly upgrades: permanent global multipliers
     HEAVENLY_UPGRADES.filter(h => h.effect === 'globalMult' && state.heavenlyUpgrades.includes(h.id))
@@ -472,6 +497,10 @@ function calculateCps() {
     // Shrine spirits: speed spirit boosts all production
     SPIRITS.filter(s => s.effect === 'globalMult' && state.spirits.includes(s.id))
             .forEach(s => newCps *= s.value);
+
+    // Seasonal event bonus
+    const season = getCurrentSeason();
+    if (season && season.effect === 'globalMult') newCps *= season.value;
     
     // Prestige Bonus: Each soul gives +1% bonus
     let prestigeMult = 1 + (state.souls * 0.01);
@@ -486,6 +515,7 @@ function calculateCps() {
     let spiritClickMult = 1;
     SPIRITS.filter(s => s.effect === 'clickMult' && state.spirits.includes(s.id))
             .forEach(s => spiritClickMult *= s.value);
+    if (season && season.effect === 'clickMult') spiritClickMult *= season.value;
     clickPower = (newClickPower + clickBaseBonus + (cps * 0.04)) * prestigeMult * clickBuffMult * spiritClickMult;
 }
 
@@ -493,7 +523,14 @@ function getGoldenBonusMult() {
     let mult = 1;
     SPIRITS.filter(s => s.effect === 'goldenBonus' && state.spirits.includes(s.id))
             .forEach(s => mult *= s.value);
+    const season = getCurrentSeason();
+    if (season && season.effect === 'goldenBonus') mult *= season.value;
     return mult;
+}
+
+function getSeasonFreqMult() {
+    const season = getCurrentSeason();
+    return (season && season.effect === 'goldenFreq') ? season.value : 1;
 }
 
 function getWrathShieldMult() {
@@ -507,6 +544,9 @@ function update() {
     let now = Date.now();
     let dt = (now - lastUpdate) / 1000;
     lastUpdate = now;
+
+    const liveSeason = getCurrentSeason().id;
+    if (!state.seasonsExperienced.includes(liveSeason)) state.seasonsExperienced.push(liveSeason);
 
     if (cps > 0) {
         let gained = cps * dt;
@@ -582,8 +622,9 @@ function render() {
     document.getElementById('soba-rate').textContent = `毎秒: ${fmt(cps)} 杯` + (buffMult > 1 ? ` (FEVER x${buffMult}!)` : "");
     document.getElementById('ach-count').textContent = `${state.achievements.length}/${ACHIEVEMENTS.length}`;
     document.getElementById('upg-count').textContent = `${state.upgrades.length}/${UPGRADES.length}`;
-    document.getElementById('milk-level').textContent = getMilkLevel();
+    document.getElementById('dashi-level').textContent = getDashiLevel();
     document.getElementById('lump-count').textContent = state.lumps;
+    renderSeasonBar();
     
     if (state.allTimeSoba >= 1e12 || state.prestigeCount > 0) {
         document.getElementById('prestige-tab').style.display = 'block';
@@ -688,11 +729,12 @@ function renderStats() {
         <div class="stat-row"><span class="stat-label">プレイ時間</span><span>${h}時間${m}分${s}秒</span></div>
         <div class="stat-row"><span class="stat-label">現在のCPS</span><span>${fmt(cps)}</span></div>
         <div class="stat-row"><span class="stat-label">クリックパワー</span><span>${fmt(clickPower)}</span></div>
-        <div class="stat-row"><span class="stat-label">ミルクレベル</span><span>🥛 Lv.${getMilkLevel()}</span></div>
+        <div class="stat-row"><span class="stat-label">だしレベル</span><span>🍲 Lv.${getDashiLevel()}</span></div>
         <div class="stat-row"><span class="stat-label">そば粉の塊 (総獲得)</span><span>${state.lumps} 個 (累計 ${state.totalLumps} 個)</span></div>
         <div class="stat-row"><span class="stat-label">呪われしそば遭遇</span><span>${state.wrathClicks} 回</span></div>
         <div class="stat-row"><span class="stat-label">天界の力</span><span>${state.heavenlyUpgrades.length}/${HEAVENLY_UPGRADES.length}</span></div>
         <div class="stat-row"><span class="stat-label">祀っている精霊</span><span>${state.spirits.length > 0 ? state.spirits.map(id => SPIRITS.find(s => s.id === id).icon).join(' ') : 'なし'}</span></div>
+        <div class="stat-row"><span class="stat-label">季節限定そば発見数</span><span>${state.seasonSobaClicks} 回 (制覇: ${state.seasonsExperienced.length}/${SEASONS.length})</span></div>
     `;
 }
 
@@ -755,6 +797,11 @@ function toggleSpirit(id) {
     }
     calculateCps();
     render();
+}
+
+function renderSeasonBar() {
+    const season = getCurrentSeason();
+    document.getElementById('season-label').textContent = `${season.icon} ${season.name}`;
 }
 
 function getAvailableSouls() {
@@ -953,11 +1000,13 @@ function checkAchievements() {
         }
         if (a.req.clickPower && clickPower < a.req.clickPower) met = false;
         if (a.req.allUpgrades && state.upgrades.length < UPGRADES.length) met = false;
-        if (a.req.milkLevel && getMilkLevel() < a.req.milkLevel) met = false;
+        if (a.req.dashiLevel && getDashiLevel() < a.req.dashiLevel) met = false;
         if (a.req.wrathClicks && state.wrathClicks < a.req.wrathClicks) met = false;
         if (a.req.totalLumps && state.totalLumps < a.req.totalLumps) met = false;
         if (a.req.heavenlyCount && state.heavenlyUpgrades.length < a.req.heavenlyCount) met = false;
         if (a.req.spiritsCount && state.spirits.length < a.req.spiritsCount) met = false;
+        if (a.req.seasonSobaClicks && state.seasonSobaClicks < a.req.seasonSobaClicks) met = false;
+        if (a.req.seasonsAll && state.seasonsExperienced.length < SEASONS.length) met = false;
 
         if (met) {
             state.achievements.push(a.id);
@@ -982,10 +1031,24 @@ function prestige() {
 
 function spawnGoldenSoba() {
     const gs = document.getElementById('golden-soba');
-    const isWrath = Math.random() < 0.22;
-    gs.dataset.type = isWrath ? 'wrath' : 'golden';
-    gs.textContent = isWrath ? '😈🍜' : '🍜✨';
-    gs.style.filter = isWrath ? 'drop-shadow(0 0 10px #a00) hue-rotate(300deg)' : 'drop-shadow(0 0 10px gold)';
+    const rand = Math.random();
+    const season = getCurrentSeason();
+    let type;
+    if (rand < 0.20) type = 'wrath';
+    else if (rand < 0.32) type = 'season';
+    else type = 'golden';
+
+    gs.dataset.type = type;
+    if (type === 'wrath') {
+        gs.textContent = '😈🍜';
+        gs.style.filter = 'drop-shadow(0 0 10px #a00) hue-rotate(300deg)';
+    } else if (type === 'season') {
+        gs.textContent = season.specialIcon;
+        gs.style.filter = 'drop-shadow(0 0 12px #c77dff)';
+    } else {
+        gs.textContent = '🍜✨';
+        gs.style.filter = 'drop-shadow(0 0 10px gold)';
+    }
     const x = Math.random() * (window.innerWidth - 100);
     const y = Math.random() * (window.innerHeight - 100);
     gs.style.left = x + 'px';
@@ -1016,6 +1079,19 @@ document.getElementById('golden-soba').onmousedown = function(e) {
             state.allTimeSoba += bonus;
             notify(`怨念の一撃！リスクを乗り越え${fmt(bonus)}杯を獲得！`, "🩸");
         }
+        calculateCps();
+        return;
+    }
+
+    if (type === 'season') {
+        const season = getCurrentSeason();
+        state.seasonSobaClicks++;
+        if (!state.seasonsExperienced.includes(season.id)) state.seasonsExperienced.push(season.id);
+        const bonus = Math.max(2000, cps * 3000) * getGoldenBonusMult();
+        state.soba += bonus;
+        state.totalSoba += bonus;
+        state.allTimeSoba += bonus;
+        notify(`${season.specialName}を発見！${fmt(bonus)}杯の特別ボーナス！`, season.icon);
         calculateCps();
         return;
     }
@@ -1058,7 +1134,7 @@ function flashWrath() {
 
 setInterval(() => {
     const freqBonus = state.heavenlyUpgrades.includes('heav_2') ? 1.6 : 1;
-    if (Math.random() < 0.05 * freqBonus) spawnGoldenSoba();
+    if (Math.random() < 0.05 * freqBonus * getSeasonFreqMult()) spawnGoldenSoba();
 }, 10000);
 
 function showTooltip(e, name, desc, cost) {
@@ -1141,6 +1217,10 @@ function loadGame() {
         });
         if (!state.heavenlyUpgrades) state.heavenlyUpgrades = [];
         if (!state.spirits) state.spirits = [];
+        delete state.currentSeason; // legacy field, no longer used (season is derived live, not stored)
+        if (!state.seasonsExperienced) state.seasonsExperienced = [];
+        if (!state.seasonsExperienced.includes(getCurrentSeason().id)) state.seasonsExperienced.push(getCurrentSeason().id);
+        if (state.seasonSobaClicks === undefined) state.seasonSobaClicks = 0;
         if (state.lumps === undefined) state.lumps = 0;
         if (state.totalLumps === undefined) state.totalLumps = 0;
         if (state.wrathClicks === undefined) state.wrathClicks = 0;
