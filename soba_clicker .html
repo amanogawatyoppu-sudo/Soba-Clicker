@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>越前そばクリッカー Pro v2.2 - 究極版</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --bg-dark: #1a0f00;
+    --bg-darker: #0d0800;
+    --accent: #f5c842;
+    --text: #f5e6c8;
+    --muted: #806030;
+    --border: #3d2800;
+    --fever: #ff4d00;
+    --prestige: #00d4ff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(--text);overflow:hidden;height:100vh;touch-action:manipulation}
+#app{display:flex;height:100vh;width:100vw;transition: background 0.5s;}
+#app.fever { background: radial-gradient(circle at center, #4d1a00 0%, #1a0f00 100%); }
+
+/* Left Panel */
+#left-panel{flex:1;display:flex;flex-direction:column;align-items:center;position:relative;border-right:2px solid var(--border);background:radial-gradient(circle at center, #2a1800 0%, #1a0f00 100%)}
+#top-title{width:100%;text-align:center;padding:10px;background:rgba(0,0,0,0.5);font-weight:700;letter-spacing:0.2em;color:var(--accent);border-bottom:1px solid var(--border)}
+#stats-display{text-align:center;margin-top:2rem;z-index:2}
+#soba-count{font-family:'Noto Serif JP',serif;font-size:3.5rem;font-weight:900;color:var(--accent);text-shadow:0 0 15px rgba(245,200,66,0.5)}
+#soba-rate{font-size:16px;color:var(--muted);margin-top:5px;font-weight:bold}
+#bowl-container{position:relative;margin-top:3rem;cursor:pointer;user-select:none;z-index:2}
+#bowl{width:320px;height:320px;display:flex;align-items:center;justify-content:center;transition:transform 0.05s;position:relative}
+#bowl img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 15px 30px rgba(0,0,0,0.8)); }
+#bowl:active{transform:scale(0.92)}
+#bowl-glow{position:absolute;width:100%;height:100%;background:radial-gradient(circle, rgba(245,200,66,0.2) 0%, transparent 70%);pointer-events:none;opacity:0;transition:opacity 0.3s}
+#app.fever #bowl-glow { opacity: 1; animation: pulse 1s infinite alternate; }
+@keyframes pulse { from { transform: scale(1); opacity: 0.3; } to { transform: scale(1.3); opacity: 0.6; } }
+
+/* Middle Panel */
+#middle-panel{width:350px;display:flex;flex-direction:column;border-right:2px solid var(--border);background:var(--bg-darker)}
+#news-ticker{height:45px;background:#000;border-bottom:1px solid var(--border);display:flex;align-items:center;overflow:hidden;position:relative}
+#news-text{white-space:nowrap;position:absolute;font-size:14px;color:#eee;animation:ticker 30s linear infinite}
+@keyframes ticker{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+#achievements-mini{flex:1;padding:15px;overflow-y:auto}
+#achievements-mini h3{font-size:12px;color:var(--muted);text-transform:uppercase;margin-bottom:10px;border-bottom:1px solid var(--border);padding-bottom:5px;display:flex;justify-content:space-between}
+.ach-icon-small{width:32px;height:32px;background:#2a1800;border:1px solid var(--border);display:inline-flex;align-items:center;justify-content:center;margin:2px;border-radius:6px;font-size:18px;filter:grayscale(1);opacity:0.2;transition: 0.3s}
+.ach-icon-small.unlocked{filter:grayscale(0);opacity:1;border-color:var(--accent);box-shadow: 0 0 5px var(--accent)}
+
+/* Right Panel */
+#right-panel{width:400px;display:flex;flex-direction:column;background:var(--bg-darker);z-index:10}
+.tab-container{display:flex;background:var(--bg-darker);border-bottom:1px solid var(--border)}
+.tab{flex:1;padding:14px;text-align:center;font-size:13px;font-weight:700;cursor:pointer;color:var(--muted);transition:0.2s}
+.tab.active{color:var(--accent);background:var(--bg-dark);border-bottom:2px solid var(--accent)}
+
+/* Shop Content - PERFECT SCROLLING */
+#shop-view{flex:1;overflow:hidden;display:flex;flex-direction:column}
+#shop-content{flex:1;overflow-y:auto;padding:12px;scrollbar-width: thin;scrollbar-color: var(--border) transparent;-webkit-overflow-scrolling: touch;}
+.section-label{font-size:11px;color:var(--muted);text-transform:uppercase;margin:18px 5px 10px;letter-spacing:0.15em;display: flex;justify-content: space-between;align-items: center;}
+
+/* Upgrades Grid */
+#upgrades-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(54px, 1fr));gap:8px;padding:5px}
+.upgrade-item{width:54px;height:54px;background:#2a1800;border:1px solid var(--border);border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:26px;position:relative;transition:0.1s}
+.upgrade-item:hover:not(.disabled){border-color:var(--accent);background:#3d2500;transform: translateY(-2px)}
+.upgrade-item.disabled{opacity:0.3;cursor:not-allowed;filter: grayscale(1)}
+
+/* Buildings List */
+.building-item{display:flex;align-items:center;padding:14px;margin-bottom:10px;background:rgba(255,255,255,0.03);border:1px solid transparent;border-radius:10px;cursor:pointer;transition:0.1s;user-select:none;position:relative}
+.building-item:active{transform:scale(0.97)}
+.building-item.can-buy{border-color:#5a3810}
+.building-item.can-buy:hover{border-color:var(--accent);background:rgba(245,200,66,0.08)}
+.building-item.can-buy{animation:breathe 2.2s ease-in-out infinite}
+@keyframes breathe{0%,100%{box-shadow:0 0 0 rgba(245,200,66,0)}50%{box-shadow:0 0 10px rgba(245,200,66,0.25)}}
+.building-item.locked{opacity:0.2;cursor:not-allowed}
+.b-icon, .b-info, .b-name, .b-cost, .b-count { pointer-events: none; }
+.b-icon{font-size:36px;margin-right:18px;width:45px;text-align:center}
+.b-info{flex:1}
+.b-name{font-size:15px;font-weight:700;color:#d4a870}
+.b-cost{font-size:13px;color:var(--accent);font-weight:700}
+.b-count{font-size:28px;font-weight:900;color:rgba(255,255,255,0.08);margin-left:12px}
+
+/* Golden Soba */
+#golden-soba{position:absolute;width:90px;height:90px;cursor:pointer;z-index:100;animation:golden-float 12s linear infinite;display:none;filter: drop-shadow(0 0 10px gold)}
+@keyframes golden-float{0%{transform:translate(0,0) rotate(0deg)}25%{transform:translate(150px, 80px) rotate(90deg)}50%{transform:translate(100px, 200px) rotate(180deg)}75%{transform:translate(-100px, 150px) rotate(270deg)}100%{transform:translate(0,0) rotate(360deg)}}
+
+/* Notifications */
+#notif-container{position:fixed;bottom:25px;right:25px;z-index:1000;display:flex;flex-direction:column;gap:12px}
+.notif{background:rgba(0,0,0,0.95);border:1px solid var(--accent);padding:14px 24px;border-radius:10px;color:var(--text);font-size:14px;box-shadow:0 8px 20px rgba(0,0,0,0.6);animation:slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)}
+@keyframes slide-in{from{transform:translateX(120%)}to{transform:translateX(0)}}
+.notif.ach-flash{border-color:gold;box-shadow:0 0 25px rgba(255,215,0,0.6);animation:slide-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), ach-pop 0.5s ease-out}
+@keyframes ach-pop{0%{transform:scale(0.7)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+/* Combo counter */
+.combo-text{position:fixed;pointer-events:none;font-weight:900;color:#ff8c00;font-size:20px;text-shadow:0 2px 6px rgba(0,0,0,0.7);animation:combo-pop 0.6s ease-out forwards;z-index:150}
+@keyframes combo-pop{0%{opacity:0;transform:scale(0.5)}30%{opacity:1;transform:scale(1.15)}100%{opacity:0;transform:scale(1) translateY(-20px)}}
+
+/* Wrath screen flash */
+#wrath-flash{position:fixed;inset:0;background:radial-gradient(circle, rgba(150,0,0,0.35) 0%, transparent 70%);pointer-events:none;opacity:0;z-index:500;transition:opacity 0.15s}
+#wrath-flash.show{opacity:1; animation: wrath-fade 0.8s ease-out forwards;}
+@keyframes wrath-fade{0%{opacity:1}100%{opacity:0}}
+
+/* Popups */
+.click-pop{position:absolute;pointer-events:none;font-weight:900;color:var(--accent);font-size:24px;text-shadow:0 3px 6px rgba(0,0,0,0.6);animation:pop-up 0.9s ease-out forwards;z-index:100}
+@keyframes pop-up{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-120px) scale(0.8)}}
+
+/* Tooltip */
+#tooltip{position:fixed;background:rgba(0,0,0,0.98);border:1px solid var(--border);padding:12px;border-radius:8px;z-index:2000;pointer-events:none;display:none;max-width:280px;box-shadow: 0 10px 30px rgba(0,0,0,0.5)}
+.tt-name{font-weight:700;color:var(--accent);margin-bottom:6px;font-size:16px}
+.tt-desc{font-size:12px;color:#bbb;line-height:1.5}
+.tt-cost{font-size:13px;color:var(--accent);margin-top:10px;font-weight:700;border-top: 1px solid var(--border); padding-top: 5px}
+
+/* Stats View */
+#stats-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
+.stat-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:14px}
+.stat-label{color:var(--muted)}
+
+/* Prestige UI */
+#prestige-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
+.prestige-btn{width:100%;padding:20px;background:linear-gradient(135deg, #004466 0%, #001122 100%);border:2px solid var(--prestige);border-radius:12px;color:#fff;font-weight:bold;cursor:pointer;margin-bottom:20px;transition:0.3s}
+.prestige-btn:hover:not(:disabled){box-shadow: 0 0 20px rgba(0,212,255,0.4); transform: scale(1.02)}
+.prestige-btn:disabled{opacity:0.5; cursor:not-allowed; border-color: #333}
+
+/* Shrine (Spirits) UI */
+#shrine-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
+.shrine-slot{flex:1;height:90px;border:2px dashed #5a3d70;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(199,125,255,0.05);font-size:12px;color:var(--muted);cursor:pointer;transition:0.2s}
+.shrine-slot.filled{border-style:solid;border-color:#c77dff;background:rgba(199,125,255,0.12);color:var(--text)}
+.shrine-slot .slot-icon{font-size:30px;margin-bottom:4px}
+.spirit-item{display:flex;align-items:center;padding:14px;margin-bottom:10px;background:rgba(255,255,255,0.03);border:1px solid transparent;border-radius:10px;cursor:pointer;transition:0.1s;user-select:none}
+.spirit-item.active{border-color:#c77dff;background:rgba(199,125,255,0.1)}
+.spirit-item.disabled{opacity:0.3;cursor:not-allowed}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:8px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--muted)}
+</style>
+</head>
+<body>
+
+<div id="app">
+    <div id="left-panel">
+        <div id="top-title">⚡ ECHIZEN SOBA CLICKER PRO v2.2 ⚡</div>
+        <div id="stats-display">
+            <div id="soba-count">0 杯</div>
+            <div id="soba-rate">毎秒: 0 杯</div>
+        </div>
+        <div id="bowl-container">
+            <div id="bowl-glow"></div>
+            <div id="bowl">
+                <img src="note_bowl.png" alt="Echizen Soba Bowl" onerror="this.src='https://img.icons8.com/emoji/256/steaming-bowl-emoji.png'">
+            </div>
+        </div>
+        <div id="golden-soba">🍜✨</div>
+    </div>
+
+    <div id="middle-panel">
+        <div id="news-ticker">
+            <div id="news-text">越前そばの歴史は深い... 最初のそばを打とう！</div>
+        </div>
+        <div id="milk-lump-bar" style="display:flex; justify-content:space-between; padding:10px 15px; background:rgba(0,0,0,0.25); border-bottom:1px solid var(--border); font-size:12px;">
+            <span>🥛 ミルク Lv.<span id="milk-level">0</span></span>
+            <span>🍡 そば粉の塊: <span id="lump-count">0</span></span>
+        </div>
+        <div id="achievements-mini">
+            <h3>実績 <span id="ach-count" style="font-size:10px; color:var(--accent)">0/0</span></h3>
+            <div id="ach-list"></div>
+        </div>
+        <div style="padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; background: rgba(0,0,0,0.3);">
+            <button onclick="saveGame()" style="flex:1; padding:12px; background:var(--border); border:none; color:var(--text); cursor:pointer; border-radius:6px; font-weight:bold; font-size:12px">セーブ</button>
+            <button onclick="resetGame()" style="padding:12px; background:#400; border:none; color:#f88; cursor:pointer; border-radius:6px; font-weight:bold; font-size:12px">リセット</button>
+        </div>
+    </div>
+
+    <div id="right-panel">
+        <div class="tab-container">
+            <div class="tab active" onclick="switchTab('shop')">ショップ</div>
+            <div class="tab" onclick="switchTab('stats')">統計</div>
+            <div class="tab" id="shrine-tab" onclick="switchTab('shrine')" style="display:none; color:#c77dff">祭壇</div>
+            <div class="tab" id="prestige-tab" onclick="switchTab('prestige')" style="display:none; color:var(--prestige)">転生</div>
+        </div>
+        
+        <div id="shop-view">
+            <div id="shop-content">
+                <div class="section-label">アップグレード <span id="upg-count" style="font-size:10px">0/0</span></div>
+                <div id="upgrades-grid"></div>
+                <div class="section-label">施設</div>
+                <div id="buildings-list"></div>
+            </div>
+        </div>
+
+        <div id="stats-view">
+            <h3 style="margin-bottom:15px; color:var(--accent)">統計データ</h3>
+            <div id="stats-container"></div>
+        </div>
+
+        <div id="shrine-view">
+            <h3 style="margin-bottom:10px; color:#c77dff">そばの祭壇</h3>
+            <p style="font-size:12px; color:#aaa; margin-bottom:15px">2柱までそばの精霊を祀ることができます。精霊はいつでも自由に交代できます。祀られた精霊にカーソルを合わせると効果が確認できます。</p>
+            <div class="section-label">祀っている精霊 (最大2柱)</div>
+            <div id="shrine-slots" style="display:flex; gap:10px; margin-bottom:20px;"></div>
+            <div class="section-label">精霊一覧</div>
+            <div id="shrine-list"></div>
+        </div>
+
+        <div id="prestige-view">
+            <h3 style="margin-bottom:15px; color:var(--prestige)">転生 (プレステージ)</h3>
+            <p style="font-size:13px; color:#aaa; margin-bottom:20px">現在のそばを全て捧げ、永続的なボーナスを得て最初からやり直します。</p>
+            <button id="prestige-btn" class="prestige-btn" onclick="prestige()">
+                転生して 0 個の「越前魂」を獲得<br>
+                <span style="font-size:11px; font-weight:normal">(現在のボーナス: +0%)</span>
+            </button>
+            <div id="prestige-info" style="font-size:13px; color:var(--text)">
+                獲得済みの越前魂: <span id="soul-count" style="color:var(--prestige); font-weight:bold">0</span> 個<br>
+                現在の生産ボーナス: <span id="prestige-mult" style="color:var(--prestige); font-weight:bold">0</span> %<br>
+                使用可能な越前魂: <span id="soul-available" style="color:var(--prestige); font-weight:bold">0</span> 個
+            </div>
+
+            <h3 style="margin:25px 0 10px; color:var(--prestige)">天界の力 (越前魂で購入・永続効果)</h3>
+            <div id="heavenly-list"></div>
+
+            <h3 style="margin:25px 0 10px; color:var(--accent)">そば粉の塊で施設を熟成</h3>
+            <p style="font-size:12px; color:#aaa; margin-bottom:10px">20分ごとに1個たまる「そば粉の塊」を使い、既に所有している施設を熟成させて永続的に生産量を+1%できます。</p>
+            <div id="lump-list"></div>
+        </div>
+    </div>
+</div>
+
+
+<div id="notif-container"></div>
+<div id="tooltip"></div>
+<div id="wrath-flash"></div>
+
+<script>
+// --- Game Data ---
+const BUILDINGS = [
+    { id: 'student', name: 'そば打ち見習い', icon: '👦', baseCost: 15, baseCps: 0.5, desc: '地元の若者が手伝いに来てくれた。' },
+    { id: 'kitchen', name: '家庭用厨房', icon: '🏠', baseCost: 100, baseCps: 2, desc: '台所を改造して効率アップ。' },
+    { id: 'mill', name: '石臼製粉機', icon: '⚙️', baseCost: 1100, baseCps: 12, desc: '挽きたての香りが客を呼ぶ。' },
+    { id: 'shop', name: 'そば処', icon: '🏮', baseCost: 12000, baseCps: 55, desc: '越前の街角に店を構える。' },
+    { id: 'factory', name: '製麺工場', icon: '🏭', baseCost: 130000, baseCps: 320, desc: 'オートメーション化された越前そば。' },
+    { id: 'festival', name: '越前そば祭り', icon: '🎋', baseCost: 1400000, baseCps: 1800, desc: '県外からも大量の観光客が！' },
+    { id: 'robot', name: 'AI製麺ロボ', icon: '🤖', baseCost: 20000000, baseCps: 9500, desc: '完璧な加水率を計算する。' },
+    { id: 'satellite', name: '宇宙そば農場', icon: '🛸', baseCost: 330000000, baseCps: 55000, desc: '無重力で育つ究極のそば粉。' },
+    { id: 'shrine', name: 'そばの聖地', icon: '⛩️', baseCost: 5100000000, baseCps: 320000, desc: '越前そばはもはや信仰の対象。' },
+    { id: 'timemachine', name: '時間跳躍製麺機', icon: '⏳', baseCost: 75000000000, baseCps: 2000000, desc: '茹で上がる前に食べる。' },
+    { id: 'dimension', name: '異次元そば門', icon: '🌀', baseCost: 1000000000000, baseCps: 15000000, desc: '別の宇宙からそばを召喚する。' },
+    { id: 'god', name: 'そばの神髄', icon: '👁️', baseCost: 15000000000000, baseCps: 120000000, desc: 'もはや言葉では説明できない。' },
+    { id: 'galaxy', name: '越前そば銀河鉄道', icon: '🚂', baseCost: 200000000000000, baseCps: 1000000000, desc: '銀河中にそばを配達する。' },
+    { id: 'parallel', name: '多次元そば並行世界', icon: '🌌', baseCost: 3000000000000000, baseCps: 9000000000, desc: 'あらゆる可能性のそばを集める。' },
+    { id: 'quantum', name: '量子もつれ製麺', icon: '⚛️', baseCost: 50000000000000000, baseCps: 80000000000, desc: '観測するまで茹で上がらない。' },
+    { id: 'blackhole', name: 'ブラックホール石臼', icon: '🕳️', baseCost: 800000000000000000, baseCps: 700000000000, desc: '事象の地平線で粉を挽く。' },
+    { id: 'universe', name: '宇宙創成そば', icon: '💥', baseCost: 10000000000000000000, baseCps: 6000000000000, desc: 'ビッグバンはそばから始まった。' },
+    { id: 'simulation', name: 'シミュレーション越前', icon: '💻', baseCost: 150000000000000000000, baseCps: 50000000000000, desc: '世界そのものがそばである。' },
+    { id: 'concept', name: '概念的そば打ち', icon: '💭', baseCost: 2000000000000000000000, baseCps: 400000000000000, desc: '「そば」という概念そのものを打つ。' },
+    { id: 'infinity', name: '無限の越前', icon: '♾️', baseCost: 30000000000000000000000, baseCps: 3000000000000000, desc: '終わりなきそばの輪廻。' },
+    { id: 'origin', name: '起源のそば', icon: '🌱', baseCost: 500000000000000000000000, baseCps: 4e16, desc: '全てのそばの始まりに触れる。' },
+    { id: 'eternity', name: '永劫の一杯', icon: '🕰️', baseCost: 8e25, baseCps: 7e17, desc: '茹で上がることも冷めることもない、永遠の一杯。' },
+    { id: 'omniscience', name: '全知のそば', icon: '🧠', baseCost: 1e28, baseCps: 1e20, desc: 'そばを打つという行為そのものを理解し尽くした境地。' }
+];
+
+const UPGRADES = [
+    { id: 'upg_click_1', name: '強化割り箸', icon: '🥢', cost: 100, type: 'click', power: 2, desc: 'クリックパワー2倍。', req: { totalSoba: 10 } },
+    { id: 'upg_click_2', name: '大根おろし器', icon: '🥕', cost: 1000, type: 'click', power: 2, desc: 'さらにクリック強化。', req: { totalSoba: 500 } },
+    { id: 'upg_click_3', name: 'チタン製麺棒', icon: '🥖', cost: 50000, type: 'click', power: 3, desc: 'クリックが驚異的な力を持つ。', req: { clicks: 500 } },
+    { id: 'upg_click_4', name: '光速の麺棒', icon: '💫', cost: 10000000, type: 'click', power: 5, desc: 'クリックが光を追い越す。', req: { clicks: 5000 } },
+    { id: 'upg_stud_1', name: 'やる気スイッチ', icon: '💡', cost: 500, type: 'building', target: 'student', mult: 3, desc: '見習いの効率3倍。', req: { buildings: { student: 10 } } },
+    { id: 'upg_stud_2', name: '修行の成果', icon: '📜', cost: 5000, type: 'building', target: 'student', mult: 5, desc: '見習いの効率5倍。', req: { buildings: { student: 25 } } },
+    { id: 'upg_global_1', name: '越前の名水', icon: '💧', cost: 1000000, type: 'global', mult: 1.2, desc: '全生産20%アップ。', req: { totalSoba: 100000 } },
+    { id: 'upg_global_2', name: 'そば粉の革命', icon: '🌾', cost: 100000000, type: 'global', mult: 1.5, desc: '全生産50%アップ。', req: { totalSoba: 10000000 } },
+    { id: 'upg_global_3', name: '究極の出汁', icon: '🐟', cost: 10000000000, type: 'global', mult: 2, desc: '全生産2倍。', req: { totalSoba: 1000000000 } },
+    { id: 'upg_prestige_1', name: '魂の記憶', icon: '🌀', cost: 1e15, type: 'global', mult: 1.5, desc: '転生への渇望が生産を高める。', req: { totalSoba: 1e14 } },
+    { id: 'upg_kitchen_1', name: '換気扇の改良', icon: '🍳', cost: 3000, type: 'building', target: 'kitchen', mult: 4, desc: '家庭用厨房の効率4倍。', req: { buildings: { kitchen: 10 } } },
+    { id: 'upg_mill_1', name: '二枚刃の石臼', icon: '🪨', cost: 30000, type: 'building', target: 'mill', mult: 4, desc: '石臼製粉機の効率4倍。', req: { buildings: { mill: 10 } } },
+    { id: 'upg_shop_1', name: '行列必至の看板', icon: '🎏', cost: 300000, type: 'building', target: 'shop', mult: 4, desc: 'そば処の効率4倍。', req: { buildings: { shop: 10 } } },
+    { id: 'upg_factory_1', name: '全自動麺帯機', icon: '🔧', cost: 3000000, type: 'building', target: 'factory', mult: 4, desc: '製麺工場の効率4倍。', req: { buildings: { factory: 10 } } },
+    { id: 'upg_festival_1', name: '全国区の宣伝', icon: '📢', cost: 30000000, type: 'building', target: 'festival', mult: 4, desc: '越前そば祭りの効率4倍。', req: { buildings: { festival: 10 } } },
+    { id: 'upg_robot_1', name: '深層学習アルゴリズム', icon: '🧬', cost: 500000000, type: 'building', target: 'robot', mult: 4, desc: 'AI製麺ロボの効率4倍。', req: { buildings: { robot: 10 } } },
+    { id: 'upg_satellite_1', name: '軌道上プラント拡張', icon: '🛰️', cost: 8000000000, type: 'building', target: 'satellite', mult: 4, desc: '宇宙そば農場の効率4倍。', req: { buildings: { satellite: 10 } } },
+    { id: 'upg_shrine_1', name: '総本山の建立', icon: '🎴', cost: 1.5e11, type: 'building', target: 'shrine', mult: 4, desc: 'そばの聖地の効率4倍。', req: { buildings: { shrine: 10 } } },
+    { id: 'upg_click_5', name: '次元断裂の一撃', icon: '💥', cost: 1000000000, type: 'click', power: 8, desc: 'クリックが次元を切り裂く。', req: { clicks: 20000 } },
+    { id: 'upg_global_4', name: '大宇宙の摂理', icon: '🪐', cost: 1e18, type: 'global', mult: 2.5, desc: '全生産2.5倍。', req: { totalSoba: 1e17 } },
+    { id: 'upg_global_5', name: '無限ループの真実', icon: '🔁', cost: 1e22, type: 'global', mult: 3, desc: '全生産3倍。', req: { totalSoba: 1e21 } },
+    { id: 'upg_global_6', name: '起源への回帰', icon: '🌌', cost: 1e26, type: 'global', mult: 3.5, desc: '全生産3.5倍。', req: { totalSoba: 1e25 } },
+    { id: 'upg_kitten_1', name: '段ボール猫', icon: '📦', cost: 9000, type: 'kitten', kittenPercent: 0.02, desc: 'ミルクLv.1につき全生産+2%。', req: { totalSoba: 5000 } },
+    { id: 'upg_kitten_2', name: 'ミルク猫', icon: '🥛', cost: 90000, type: 'kitten', kittenPercent: 0.04, desc: 'ミルクLv.1につき全生産+4%。', req: { totalSoba: 50000 } },
+    { id: 'upg_kitten_3', name: 'そば猫', icon: '🐈', cost: 900000, type: 'kitten', kittenPercent: 0.06, desc: 'ミルクLv.1につき全生産+6%。', req: { totalSoba: 500000 } },
+    { id: 'upg_kitten_4', name: '越前招き猫', icon: '🐾', cost: 90000000, type: 'kitten', kittenPercent: 0.08, desc: 'ミルクLv.1につき全生産+8%。', req: { totalSoba: 50000000 } },
+    { id: 'upg_kitten_5', name: '猫又そば師匠', icon: '😼', cost: 9000000000, type: 'kitten', kittenPercent: 0.10, desc: 'ミルクLv.1につき全生産+10%。', req: { totalSoba: 5000000000 } },
+    { id: 'upg_kitchen_2', name: '薪窯の導入', icon: '🔥', cost: 40000, type: 'building', target: 'kitchen', mult: 3, desc: '家庭用厨房の効率さらに3倍。', req: { buildings: { kitchen: 25 } } },
+    { id: 'upg_mill_2', name: '水車式石臼', icon: '🌊', cost: 400000, type: 'building', target: 'mill', mult: 3, desc: '石臼製粉機の効率さらに3倍。', req: { buildings: { mill: 25 } } },
+    { id: 'upg_shop_2', name: '暖簾分けの拡大', icon: '🏯', cost: 4000000, type: 'building', target: 'shop', mult: 3, desc: 'そば処の効率さらに3倍。', req: { buildings: { shop: 25 } } },
+    { id: 'upg_factory_2', name: '無人化ライン', icon: '🦾', cost: 40000000, type: 'building', target: 'factory', mult: 3, desc: '製麺工場の効率さらに3倍。', req: { buildings: { factory: 25 } } },
+    { id: 'upg_festival_2', name: '越前そば万博', icon: '🎪', cost: 4e8, type: 'building', target: 'festival', mult: 3, desc: '越前そば祭りの効率さらに3倍。', req: { buildings: { festival: 25 } } },
+    { id: 'upg_time_1', name: '因果律の書き換え', icon: '📖', cost: 2e12, type: 'building', target: 'timemachine', mult: 4, desc: '時間跳躍製麺機の効率4倍。', req: { buildings: { timemachine: 10 } } },
+    { id: 'upg_dim_1', name: '扉の増設', icon: '🚪', cost: 3e13, type: 'building', target: 'dimension', mult: 4, desc: '異次元そば門の効率4倍。', req: { buildings: { dimension: 10 } } },
+    { id: 'upg_god_1', name: '悟りの境地', icon: '🕉️', cost: 4e14, type: 'building', target: 'god', mult: 4, desc: 'そばの神髄の効率4倍。', req: { buildings: { god: 10 } } },
+    { id: 'upg_galaxy_1', name: '路線の全拡張', icon: '🌠', cost: 6e15, type: 'building', target: 'galaxy', mult: 4, desc: '越前そば銀河鉄道の効率4倍。', req: { buildings: { galaxy: 10 } } },
+    { id: 'upg_parallel_1', name: '並行意識の統合', icon: '🪞', cost: 9e16, type: 'building', target: 'parallel', mult: 4, desc: '多次元そば並行世界の効率4倍。', req: { buildings: { parallel: 10 } } },
+    { id: 'upg_quantum_1', name: '波動関数の収束', icon: '🔬', cost: 1.5e18, type: 'building', target: 'quantum', mult: 4, desc: '量子もつれ製麺の効率4倍。', req: { buildings: { quantum: 10 } } }
+];
+
+const HEAVENLY_UPGRADES = [
+    { id: 'heav_1', name: '越前の加護', icon: '🙏', cost: 5, desc: '施設のコスト上昇率が緩やかになる(1.15→1.13)。', effect: 'cheapBuild' },
+    { id: 'heav_2', name: '黄金の巡り', icon: '🌟', cost: 10, desc: 'ゴールデンそば・呪われしそばの出現率が上昇する。', effect: 'goldenFreq' },
+    { id: 'heav_3', name: '魂の共鳴', icon: '💠', cost: 15, desc: '全生産が永続的に+10%される。', effect: 'globalMult', mult: 1.1 },
+    { id: 'heav_4', name: '開祖の記憶', icon: '🧓', cost: 25, desc: 'クリックパワーの基礎値が永続的に+50される。', effect: 'clickBase', amount: 50 },
+    { id: 'heav_5', name: '天界の加速', icon: '🚀', cost: 40, desc: '全生産が永続的に+25%される。', effect: 'globalMult', mult: 1.25 },
+    { id: 'heav_6', name: '熟成の秘技', icon: '🍡', cost: 30, desc: 'そば粉の塊がたまる速度が2倍になる。', effect: 'lumpSpeed' },
+    { id: 'heav_7', name: '究極の悟り', icon: '☯️', cost: 100, desc: '全生産が永続的に2倍になる。', effect: 'globalMult', mult: 2 }
+];
+
+const SPIRITS = [
+    { id: 'spirit_speed', name: '疾風の精霊', icon: '💨', desc: '全生産が+15%される。', effect: 'globalMult', value: 1.15 },
+    { id: 'spirit_harvest', name: '豊穣の精霊', icon: '🌾', desc: 'ゴールデンそば・呪われしそばの報酬が+30%される。', effect: 'goldenBonus', value: 1.3 },
+    { id: 'spirit_guardian', name: '守護の精霊', icon: '🛡️', desc: '呪われしそばで失うそばの量が半分になる。', effect: 'wrathShield', value: 0.5 },
+    { id: 'spirit_wisdom', name: '知恵の精霊', icon: '📖', desc: 'クリックパワーが+20%される。', effect: 'clickMult', value: 1.2 },
+    { id: 'spirit_commerce', name: '商いの精霊', icon: '💴', desc: '施設のコストが少しだけ安くなる。', effect: 'cheaperBuild', value: 0.97 }
+];
+
+const ACHIEVEMENTS = [
+    { id: 'ach_1', name: '最初の一歩', icon: '👣', desc: 'そばを1杯打つ。', req: { totalSoba: 1 } },
+    { id: 'ach_2', name: 'そば職人の卵', icon: '🥚', desc: 'そばを100杯打つ。', req: { totalSoba: 100 } },
+    { id: 'ach_3', name: '越前の新星', icon: '🌟', desc: 'そばを1万杯打つ。', req: { totalSoba: 10000 } },
+    { id: 'ach_4', name: 'そばマスター', icon: '👑', desc: 'そばを100万杯打つ。', req: { totalSoba: 1000000 } },
+    { id: 'ach_5', name: 'そば神', icon: '😇', desc: 'そばを1億杯打つ。', req: { totalSoba: 100000000 } },
+    { id: 'ach_6', name: '銀河の麺打ち', icon: '🌌', desc: 'そばを100億杯打つ。', req: { totalSoba: 10000000000 } },
+    { id: 'ach_7', name: '次元の超越者', icon: '🌀', desc: 'そばを1兆杯打つ。', req: { totalSoba: 1000000000000 } },
+    { id: 'ach_8', name: '越前の伝説', icon: '📜', desc: 'そばを100兆杯打つ。', req: { totalSoba: 100000000000000 } },
+    { id: 'ach_9', name: '終焉の麺師', icon: '💀', desc: 'そばを1京杯打つ。', req: { totalSoba: 1e16 } },
+    { id: 'ach_10', name: '無限のそば', icon: '♾️', desc: 'そばを1垓杯打つ。', req: { totalSoba: 1e20 } },
+    { id: 'ach_click_1', name: 'クリックの始まり', icon: '🖱️', desc: '100回クリック。', req: { clicks: 100 } },
+    { id: 'ach_click_2', name: 'クリックの達人', icon: '⚡', desc: '1000回クリック。', req: { clicks: 1000 } },
+    { id: 'ach_click_3', name: '連打の鬼', icon: '👹', desc: '5000回クリック。', req: { clicks: 5000 } },
+    { id: 'ach_click_4', name: 'クリック中毒', icon: '💉', desc: '1万回クリック。', req: { clicks: 10000 } },
+    { id: 'ach_click_fast', name: '超速の麺棒', icon: '🏎️', desc: '1秒間に10回クリック。', req: { clickSpeed: 10 } },
+    { id: 'ach_build_1', name: '雇い主', icon: '👔', desc: '施設合計50個。', req: { totalBuildings: 50 } },
+    { id: 'ach_build_2', name: '越前の富豪', icon: '💰', desc: '施設合計200個。', req: { totalBuildings: 200 } },
+    { id: 'ach_build_3', name: '産業の支配者', icon: '🏢', desc: '施設合計500個。', req: { totalBuildings: 500 } },
+    { id: 'ach_build_4', name: '世界の麺工場', icon: '🌍', desc: '施設合計1000個。', req: { totalBuildings: 1000 } },
+    { id: 'ach_golden_1', name: '幸運の持ち主', icon: '🍀', desc: 'ゴールデンそば1回。', req: { goldenClicks: 1 } },
+    { id: 'ach_golden_2', name: '黄金の愛好家', icon: '🏅', desc: 'ゴールデンそば10回。', req: { goldenClicks: 10 } },
+    { id: 'ach_golden_3', name: '黄金の守護者', icon: '🛡️', desc: 'ゴールデンそば50回。', req: { goldenClicks: 50 } },
+    { id: 'ach_fever_1', name: '熱狂の始まり', icon: '🔥', desc: 'フィーバータイム1回。', req: { feverCount: 1 } },
+    { id: 'ach_fever_2', name: '熱狂の嵐', icon: '🌪️', desc: 'フィーバータイム10回。', req: { feverCount: 10 } },
+    { id: 'ach_prestige_1', name: '輪廻転生', icon: '♻️', desc: '1回以上転生する。', req: { prestigeCount: 1 } },
+    { id: 'ach_all_build_1', name: '全施設制覇', icon: '🏰', desc: '全ての施設を1つ以上所有。', req: { allBuildings: 1 } },
+    { id: 'ach_rich_1', name: 'そば大尽', icon: '🤑', desc: '1秒間に100万杯生産。', req: { cps: 1000000 } },
+    { id: 'ach_rich_2', name: '経済の特異点', icon: '🌌', desc: '1秒間に1兆杯生産。', req: { cps: 1000000000000 } },
+    { id: 'ach_rich_3', name: '神の生産力', icon: '🔱', desc: '1秒間に1京杯生産。', req: { cps: 1e16 } },
+    { id: 'ach_secret_1', name: '隠し味', icon: '🤐', desc: 'リセットボタンを5回見る。', req: { secret: 5 } },
+    { id: 'ach_secret_2', name: 'かくれんぼ上手', icon: '🙈', desc: 'リセットボタンを20回見る。', req: { secret: 20 } },
+    { id: 'ach_soul_1', name: '越前魂の目覚め', icon: '👻', desc: '越前魂を1個獲得する。', req: { souls: 1 } },
+    { id: 'ach_soul_2', name: '越前魂の収集家', icon: '🎐', desc: '越前魂を50個獲得する。', req: { souls: 50 } },
+    { id: 'ach_soul_3', name: '越前魂の化身', icon: '👺', desc: '越前魂を500個獲得する。', req: { souls: 500 } },
+    { id: 'ach_time_1', name: '一時間の旅', icon: '⏱️', desc: 'プレイ時間が1時間に到達。', req: { playTime: 3600 } },
+    { id: 'ach_time_2', name: '一日の旅人', icon: '🌅', desc: 'プレイ時間が24時間に到達。', req: { playTime: 86400 } },
+    { id: 'ach_clickpower_1', name: '一撃の重み', icon: '✊', desc: 'クリックパワーが1000に到達。', req: { clickPower: 1000 } },
+    { id: 'ach_clickpower_2', name: '一撃必殺', icon: '💢', desc: 'クリックパワーが100万に到達。', req: { clickPower: 1000000 } },
+    { id: 'ach_building_origin', name: '新境地の開拓者', icon: '🌱', desc: '起源のそばを1つ以上所有。', req: { buildings: { origin: 1 } } },
+    { id: 'ach_building_omni', name: '全知への到達', icon: '🧠', desc: '全知のそばを1つ以上所有。', req: { buildings: { omniscience: 1 } } },
+    { id: 'ach_upgrade_all', name: '改良の極み', icon: '🏆', desc: '全てのアップグレードを購入する。', req: { allUpgrades: 1 } },
+    { id: 'ach_rich_4', name: '想像を絶する生産', icon: '💫', desc: '1秒間に1穣杯生産。', req: { cps: 1e28 } },
+    { id: 'ach_milk_1', name: '初めてのミルク', icon: '🥛', desc: 'ミルクレベル1に到達。', req: { milkLevel: 1 } },
+    { id: 'ach_milk_2', name: '猫まみれ', icon: '🐱', desc: 'ミルクレベル5に到達。', req: { milkLevel: 5 } },
+    { id: 'ach_milk_3', name: 'ミルクの海', icon: '🌊', desc: 'ミルクレベル10に到達。', req: { milkLevel: 10 } },
+    { id: 'ach_wrath_1', name: '凶兆との遭遇', icon: '😈', desc: '呪われしそばを1回クリック。', req: { wrathClicks: 1 } },
+    { id: 'ach_wrath_2', name: '厄払いの達人', icon: '🧿', desc: '呪われしそばを20回クリック。', req: { wrathClicks: 20 } },
+    { id: 'ach_lump_1', name: '塊の発見', icon: '🍡', desc: 'そば粉の塊を1個獲得。', req: { totalLumps: 1 } },
+    { id: 'ach_lump_2', name: '塊職人', icon: '🧺', desc: 'そば粉の塊を10個獲得。', req: { totalLumps: 10 } },
+    { id: 'ach_lump_3', name: '熟成の探求者', icon: '🏺', desc: 'そば粉の塊を50個獲得。', req: { totalLumps: 50 } },
+    { id: 'ach_heavenly_1', name: '天界への一歩', icon: '☁️', desc: '天界の力を1つ購入。', req: { heavenlyCount: 1 } },
+    { id: 'ach_heavenly_2', name: '天界の支配者', icon: '👼', desc: '天界の力を全て購入。', req: { heavenlyCount: 7 } },
+    { id: 'ach_shrine_1', name: '祭壇の目覚め', icon: '⛩️', desc: '初めて精霊を祀る。', req: { spiritsCount: 1 } },
+    { id: 'ach_shrine_2', name: '二柱の加護', icon: '🙏', desc: '2柱の精霊を同時に祀る。', req: { spiritsCount: 2 } }
+];
+
+const NEWS = [
+    "越前そばの香りが街中に漂っています。",
+    "大根おろしの辛さがクセになると評判です。",
+    "「ここのそばを食べないと一日が始まらない」と語る常連客。",
+    "そば打ち見習い、驚異的な成長を見せる。",
+    "最新の石臼製粉機、導入。摩擦熱を抑えて香りをキープ。",
+    "越前そば祭り、過去最高の動員数を記録！",
+    "AIロボットが打つそば、人間と区別がつかないレベルに。",
+    "宇宙で打たれたそば、驚きのコシの強さ。",
+    "時間跳躍製麺機により、茹で時間はマイナスへ。",
+    "見習いたちが「越前そば革命」を宣言。生産性が大幅アップ。",
+    "異次元から届くそば、その味は「宇宙の真理」と評される。",
+    "銀河鉄道により、アンドロメダ星雲までそばが届くように。",
+    "ブラックホールの重力で粉を挽くと、味が濃縮されることが判明。",
+    "宇宙創成の瞬間、そこには既にそばがあったという新説。",
+    "転生を繰り返すそば職人、ついに「究極の麺」に到達か？",
+    "そばの神髄、ついに一般家庭でも体験可能に（要異次元契約）。",
+    "謎の黒猫が厨房に住み着いた。ミルクの香りがそばを引き立てるらしい。",
+    "夜な夜な現れる「呪われしそば」に注意――触れる者に幸運と災いを等しくもたらすという。",
+    "そば粉の塊が発見された。これを使えば古い施設も生まれ変わるとの噂。",
+    "転生を経た者だけが辿り着ける「天界」。そこには更なる力が眠っているという。"
+];
+
+// --- Game State ---
+let state = {
+    soba: 0,
+    totalSoba: 0,
+    allTimeSoba: 0,
+    clicks: 0,
+    goldenClicks: 0,
+    feverCount: 0,
+    prestigeCount: 0,
+    souls: 0,
+    buildings: {},
+    buildingLevels: {},
+    upgrades: [],
+    achievements: [],
+    startTime: Date.now(),
+    lastSave: Date.now(),
+    secretCounter: 0,
+    lumps: 0,
+    totalLumps: 0,
+    lastLumpTime: Date.now(),
+    heavenlyUpgrades: [],
+    wrathClicks: 0,
+    spirits: []
+};
+
+function resetState() {
+    BUILDINGS.forEach(b => { state.buildings[b.id] = 0; state.buildingLevels[b.id] = 0; });
+    state.soba = 0;
+    state.totalSoba = 0;
+    state.clicks = 0;
+    state.upgrades = [];
+}
+resetState();
+
+let cps = 0;
+let isResetting = false;
+let clickPower = 1;
+let buffMult = 1;
+let buffTimer = 0;
+let clickBuffMult = 1;
+let clickBuffTimer = 0;
+let lastUpdate = Date.now();
+let clickTimestamps = [];
+
+// --- Core Logic ---
+
+function getMilkLevel() {
+    return Math.floor(state.achievements.length / 7);
+}
+
+function calculateCps() {
+    let newCps = 0;
+    BUILDINGS.forEach(b => {
+        let count = state.buildings[b.id];
+        let level = state.buildingLevels[b.id] || 0;
+        let bCps = b.baseCps * count * Math.pow(1.01, level);
+        UPGRADES.filter(u => u.type === 'building' && u.target === b.id && state.upgrades.includes(u.id))
+                .forEach(u => bCps *= u.mult);
+        newCps += bCps;
+    });
+    UPGRADES.filter(u => u.type === 'global' && state.upgrades.includes(u.id))
+            .forEach(u => newCps *= u.mult);
+
+    // Kitten/Milk upgrades: each purchased kitten scales with current milk level
+    const milkLevel = getMilkLevel();
+    UPGRADES.filter(u => u.type === 'kitten' && state.upgrades.includes(u.id))
+            .forEach(u => newCps *= (1 + u.kittenPercent * milkLevel));
+
+    // Heavenly upgrades: permanent global multipliers
+    HEAVENLY_UPGRADES.filter(h => h.effect === 'globalMult' && state.heavenlyUpgrades.includes(h.id))
+            .forEach(h => newCps *= h.mult);
+
+    // Shrine spirits: speed spirit boosts all production
+    SPIRITS.filter(s => s.effect === 'globalMult' && state.spirits.includes(s.id))
+            .forEach(s => newCps *= s.value);
+    
+    // Prestige Bonus: Each soul gives +1% bonus
+    let prestigeMult = 1 + (state.souls * 0.01);
+    cps = newCps * buffMult * prestigeMult;
+    
+    let newClickPower = 1;
+    UPGRADES.filter(u => u.type === 'click' && state.upgrades.includes(u.id))
+            .forEach(u => newClickPower *= u.power);
+    let clickBaseBonus = 0;
+    HEAVENLY_UPGRADES.filter(h => h.effect === 'clickBase' && state.heavenlyUpgrades.includes(h.id))
+            .forEach(h => clickBaseBonus += h.amount);
+    let spiritClickMult = 1;
+    SPIRITS.filter(s => s.effect === 'clickMult' && state.spirits.includes(s.id))
+            .forEach(s => spiritClickMult *= s.value);
+    clickPower = (newClickPower + clickBaseBonus + (cps * 0.04)) * prestigeMult * clickBuffMult * spiritClickMult;
+}
+
+function getGoldenBonusMult() {
+    let mult = 1;
+    SPIRITS.filter(s => s.effect === 'goldenBonus' && state.spirits.includes(s.id))
+            .forEach(s => mult *= s.value);
+    return mult;
+}
+
+function getWrathShieldMult() {
+    let mult = 1;
+    SPIRITS.filter(s => s.effect === 'wrathShield' && state.spirits.includes(s.id))
+            .forEach(s => mult *= s.value);
+    return mult;
+}
+
+function update() {
+    let now = Date.now();
+    let dt = (now - lastUpdate) / 1000;
+    lastUpdate = now;
+
+    if (cps > 0) {
+        let gained = cps * dt;
+        state.soba += gained;
+        state.totalSoba += gained;
+        state.allTimeSoba += gained;
+    }
+
+    if (buffTimer > 0) {
+        buffTimer -= dt;
+        if (buffTimer <= 0) {
+            buffTimer = 0;
+            buffMult = 1;
+            document.getElementById('app').classList.remove('fever');
+            calculateCps();
+            notify("フィーバータイム終了！");
+        }
+    }
+
+    if (clickBuffTimer > 0) {
+        clickBuffTimer -= dt;
+        if (clickBuffTimer <= 0) {
+            clickBuffTimer = 0;
+            clickBuffMult = 1;
+            calculateCps();
+            notify("クリックフィーバー終了！");
+        }
+    }
+
+    accumulateLumps(now);
+
+    clickTimestamps = clickTimestamps.filter(t => now - t < 1000);
+    checkAchievements();
+    render();
+}
+
+function getLumpInterval() {
+    const base = 20 * 60 * 1000; // 20 minutes real time per lump
+    const speedUp = state.heavenlyUpgrades.includes('heav_6') ? 2 : 1;
+    return base / speedUp;
+}
+
+function accumulateLumps(now) {
+    const interval = getLumpInterval();
+    let elapsed = now - (state.lastLumpTime || now);
+    if (elapsed < 0) elapsed = 0;
+    const gained = Math.floor(elapsed / interval);
+    if (gained > 0) {
+        state.lumps += gained;
+        state.totalLumps += gained;
+        state.lastLumpTime += gained * interval;
+    }
+}
+
+setInterval(update, 100);
+
+// --- UI Rendering ---
+
+function fmt(n) {
+    if (n < 1000) return Math.floor(n).toLocaleString();
+    const units = ["", "万", "億", "兆", "京", "垓", "𥝱", "穣", "溝", "澗", "正", "載", "極", "恒河沙", "阿僧祇", "那由他", "不可思議", "無量大数"];
+    let unitIdx = 0;
+    let val = n;
+    while (val >= 10000 && unitIdx < units.length - 1) {
+        val /= 10000;
+        unitIdx++;
+    }
+    return val.toFixed(2).replace(/\.00$/, "") + units[unitIdx];
+}
+
+function render() {
+    document.getElementById('soba-count').textContent = fmt(state.soba) + " 杯";
+    document.getElementById('soba-rate').textContent = `毎秒: ${fmt(cps)} 杯` + (buffMult > 1 ? ` (FEVER x${buffMult}!)` : "");
+    document.getElementById('ach-count').textContent = `${state.achievements.length}/${ACHIEVEMENTS.length}`;
+    document.getElementById('upg-count').textContent = `${state.upgrades.length}/${UPGRADES.length}`;
+    document.getElementById('milk-level').textContent = getMilkLevel();
+    document.getElementById('lump-count').textContent = state.lumps;
+    
+    if (state.allTimeSoba >= 1e12 || state.prestigeCount > 0) {
+        document.getElementById('prestige-tab').style.display = 'block';
+    }
+    const totalBuildingsOwned = Object.values(state.buildings).reduce((a, b) => a + b, 0);
+    if (totalBuildingsOwned >= 50) {
+        document.getElementById('shrine-tab').style.display = 'block';
+    }
+
+    renderShop();
+    renderUpgrades();
+    renderAchievements();
+    renderStats();
+    renderShrine();
+    renderPrestige();
+}
+
+function renderShop() {
+    const list = document.getElementById('buildings-list');
+    list.innerHTML = '';
+    BUILDINGS.forEach(b => {
+        const cost = getBuildingCost(b);
+        const canBuy = state.soba >= cost;
+        const locked = state.totalSoba < b.baseCost * 0.4 && state.buildings[b.id] === 0;
+        
+        const level = state.buildingLevels[b.id] || 0;
+        const div = document.createElement('div');
+        div.className = `building-item ${locked ? 'locked' : (canBuy ? 'can-buy' : '')}`;
+        div.innerHTML = `
+            <div class="b-icon">${locked ? '❓' : b.icon}</div>
+            <div class="b-info">
+                <div class="b-name">${locked ? '???' : b.name}${!locked && level > 0 ? ` <span style="color:var(--accent); font-size:11px">Lv.${level}</span>` : ''}</div>
+                <div class="b-cost">${locked ? '---' : '🍜 ' + fmt(cost)}</div>
+            </div>
+            <div class="b-count">${state.buildings[b.id] || 0}</div>
+        `;
+        
+        if (!locked) {
+            div.onmousedown = (e) => { e.preventDefault(); buyBuilding(b.id); };
+            div.onmouseenter = (e) => showTooltip(e, b.name, `${b.desc}<br>生産: ${fmt(b.baseCps)}/秒${level > 0 ? ` (熟成Lv.${level}: +${level}%)` : ''}`, cost);
+            div.onmouseleave = hideTooltip;
+        }
+        list.appendChild(div);
+    });
+}
+
+function renderUpgrades() {
+    const grid = document.getElementById('upgrades-grid');
+    grid.innerHTML = '';
+    UPGRADES.forEach(u => {
+        if (state.upgrades.includes(u.id)) return;
+        let visible = false;
+        if (u.req.totalSoba && state.totalSoba >= u.req.totalSoba * 0.5) visible = true;
+        if (u.req.clicks && state.clicks >= u.req.clicks * 0.5) visible = true;
+        if (u.req.buildings) {
+            for (let bid in u.req.buildings) {
+                if (state.buildings[bid] >= u.req.buildings[bid] * 0.5) visible = true;
+            }
+        }
+        if (visible) {
+            const canBuy = state.soba >= u.cost;
+            const div = document.createElement('div');
+            div.className = `upgrade-item ${canBuy ? '' : 'disabled'}`;
+            div.innerHTML = u.icon;
+            div.onmousedown = (e) => { e.preventDefault(); buyUpgrade(u.id); };
+            div.onmouseenter = (e) => showTooltip(e, u.name, u.desc, u.cost);
+            div.onmouseleave = hideTooltip;
+            grid.appendChild(div);
+        }
+    });
+}
+
+function renderAchievements() {
+    const list = document.getElementById('ach-list');
+    list.innerHTML = '';
+    ACHIEVEMENTS.forEach(a => {
+        const unlocked = state.achievements.includes(a.id);
+        const div = document.createElement('div');
+        div.className = `ach-icon-small ${unlocked ? 'unlocked' : ''}`;
+        div.innerHTML = a.icon;
+        div.onmouseenter = (e) => showTooltip(e, a.name, unlocked ? a.desc : '???', 0);
+        div.onmouseleave = hideTooltip;
+        list.appendChild(div);
+    });
+}
+
+function renderStats() {
+    if (document.getElementById('stats-view').style.display !== 'block') return;
+    const container = document.getElementById('stats-container');
+    const playTime = Math.floor((Date.now() - state.startTime) / 1000);
+    const h = Math.floor(playTime / 3600);
+    const m = Math.floor((playTime % 3600) / 60);
+    const s = playTime % 60;
+    container.innerHTML = `
+        <div class="stat-row"><span class="stat-label">現在のそば</span><span>${fmt(state.soba)} 杯</span></div>
+        <div class="stat-row"><span class="stat-label">今世の生産量</span><span>${fmt(state.totalSoba)} 杯</span></div>
+        <div class="stat-row"><span class="stat-label">全世の生産量</span><span>${fmt(state.allTimeSoba)} 杯</span></div>
+        <div class="stat-row"><span class="stat-label">総クリック数</span><span>${state.clicks} 回</span></div>
+        <div class="stat-row"><span class="stat-label">ゴールデンそば</span><span>${state.goldenClicks} 回</span></div>
+        <div class="stat-row"><span class="stat-label">転生回数</span><span>${state.prestigeCount} 回</span></div>
+        <div class="stat-row"><span class="stat-label">獲得済みの越前魂</span><span>${state.souls} 個</span></div>
+        <div class="stat-row"><span class="stat-label">プレイ時間</span><span>${h}時間${m}分${s}秒</span></div>
+        <div class="stat-row"><span class="stat-label">現在のCPS</span><span>${fmt(cps)}</span></div>
+        <div class="stat-row"><span class="stat-label">クリックパワー</span><span>${fmt(clickPower)}</span></div>
+        <div class="stat-row"><span class="stat-label">ミルクレベル</span><span>🥛 Lv.${getMilkLevel()}</span></div>
+        <div class="stat-row"><span class="stat-label">そば粉の塊 (総獲得)</span><span>${state.lumps} 個 (累計 ${state.totalLumps} 個)</span></div>
+        <div class="stat-row"><span class="stat-label">呪われしそば遭遇</span><span>${state.wrathClicks} 回</span></div>
+        <div class="stat-row"><span class="stat-label">天界の力</span><span>${state.heavenlyUpgrades.length}/${HEAVENLY_UPGRADES.length}</span></div>
+        <div class="stat-row"><span class="stat-label">祀っている精霊</span><span>${state.spirits.length > 0 ? state.spirits.map(id => SPIRITS.find(s => s.id === id).icon).join(' ') : 'なし'}</span></div>
+    `;
+}
+
+function renderShrine() {
+    if (document.getElementById('shrine-view').style.display !== 'block') return;
+
+    const slots = document.getElementById('shrine-slots');
+    slots.innerHTML = '';
+    for (let i = 0; i < 2; i++) {
+        const spiritId = state.spirits[i];
+        const spirit = spiritId ? SPIRITS.find(s => s.id === spiritId) : null;
+        const div = document.createElement('div');
+        div.className = `shrine-slot ${spirit ? 'filled' : ''}`;
+        div.innerHTML = spirit
+            ? `<div class="slot-icon">${spirit.icon}</div><div>${spirit.name}</div>`
+            : `<div class="slot-icon">➕</div><div>空きの祭壇</div>`;
+        if (spirit) {
+            div.onmousedown = (e) => { e.preventDefault(); toggleSpirit(spirit.id); };
+            div.onmouseenter = (e) => showTooltip(e, spirit.name, spirit.desc + '<br><span style="color:var(--muted)">クリックで解任</span>', 0);
+            div.onmouseleave = hideTooltip;
+        }
+        slots.appendChild(div);
+    }
+
+    const list = document.getElementById('shrine-list');
+    list.innerHTML = '';
+    SPIRITS.forEach(s => {
+        const active = state.spirits.includes(s.id);
+        const full = state.spirits.length >= 2 && !active;
+        const div = document.createElement('div');
+        div.className = `spirit-item ${active ? 'active' : ''} ${full ? 'disabled' : ''}`;
+        div.innerHTML = `
+            <div class="b-icon">${s.icon}</div>
+            <div class="b-info">
+                <div class="b-name">${s.name}</div>
+                <div class="b-cost" style="color:${active ? '#c77dff' : 'var(--muted)'}">${active ? '祀られています' : s.desc}</div>
+            </div>
+        `;
+        if (!full) {
+            div.onmousedown = (e) => { e.preventDefault(); toggleSpirit(s.id); };
+        }
+        div.onmouseenter = (e) => showTooltip(e, s.name, s.desc, 0);
+        div.onmouseleave = hideTooltip;
+        list.appendChild(div);
+    });
+}
+
+function toggleSpirit(id) {
+    const idx = state.spirits.indexOf(id);
+    if (idx >= 0) {
+        state.spirits.splice(idx, 1);
+    } else {
+        if (state.spirits.length >= 2) {
+            notify("祭壇は2柱までしか祀れません。", "⛩️");
+            return;
+        }
+        state.spirits.push(id);
+        const spirit = SPIRITS.find(s => s.id === id);
+        notify(`${spirit.name}を祀りました。`, spirit.icon);
+    }
+    calculateCps();
+    render();
+}
+
+function getAvailableSouls() {
+    const spent = HEAVENLY_UPGRADES.filter(h => state.heavenlyUpgrades.includes(h.id))
+                                    .reduce((sum, h) => sum + h.cost, 0);
+    return state.souls - spent;
+}
+
+function renderPrestige() {
+    if (document.getElementById('prestige-view').style.display !== 'block') return;
+    const btn = document.getElementById('prestige-btn');
+    const soulsToGet = Math.floor(Math.pow(state.allTimeSoba / 1e12, 0.5)) - state.souls;
+    const canPrestige = soulsToGet > 0;
+    
+    btn.disabled = !canPrestige;
+    btn.innerHTML = `
+        転生して ${Math.max(0, soulsToGet)} 個の「越前魂」を獲得<br>
+        <span style="font-size:11px; font-weight:normal">(現在のボーナス: +${state.souls}%)</span>
+    `;
+    document.getElementById('soul-count').textContent = state.souls;
+    document.getElementById('prestige-mult').textContent = state.souls;
+    const available = getAvailableSouls();
+    document.getElementById('soul-available').textContent = available;
+
+    // Heavenly upgrades shop
+    const hList = document.getElementById('heavenly-list');
+    hList.innerHTML = '';
+    HEAVENLY_UPGRADES.forEach(h => {
+        const owned = state.heavenlyUpgrades.includes(h.id);
+        const canBuy = !owned && available >= h.cost;
+        const div = document.createElement('div');
+        div.className = `building-item ${owned ? '' : (canBuy ? 'can-buy' : 'locked')}`;
+        div.style.opacity = owned ? '0.6' : (canBuy ? '1' : '0.4');
+        div.innerHTML = `
+            <div class="b-icon">${h.icon}</div>
+            <div class="b-info">
+                <div class="b-name">${h.name}</div>
+                <div class="b-cost" style="color:var(--prestige)">${owned ? '購入済み' : '👻 ' + h.cost + ' 越前魂'}</div>
+            </div>
+        `;
+        if (!owned) {
+            div.onmousedown = (e) => { e.preventDefault(); buyHeavenly(h.id); };
+        }
+        div.onmouseenter = (e) => showTooltip(e, h.name, h.desc, 0);
+        div.onmouseleave = hideTooltip;
+        hList.appendChild(div);
+    });
+
+    // Sugar lump aging list - only owned buildings
+    const lList = document.getElementById('lump-list');
+    lList.innerHTML = '';
+    const ownedBuildings = BUILDINGS.filter(b => (state.buildings[b.id] || 0) > 0);
+    if (ownedBuildings.length === 0) {
+        lList.innerHTML = '<p style="font-size:12px; color:var(--muted)">まだ施設を所有していません。</p>';
+    } else {
+        ownedBuildings.forEach(b => {
+            const level = state.buildingLevels[b.id] || 0;
+            const canAge = state.lumps > 0;
+            const div = document.createElement('div');
+            div.className = `building-item ${canAge ? 'can-buy' : 'locked'}`;
+            div.innerHTML = `
+                <div class="b-icon">${b.icon}</div>
+                <div class="b-info">
+                    <div class="b-name">${b.name} <span style="color:var(--accent)">Lv.${level}</span></div>
+                    <div class="b-cost">${canAge ? '🍡 塊1個で熟成 (+1%)' : '塊が足りません'}</div>
+                </div>
+            `;
+            if (canAge) {
+                div.onmousedown = (e) => { e.preventDefault(); ageBuilding(b.id); };
+            }
+            lList.appendChild(div);
+        });
+    }
+}
+
+function buyHeavenly(id) {
+    const h = HEAVENLY_UPGRADES.find(x => x.id === id);
+    if (!h || state.heavenlyUpgrades.includes(id)) return;
+    if (getAvailableSouls() >= h.cost) {
+        state.heavenlyUpgrades.push(id);
+        calculateCps();
+        render();
+        notify(`天界の力を獲得: ${h.name}`, "☁️");
+    }
+}
+
+function ageBuilding(id) {
+    if (state.lumps <= 0) return;
+    if (!state.buildings[id]) return;
+    state.lumps--;
+    state.buildingLevels[id] = (state.buildingLevels[id] || 0) + 1;
+    calculateCps();
+    render();
+}
+
+// --- Actions ---
+
+function clickBowl(e) {
+    state.soba += clickPower;
+    state.totalSoba += clickPower;
+    state.allTimeSoba += clickPower;
+    state.clicks++;
+    clickTimestamps.push(Date.now());
+    
+    const pop = document.createElement('div');
+    pop.className = 'click-pop';
+    pop.textContent = `+${fmt(clickPower)}`;
+    pop.style.left = (e.clientX - 20) + 'px';
+    pop.style.top = (e.clientY - 20) + 'px';
+    document.body.appendChild(pop);
+    setTimeout(() => pop.remove(), 900);
+
+    const recentClicks = clickTimestamps.filter(t => Date.now() - t < 1000).length;
+    if (recentClicks >= 5 && recentClicks % 5 === 0) {
+        const combo = document.createElement('div');
+        combo.className = 'combo-text';
+        combo.textContent = `COMBO x${recentClicks}!`;
+        combo.style.left = (e.clientX - 40) + 'px';
+        combo.style.top = (e.clientY - 60) + 'px';
+        document.body.appendChild(combo);
+        setTimeout(() => combo.remove(), 600);
+    }
+    
+    calculateCps();
+}
+
+document.getElementById('bowl').onmousedown = (e) => { e.preventDefault(); clickBowl(e); };
+
+document.addEventListener('keydown', (e) => {
+    if (e.code !== 'Space' || e.repeat) return;
+    e.preventDefault();
+    const bowl = document.getElementById('bowl');
+    const rect = bowl.getBoundingClientRect();
+    clickBowl({ clientX: rect.left + rect.width / 2, clientY: rect.top + rect.height / 2 });
+    bowl.style.transform = 'scale(0.92)';
+    setTimeout(() => { bowl.style.transform = ''; }, 100);
+});
+
+function getBuildingCost(b) {
+    const rate = state.heavenlyUpgrades.includes('heav_1') ? 1.13 : 1.15;
+    let cost = b.baseCost * Math.pow(rate, state.buildings[b.id] || 0);
+    if (state.spirits.includes('spirit_commerce')) cost *= 0.97;
+    return Math.floor(cost);
+}
+
+function buyBuilding(id) {
+    const b = BUILDINGS.find(x => x.id === id);
+    const cost = getBuildingCost(b);
+    if (state.soba >= cost) {
+        state.soba -= cost;
+        state.buildings[id] = (state.buildings[id] || 0) + 1;
+        calculateCps();
+        render();
+    }
+}
+
+function buyUpgrade(id) {
+    const u = UPGRADES.find(x => x.id === id);
+    if (state.soba >= u.cost && !state.upgrades.includes(id)) {
+        state.soba -= u.cost;
+        state.upgrades.push(id);
+        calculateCps();
+        render();
+        notify(`アップグレード購入: ${u.name}`);
+    }
+}
+
+function checkAchievements() {
+    ACHIEVEMENTS.forEach(a => {
+        if (state.achievements.includes(a.id)) return;
+        let met = true;
+        if (a.req.totalSoba && state.allTimeSoba < a.req.totalSoba) met = false;
+        if (a.req.clicks && state.clicks < a.req.clicks) met = false;
+        if (a.req.goldenClicks && state.goldenClicks < a.req.goldenClicks) met = false;
+        if (a.req.feverCount && state.feverCount < a.req.feverCount) met = false;
+        if (a.req.clickSpeed && clickTimestamps.length < a.req.clickSpeed) met = false;
+        if (a.req.prestigeCount && state.prestigeCount < a.req.prestigeCount) met = false;
+        if (a.req.cps && cps < a.req.cps) met = false;
+        if (a.req.buildings) {
+            for (let bid in a.req.buildings) {
+                if (state.buildings[bid] < a.req.buildings[bid]) met = false;
+            }
+        }
+        if (a.req.totalBuildings) {
+            let totalB = Object.values(state.buildings).reduce((a, b) => a + b, 0);
+            if (totalB < a.req.totalBuildings) met = false;
+        }
+        if (a.req.allBuildings) {
+            if (BUILDINGS.some(b => (state.buildings[b.id] || 0) === 0)) met = false;
+        }
+        if (a.req.secret && state.secretCounter < a.req.secret) met = false;
+        if (a.req.souls && state.souls < a.req.souls) met = false;
+        if (a.req.playTime) {
+            const playedSec = (Date.now() - state.startTime) / 1000;
+            if (playedSec < a.req.playTime) met = false;
+        }
+        if (a.req.clickPower && clickPower < a.req.clickPower) met = false;
+        if (a.req.allUpgrades && state.upgrades.length < UPGRADES.length) met = false;
+        if (a.req.milkLevel && getMilkLevel() < a.req.milkLevel) met = false;
+        if (a.req.wrathClicks && state.wrathClicks < a.req.wrathClicks) met = false;
+        if (a.req.totalLumps && state.totalLumps < a.req.totalLumps) met = false;
+        if (a.req.heavenlyCount && state.heavenlyUpgrades.length < a.req.heavenlyCount) met = false;
+        if (a.req.spiritsCount && state.spirits.length < a.req.spiritsCount) met = false;
+
+        if (met) {
+            state.achievements.push(a.id);
+            notify(`実績解除: ${a.name}`, "🏆", true);
+        }
+    });
+}
+
+function prestige() {
+    const soulsToGet = Math.floor(Math.pow(state.allTimeSoba / 1e12, 0.5)) - state.souls;
+    if (soulsToGet <= 0) return;
+    
+    if (confirm(`本当に転生しますか？\n獲得する越前魂: ${soulsToGet} 個\n(施設やアップグレードはリセットされますが、生産ボーナスが得られます)`)) {
+        state.souls += soulsToGet;
+        state.prestigeCount++;
+        resetState();
+        calculateCps();
+        switchTab('shop');
+        notify("輪廻転生しました。新たな人生の始まりです。", "♻️");
+    }
+}
+
+function spawnGoldenSoba() {
+    const gs = document.getElementById('golden-soba');
+    const isWrath = Math.random() < 0.22;
+    gs.dataset.type = isWrath ? 'wrath' : 'golden';
+    gs.textContent = isWrath ? '😈🍜' : '🍜✨';
+    gs.style.filter = isWrath ? 'drop-shadow(0 0 10px #a00) hue-rotate(300deg)' : 'drop-shadow(0 0 10px gold)';
+    const x = Math.random() * (window.innerWidth - 100);
+    const y = Math.random() * (window.innerHeight - 100);
+    gs.style.left = x + 'px';
+    gs.style.top = y + 'px';
+    gs.style.display = 'flex';
+    gs.style.fontSize = '45px';
+    gs.style.alignItems = 'center';
+    gs.style.justifyContent = 'center';
+    setTimeout(() => { gs.style.display = 'none'; }, 12000);
+}
+
+document.getElementById('golden-soba').onmousedown = function(e) {
+    e.preventDefault();
+    const type = this.dataset.type || 'golden';
+    this.style.display = 'none';
+
+    if (type === 'wrath') {
+        state.wrathClicks++;
+        if (Math.random() < 0.55) {
+            const lost = state.soba * 0.15 * getWrathShieldMult();
+            state.soba = Math.max(0, state.soba - lost);
+            notify(`呪われしそば...そばを${fmt(lost)}杯失った。`, "😈");
+            flashWrath();
+        } else {
+            const bonus = Math.max(500, cps * 666) * getGoldenBonusMult();
+            state.soba += bonus;
+            state.totalSoba += bonus;
+            state.allTimeSoba += bonus;
+            notify(`怨念の一撃！リスクを乗り越え${fmt(bonus)}杯を獲得！`, "🩸");
+        }
+        calculateCps();
+        return;
+    }
+
+    state.goldenClicks++;
+    const goldenBonusMult = getGoldenBonusMult();
+    const rand = Math.random();
+    if (rand < 0.35) {
+        buffMult = 7;
+        buffTimer = 77;
+        state.feverCount++;
+        document.getElementById('app').classList.add('fever');
+        notify("フィーバータイム！77秒間、生産力が7倍！", "🔥");
+    } else if (rand < 0.60) {
+        const bonus = Math.max(777, cps * 900) * goldenBonusMult;
+        state.soba += bonus;
+        state.totalSoba += bonus;
+        state.allTimeSoba += bonus;
+        notify(`ゴールデンそば！${fmt(bonus)}杯のそばを獲得！`, "✨");
+    } else if (rand < 0.85) {
+        clickBuffMult = 777;
+        clickBuffTimer = 13;
+        notify("クリックフィーバー！13秒間、クリックパワーが777倍！", "👆");
+    } else {
+        const bonus = Math.max(1000, cps * 7200) * goldenBonusMult;
+        state.soba += bonus;
+        state.totalSoba += bonus;
+        state.allTimeSoba += bonus;
+        notify(`黄金の豊作！大量の${fmt(bonus)}杯を獲得！`, "🌾");
+    }
+    calculateCps();
+};
+
+function flashWrath() {
+    const el = document.getElementById('wrath-flash');
+    el.classList.remove('show');
+    void el.offsetWidth; // restart animation
+    el.classList.add('show');
+}
+
+setInterval(() => {
+    const freqBonus = state.heavenlyUpgrades.includes('heav_2') ? 1.6 : 1;
+    if (Math.random() < 0.05 * freqBonus) spawnGoldenSoba();
+}, 10000);
+
+function showTooltip(e, name, desc, cost) {
+    const tt = document.getElementById('tooltip');
+    tt.innerHTML = `
+        <div class="tt-name">${name}</div>
+        <div class="tt-desc">${desc}</div>
+        ${cost > 0 ? `<div class="tt-cost">🍜 ${fmt(cost)}</div>` : ''}
+    `;
+    tt.style.display = 'block';
+    tt.style.left = (e.clientX + 15) + 'px';
+    tt.style.top = (e.clientY + 15) + 'px';
+}
+
+function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+
+function notify(msg, icon = "🔔", flash = false) {
+    const container = document.getElementById('notif-container');
+    const div = document.createElement('div');
+    div.className = flash ? 'notif ach-flash' : 'notif';
+    div.innerHTML = `${icon} ${msg}`;
+    container.appendChild(div);
+    setTimeout(() => {
+        div.style.opacity = '0';
+        div.style.transform = 'translateX(120%)';
+        div.style.transition = '0.5s';
+        setTimeout(() => div.remove(), 500);
+    }, 4500);
+}
+
+function updateTicker() {
+    const text = document.getElementById('news-text');
+    text.textContent = NEWS[Math.floor(Math.random() * NEWS.length)];
+}
+setInterval(updateTicker, 30000);
+updateTicker();
+
+function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('shop-view').style.display = 'none';
+    document.getElementById('stats-view').style.display = 'none';
+    document.getElementById('shrine-view').style.display = 'none';
+    document.getElementById('prestige-view').style.display = 'none';
+    
+    if (tab === 'shop') {
+        document.querySelector('.tab:nth-child(1)').classList.add('active');
+        document.getElementById('shop-view').style.display = 'flex';
+    } else if (tab === 'stats') {
+        document.querySelector('.tab:nth-child(2)').classList.add('active');
+        document.getElementById('stats-view').style.display = 'block';
+        renderStats();
+    } else if (tab === 'shrine') {
+        document.getElementById('shrine-tab').classList.add('active');
+        document.getElementById('shrine-view').style.display = 'block';
+        renderShrine();
+    } else if (tab === 'prestige') {
+        document.getElementById('prestige-tab').classList.add('active');
+        document.getElementById('prestige-view').style.display = 'block';
+        renderPrestige();
+    }
+}
+
+function saveGame(silent = false) {
+    if (isResetting) return;
+    state.lastSave = Date.now();
+    localStorage.setItem('echizenSobaSaveV2_2', JSON.stringify(state));
+    if (!silent) notify("ゲームを保存しました。");
+}
+
+function loadGame() {
+    const saved = localStorage.getItem('echizenSobaSaveV2_2');
+    if (saved) {
+        const loadedState = JSON.parse(saved);
+        state = { ...state, ...loadedState };
+        // Ensure all buildings are present in state
+        if (!state.buildingLevels) state.buildingLevels = {};
+        BUILDINGS.forEach(b => {
+            if (state.buildings[b.id] === undefined) state.buildings[b.id] = 0;
+            if (state.buildingLevels[b.id] === undefined) state.buildingLevels[b.id] = 0;
+        });
+        if (!state.heavenlyUpgrades) state.heavenlyUpgrades = [];
+        if (!state.spirits) state.spirits = [];
+        if (state.lumps === undefined) state.lumps = 0;
+        if (state.totalLumps === undefined) state.totalLumps = 0;
+        if (state.wrathClicks === undefined) state.wrathClicks = 0;
+        if (!state.lastLumpTime) state.lastLumpTime = Date.now();
+        calculateCps();
+
+        // --- オフライン進行 ---
+        const now = Date.now();
+        const offlineSec = (now - (state.lastSave || now)) / 1000;
+        const MAX_OFFLINE_SEC = 24 * 60 * 60; // 最大24時間分
+        const elapsed = Math.min(offlineSec, MAX_OFFLINE_SEC);
+        if (elapsed > 10 && cps > 0) {
+            const gained = cps * elapsed;
+            state.soba += gained;
+            state.totalSoba += gained;
+            state.allTimeSoba += gained;
+            const h = Math.floor(elapsed / 3600);
+            const m = Math.floor((elapsed % 3600) / 60);
+            const s = Math.floor(elapsed % 60);
+            const timeStr = h > 0 ? `${h}時間${m}分` : m > 0 ? `${m}分${s}秒` : `${s}秒`;
+            setTimeout(() => {
+                notify(`留守中に ${timeStr} 分の生産！ +${fmt(gained)} 杯`, "⏰");
+            }, 1000);
+        }
+        state.lastSave = now;
+        lastUpdate = now;
+    }
+}
+
+// タブが隠れたとき自動セーブ（次回起動時のオフライン計算のため）
+document.addEventListener('visibilitychange', () => {
+    if (isResetting) return;
+    if (document.visibilityState === 'hidden') {
+        saveGame(true);
+    } else {
+        // タブに戻ってきたとき：隠れていた間の分を加算
+        const now = Date.now();
+        const offlineSec = (now - state.lastSave) / 1000;
+        if (offlineSec > 5 && cps > 0) {
+            const gained = cps * offlineSec;
+            state.soba += gained;
+            state.totalSoba += gained;
+            state.allTimeSoba += gained;
+            const m = Math.floor(offlineSec / 60);
+            const s = Math.floor(offlineSec % 60);
+            const timeStr = m > 0 ? `${m}分${s}秒` : `${s}秒`;
+            notify(`タブ離席中 (${timeStr}) の生産: +${fmt(gained)} 杯`, "😴");
+        }
+        lastUpdate = now;
+        state.lastSave = now;
+    }
+});
+
+function resetGame() {
+    state.secretCounter++;
+    if (confirm("本当にリセットしますか？全ての進捗が失われます。")) {
+        isResetting = true;
+        localStorage.removeItem('echizenSobaSaveV2_2');
+        location.reload();
+    }
+}
+
+setInterval(() => saveGame(true), 60000);
+loadGame();
+calculateCps();
+render();
+</script>
+</body>
+</html>
