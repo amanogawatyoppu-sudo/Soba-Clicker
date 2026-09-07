@@ -115,6 +115,15 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 
 /* Prestige UI */
 #prestige-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
+
+/* Glossary */
+#glossary-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
+.glossary-category{font-size:12px;color:#8fd6ff;text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px}
+.glossary-category:first-child{margin-top:0}
+.glossary-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.glossary-icon{font-size:22px;width:30px;flex-shrink:0;text-align:center}
+.glossary-term{font-weight:700;color:var(--accent);font-size:14px;margin-bottom:3px}
+.glossary-desc{font-size:12px;color:#ccc;line-height:1.5}
 .prestige-btn{width:100%;padding:20px;background:linear-gradient(135deg, #004466 0%, #001122 100%);border:2px solid var(--prestige);border-radius:12px;color:#fff;font-weight:bold;cursor:pointer;margin-bottom:20px;transition:0.3s}
 .prestige-btn:hover:not(:disabled){box-shadow: 0 0 20px rgba(0,212,255,0.4); transform: scale(1.02)}
 .prestige-btn:disabled{opacity:0.5; cursor:not-allowed; border-color: #333}
@@ -195,6 +204,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
             <div class="tab" onclick="switchTab('stats')">統計</div>
             <div class="tab" id="shrine-tab" onclick="switchTab('shrine')" style="display:none; color:#c77dff">祭壇</div>
             <div class="tab" id="prestige-tab" onclick="switchTab('prestige')" style="display:none; color:var(--prestige)">転生</div>
+            <div class="tab" onclick="switchTab('glossary')" style="color:#8fd6ff">用語集</div>
         </div>
         
         <div id="shop-view">
@@ -239,6 +249,12 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
             <h3 style="margin:25px 0 10px; color:var(--accent)">そば粉の塊で施設を熟成</h3>
             <p style="font-size:12px; color:#aaa; margin-bottom:10px">20分ごとに1個たまる「そば粉の塊」を使い、既に所有している施設を熟成させて永続的に生産量を+1%できます。</p>
             <div id="lump-list"></div>
+        </div>
+
+        <div id="glossary-view">
+            <h3 style="margin-bottom:6px; color:#8fd6ff">用語集</h3>
+            <p style="font-size:12px; color:#aaa; margin-bottom:15px">ゲーム内の用語をまとめました。わからない言葉が出てきたらここを見てね。</p>
+            <div id="glossary-list"></div>
         </div>
     </div>
 </div>
@@ -420,6 +436,29 @@ const SHADOW_ACHIEVEMENTS = [
     { id: 'shadow_equal', name: '均等分配', icon: '⚖️', desc: '全ての施設をちょうど1つずつ所有する。' },
     { id: 'shadow_reset_addict', name: 'リセット常習犯', icon: '🌀', desc: 'リセットボタンを50回見る。' },
     { id: 'shadow_midnight', name: '満月の夜', icon: '🌕', desc: '深夜0時〜4時の間にプレイする。' }
+];
+
+const GLOSSARY = [
+    { category: '基本', term: 'そば', icon: '🍜', desc: 'このゲームの基本通貨。クリックや施設で増える。' },
+    { category: '基本', term: '毎秒(CPS)', icon: '⏱️', desc: '1秒間に自動で生産されるそばの量。施設やアップグレードで伸ばせる。' },
+    { category: '基本', term: 'クリックパワー', icon: '👆', desc: 'ボウルを1回クリック(またはスペースキー)した時に得られるそばの量。' },
+    { category: '基本', term: '施設', icon: '🏠', desc: '購入すると自動でそばを生産し続けてくれる建物。買うたびに次の値段が上がっていく。' },
+    { category: '基本', term: 'アップグレード', icon: '⭐', desc: '施設やクリックの効率を倍増させる一度きりの購入。特定の条件を満たすと出現する。' },
+    { category: '基本', term: '実績', icon: '🏆', desc: '特定の条件を満たすと解除される。実績の数が「だし」レベルに影響する。' },
+    { category: '特殊出現物', term: 'ゴールデンそば', icon: '✨', desc: '画面にランダムで出現。クリックするとフィーバー・ボーナス・クリックフィーバー・大量ボーナスのいずれかが発生する。' },
+    { category: '特殊出現物', term: '呪われしそば', icon: '😈', desc: 'ゴールデンそばの代わりに稀に出現する黒いそば。クリックするとそばを失うか、逆に大量ボーナスを得るかの賭け。' },
+    { category: '特殊出現物', term: '季節限定そば', icon: '🎐', desc: '現在の季節に応じた特別なそばが稀に出現し、大きな一括ボーナスをくれる。' },
+    { category: '特殊出現物', term: 'フィーバータイム', icon: '🔥', desc: 'ゴールデンそばの効果の一つ。一定時間、全生産量が7倍になる。' },
+    { category: '転生システム', term: '転生(プレステージ)', icon: '♻️', desc: '累計そば生産量が1兆杯を超えると可能。施設やそばをリセットする代わりに「越前魂」を獲得する。' },
+    { category: '転生システム', term: '越前魂', icon: '👻', desc: '転生で得られる永続通貨。1個につき全生産+1%される他、天界の力の購入にも使える。' },
+    { category: '転生システム', term: '天界の力', icon: '☁️', desc: '転生タブで越前魂を使って買う恒久アップグレード。買っても越前魂によるボーナス(%)は減らない。' },
+    { category: '転生システム', term: 'そば粉の塊', icon: '🍡', desc: '20分ごとに1個たまる資源(現実時間で進行)。既に所有している施設を「熟成」させて永続+1%できる。' },
+    { category: '育成要素', term: 'だし', icon: '🍲', desc: '実績7個ごとに1レベル上がる。「だし猫」系アップグレードの効果を強化する。' },
+    { category: '育成要素', term: '祭壇・そばの精霊', icon: '⛩️', desc: '施設合計50個で解放。5柱の精霊から最大2柱を選んで祀り、それぞれ異なる永続効果を得られる。' },
+    { category: '育成要素', term: '季節イベント', icon: '🌸', desc: '現実の日付に応じて春夏秋冬が自動で切り替わり、季節ごとに異なる永続ボーナスがかかる。' },
+    { category: 'ミニゲーム', term: '手打ちそば道場', icon: '🥢', desc: '5分に1回挑戦できるタイミングゲーム。真ん中で「切る！」を押せるほど「職人ポイント」(永続の生産ボーナス)がたくさん貯まる。' },
+    { category: '隠し要素', term: '隠された熟練の力', icon: '🧠', desc: '実績10個ごとに自動で発動する非公開の生産ボーナス。ショップには表示されない。' },
+    { category: '隠し要素', term: '裏実績', icon: '🌑', desc: '通常の実績数にはカウントされない、少し変わった条件で解除される隠し実績。統計タブで確認できる。' }
 ];
 
 const NEWS = [
@@ -970,6 +1009,31 @@ function getAvailableSouls() {
     return state.souls - spent;
 }
 
+function renderGlossary() {
+    const list = document.getElementById('glossary-list');
+    list.innerHTML = '';
+    let lastCategory = null;
+    GLOSSARY.forEach(g => {
+        if (g.category !== lastCategory) {
+            const catDiv = document.createElement('div');
+            catDiv.className = 'glossary-category';
+            catDiv.textContent = g.category;
+            list.appendChild(catDiv);
+            lastCategory = g.category;
+        }
+        const item = document.createElement('div');
+        item.className = 'glossary-item';
+        item.innerHTML = `
+            <div class="glossary-icon">${g.icon}</div>
+            <div>
+                <div class="glossary-term">${g.term}</div>
+                <div class="glossary-desc">${g.desc}</div>
+            </div>
+        `;
+        list.appendChild(item);
+    });
+}
+
 function renderPrestige() {
     if (document.getElementById('prestige-view').style.display !== 'block') return;
     const btn = document.getElementById('prestige-btn');
@@ -1357,6 +1421,7 @@ function switchTab(tab) {
     document.getElementById('stats-view').style.display = 'none';
     document.getElementById('shrine-view').style.display = 'none';
     document.getElementById('prestige-view').style.display = 'none';
+    document.getElementById('glossary-view').style.display = 'none';
     
     if (tab === 'shop') {
         document.querySelector('.tab:nth-child(1)').classList.add('active');
@@ -1373,6 +1438,10 @@ function switchTab(tab) {
         document.getElementById('prestige-tab').classList.add('active');
         document.getElementById('prestige-view').style.display = 'block';
         renderPrestige();
+    } else if (tab === 'glossary') {
+        document.querySelector('.tab:nth-child(5)').classList.add('active');
+        document.getElementById('glossary-view').style.display = 'block';
+        renderGlossary();
     }
 }
 
