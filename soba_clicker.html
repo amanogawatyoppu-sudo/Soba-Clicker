@@ -12,7 +12,7 @@
     --bg-darker: #0d0800;
     --accent: #f5c842;
     --text: #f5e6c8;
-    --muted: #806030;
+    --muted: #c9a26b;
     --border: #3d2800;
     --fever: #ff4d00;
     --prestige: #00d4ff;
@@ -74,9 +74,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 .b-icon, .b-info, .b-name, .b-cost, .b-count { pointer-events: none; }
 .b-icon{font-size:36px;margin-right:18px;width:45px;text-align:center}
 .b-info{flex:1}
-.b-name{font-size:15px;font-weight:700;color:#d4a870}
+.b-name{font-size:15px;font-weight:700;color:#e8c090}
 .b-cost{font-size:13px;color:var(--accent);font-weight:700}
-.b-count{font-size:28px;font-weight:900;color:rgba(255,255,255,0.08);margin-left:12px}
+.b-count{font-size:28px;font-weight:900;color:rgba(255,255,255,0.18);margin-left:12px}
 
 /* Golden Soba */
 #golden-soba{position:absolute;width:90px;height:90px;cursor:pointer;z-index:100;animation:golden-float 12s linear infinite;display:none;filter: drop-shadow(0 0 10px gold)}
@@ -118,6 +118,16 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 
 /* Glossary */
 #glossary-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
+
+/* Skill Tree */
+.skill-hub{position:absolute;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle, #3a1a5c 0%, #1a0a2e 100%);border:3px solid var(--prestige);display:flex;align-items:center;justify-content:center;font-size:28px;transform:translate(-50%,-50%);box-shadow:0 0 20px rgba(0,212,255,0.4);z-index:2}
+.skill-node{position:absolute;width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;transform:translate(-50%,-50%);cursor:pointer;transition:0.2s;z-index:3;border:3px solid #333;background:radial-gradient(circle, #221830 0%, #150d20 100%)}
+.skill-node.owned{border-color:gold;background:radial-gradient(circle, #4a3a10 0%, #2a1f08 100%);box-shadow:0 0 14px rgba(255,215,0,0.5)}
+.skill-node.available{border-color:var(--prestige);box-shadow:0 0 10px rgba(0,212,255,0.3);animation:skill-pulse 1.8s ease-in-out infinite}
+.skill-node.locked{border-color:#3a3a3a;opacity:0.4;cursor:not-allowed;filter:grayscale(1)}
+.skill-node.unaffordable{border-color:#555;opacity:0.75}
+@keyframes skill-pulse{0%,100%{box-shadow:0 0 10px rgba(0,212,255,0.3)}50%{box-shadow:0 0 18px rgba(0,212,255,0.7)}}
+.skill-node-cost{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--prestige);white-space:nowrap;font-weight:bold}
 #challenge-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
 .glossary-category{font-size:12px;color:#8fd6ff;text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px}
 .glossary-category:first-child{margin-top:0}
@@ -286,9 +296,13 @@ button{touch-action:manipulation}
                 使用可能な越前魂: <span id="soul-available" style="color:var(--prestige); font-weight:bold">0</span> 個
             </div>
 
-            <h3 style="margin:25px 0 10px; color:var(--prestige)">天界の力 (越前魂で購入・永続効果・スキルツリー式)</h3>
-            <p style="font-size:11px; color:#888; margin-bottom:10px">インデントされた項目は、その上の項目を先に取得しないと解放されません。</p>
-            <div id="heavenly-list"></div>
+            <h3 style="margin:25px 0 10px; color:var(--prestige)">天界の力 (越前魂で購入・永続効果)</h3>
+            <p style="font-size:11px; color:#aaa; margin-bottom:10px">ノードをタップ/クリックすると購入できます。線でつながった手前のノードを先に取得する必要があります。</p>
+            <div id="skill-tree-wrap" style="width:100%; overflow:auto; border:1px solid var(--border); border-radius:10px; background:radial-gradient(circle, #1a0a2e 0%, #0d0515 100%); margin-bottom:15px;">
+                <div id="skill-tree-canvas" style="position:relative; width:900px; height:700px;">
+                    <svg id="skill-tree-svg" width="900" height="700" style="position:absolute; top:0; left:0; pointer-events:none;"></svg>
+                </div>
+            </div>
 
             <h3 style="margin:25px 0 10px; color:var(--accent)">そば粉の塊で施設を熟成</h3>
             <p style="font-size:12px; color:#aaa; margin-bottom:10px">20分ごとに1個たまる「そば粉の塊」を使い、既に所有している施設を熟成させて永続的に生産量を+1%できます。</p>
@@ -405,7 +419,12 @@ const HEAVENLY_UPGRADES = [
     { id: 'heav_8', name: '双子の精霊', icon: '👯', cost: 60, desc: '祭壇に祀れる精霊が1柱増える(2→3柱)。', effect: 'extraSpiritSlot', requires: 'heav_4' },
     { id: 'heav_9', name: '刻の加速', icon: '⏳', cost: 50, desc: '手打ちそば道場の休憩時間が半分になる。', effect: 'artisanCooldown', requires: 'heav_6' },
     { id: 'heav_7', name: '究極の悟り', icon: '☯️', cost: 100, desc: '全生産が永続的に2倍になる。', effect: 'globalMult', mult: 2, requires: 'heav_5' },
-    { id: 'heav_10', name: '慈悲の解脱', icon: '🕊️', cost: 150, desc: '転生に必要な累計そば量が緩和され、越前魂が少し得やすくなる。', effect: 'prestigeBoost', requires: 'heav_7' }
+    { id: 'heav_10', name: '慈悲の解脱', icon: '🕊️', cost: 150, desc: '転生に必要な累計そば量が緩和され、越前魂が少し得やすくなる。', effect: 'prestigeBoost', requires: 'heav_7' },
+    { id: 'heav_11', name: 'まどろみの生産', icon: '😴', cost: 10, desc: 'タブを閉じている間・離れている間もそばが生産されるようになる(オフライン生産解放)。', effect: 'offlineUnlock', requires: null },
+    { id: 'heav_12', name: '厄除けの護符', icon: '🧿', cost: 35, desc: '呪われしそばで失うそばの量がさらに半分になる(精霊の効果と重複可)。', effect: 'wrathSafety', value: 0.5, requires: 'heav_2' },
+    { id: 'heav_13', name: '越前の記憶', icon: '📿', cost: 45, desc: '隠された熟練の力の効果が実績10個ごとに+3%になる(通常は+2%)。', effect: 'masteryBoost', requires: 'heav_3' },
+    { id: 'heav_14', name: '天界の慈雨', icon: '🌧️', cost: 70, desc: 'そば粉の塊がたまる速度がさらに1.5倍になる(熟成の秘技と重複)。', effect: 'lumpSpeed2', requires: 'heav_9' },
+    { id: 'heav_15', name: '悟りの果て', icon: '🌌', cost: 300, desc: '全生産が永続的にさらに3倍になる。天界の頂点。', effect: 'globalMult', mult: 3, requires: 'heav_10' }
 ];
 
 const SPIRITS = [
@@ -555,7 +574,7 @@ const GLOSSARY = [
     { category: '特殊出現物', term: '呪われしそば', icon: '😈', desc: 'ゴールデンそばの代わりに稀に出現する黒いそば。クリックするとそばを失うか、逆に大量ボーナスを得るかの賭け。' },
     { category: '特殊出現物', term: '季節限定そば', icon: '🎐', desc: '現在の季節に応じた特別なそばが稀に出現し、大きな一括ボーナスをくれる。' },
     { category: '特殊出現物', term: 'フィーバータイム', icon: '🔥', desc: 'ゴールデンそばの効果の一つ。一定時間、全生産量が7倍になる。' },
-    { category: '転生システム', term: '転生(プレステージ)', icon: '♻️', desc: '累計そば生産量が1兆杯を超えると可能。施設やそばをリセットする代わりに「越前魂」を獲得する。また、1回目の転生を行うまでオフライン中の生産は発生しない(転生することで解放される)。' },
+    { category: '転生システム', term: '転生(プレステージ)', icon: '♻️', desc: '累計そば生産量が1兆杯を超えると可能。施設やそばをリセットする代わりに「越前魂」を獲得する。オフライン中の生産は自動では発生せず、天界の力「まどろみの生産」を取得することで解放される。' },
     { category: '転生システム', term: '越前魂', icon: '👻', desc: '転生で得られる永続通貨。1個につき全生産+1%される他、天界の力の購入にも使える。' },
     { category: '転生システム', term: '天界の力', icon: '☁️', desc: '転生タブで越前魂を使って買う恒久アップグレード。買っても越前魂によるボーナス(%)は減らない。スキルツリー式になっており、一部の項目は前提の項目を先に取得する必要がある。' },
     { category: '転生システム', term: 'そば粉の塊', icon: '🍡', desc: '20分ごとに1個たまる資源(現実時間で進行)。既に所有している施設を「熟成」させて永続+1%できる。' },
@@ -659,9 +678,10 @@ function getDashiLevel() {
 }
 
 function getMasteryBonusMult() {
-    // Hidden bonus: every 10 achievements permanently grants +2% production, no purchase needed
+    // Hidden bonus: every 10 achievements permanently grants production, no purchase needed
     const tier = Math.floor(state.achievements.length / 10);
-    return 1 + tier * 0.02;
+    const perTier = state.heavenlyUpgrades.includes('heav_13') ? 0.03 : 0.02;
+    return 1 + tier * perTier;
 }
 
 function calculateCps() {
@@ -738,6 +758,7 @@ function getWrathChanceMult() {
 
 function getWrathShieldMult() {
     let mult = getSpiritEffectMult('wrathShield');
+    if (state.heavenlyUpgrades.includes('heav_12')) mult *= 0.5;
     return mult;
 }
 
@@ -752,7 +773,8 @@ function update() {
     const newMasteryTier = Math.floor(state.achievements.length / 10);
     if (newMasteryTier > state.lastMasteryTier) {
         state.lastMasteryTier = newMasteryTier;
-        notify(`隠された熟練の力が目覚めた！(全生産+${newMasteryTier * 2}%)`, "🧠", true);
+        const perTierPct = state.heavenlyUpgrades.includes('heav_13') ? 3 : 2;
+        notify(`隠された熟練の力が目覚めた！(全生産+${newMasteryTier * perTierPct}%)`, "🧠", true);
     }
 
     if (cps > 0) {
@@ -794,7 +816,8 @@ function update() {
 
 function getLumpInterval() {
     const base = 20 * 60 * 1000; // 20 minutes real time per lump
-    const speedUp = state.heavenlyUpgrades.includes('heav_6') ? 2 : 1;
+    let speedUp = state.heavenlyUpgrades.includes('heav_6') ? 2 : 1;
+    if (state.heavenlyUpgrades.includes('heav_14')) speedUp *= 1.5;
     return base / speedUp;
 }
 
@@ -1304,6 +1327,118 @@ function renderGlossary() {
     });
 }
 
+function computeSkillTreeLayout() {
+    const roots = HEAVENLY_UPGRADES.filter(h => !h.requires);
+    const childrenMap = {};
+    HEAVENLY_UPGRADES.forEach(h => {
+        if (h.requires) {
+            if (!childrenMap[h.requires]) childrenMap[h.requires] = [];
+            childrenMap[h.requires].push(h.id);
+        }
+    });
+    const positions = {};
+    const angleStep = (2 * Math.PI) / roots.length;
+    const baseRadius = 110;
+    const radiusStep = 95;
+
+    function place(nodeId, angle, angleSpan, depth) {
+        const radius = baseRadius + depth * radiusStep;
+        positions[nodeId] = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius, depth };
+        const kids = childrenMap[nodeId] || [];
+        if (kids.length === 0) return;
+        const childSpan = angleSpan / kids.length;
+        kids.forEach((kidId, i) => {
+            const kidAngle = angle - angleSpan / 2 + childSpan * (i + 0.5);
+            place(kidId, kidAngle, childSpan * 1.3, depth + 1);
+        });
+    }
+
+    roots.forEach((root, i) => {
+        const angle = -Math.PI / 2 + angleStep * i;
+        place(root.id, angle, angleStep * 0.9, 0);
+    });
+
+    return positions;
+}
+
+function renderSkillTree(available) {
+    const canvas = document.getElementById('skill-tree-canvas');
+    const svg = document.getElementById('skill-tree-svg');
+    if (!canvas || !svg) return;
+
+    const layout = computeSkillTreeLayout();
+    const centerX = 450, centerY = 350;
+
+    // Clear previous nodes (keep the svg element itself)
+    canvas.querySelectorAll('.skill-node, .skill-hub').forEach(el => el.remove());
+
+    // Draw connecting lines
+    let svgLines = '';
+    HEAVENLY_UPGRADES.forEach(h => {
+        const pos = layout[h.id];
+        if (!pos) return;
+        const owned = state.heavenlyUpgrades.includes(h.id);
+        const parentPos = h.requires ? layout[h.requires] : { x: 0, y: 0 };
+        const lineColor = owned ? '#ffd700' : (h.requires ? '#444' : '#00d4ff55');
+        const lineWidth = owned ? 3 : 2;
+        const dash = owned ? '' : 'stroke-dasharray="4,4"';
+        svgLines += `<line x1="${centerX + parentPos.x}" y1="${centerY + parentPos.y}" x2="${centerX + pos.x}" y2="${centerY + pos.y}" stroke="${lineColor}" stroke-width="${lineWidth}" ${dash}/>`;
+    });
+    svg.innerHTML = svgLines;
+
+    // Central hub
+    const hub = document.createElement('div');
+    hub.className = 'skill-hub';
+    hub.style.left = centerX + 'px';
+    hub.style.top = centerY + 'px';
+    hub.textContent = '🍜';
+    hub.onmouseenter = (e) => showTooltip(e, '転生の中枢', `現在のプレステージボーナス: +${state.souls}%<br>使用可能な越前魂: ${available} 個`, 0);
+    hub.onmouseleave = hideTooltip;
+    canvas.appendChild(hub);
+
+    // Nodes
+    HEAVENLY_UPGRADES.forEach(h => {
+        const pos = layout[h.id];
+        if (!pos) return;
+        const owned = state.heavenlyUpgrades.includes(h.id);
+        const prereqMet = !h.requires || state.heavenlyUpgrades.includes(h.requires);
+        const affordable = available >= h.cost;
+
+        const div = document.createElement('div');
+        let cls = 'skill-node';
+        if (owned) cls += ' owned';
+        else if (!prereqMet) cls += ' locked';
+        else if (affordable) cls += ' available';
+        else cls += ' unaffordable';
+        div.className = cls;
+        div.style.left = (centerX + pos.x) + 'px';
+        div.style.top = (centerY + pos.y) + 'px';
+        div.textContent = prereqMet ? h.icon : '🔒';
+
+        if (!owned) {
+            const costTag = document.createElement('div');
+            costTag.className = 'skill-node-cost';
+            costTag.textContent = prereqMet ? `👻${h.cost}` : '？？？';
+            div.appendChild(costTag);
+        }
+
+        if (!owned && prereqMet) {
+            div.onpointerdown = (e) => { e.preventDefault(); buyHeavenly(h.id); };
+        }
+        let tipDesc = h.desc;
+        if (!prereqMet) {
+            const prereq = HEAVENLY_UPGRADES.find(x => x.id === h.requires);
+            tipDesc = `🔒 先に「${prereq.name}」が必要<br>${h.desc}`;
+        } else if (owned) {
+            tipDesc = `✅ 取得済み<br>${h.desc}`;
+        }
+        div.onmouseenter = (e) => showTooltip(e, h.name, tipDesc, owned || !prereqMet ? 0 : h.cost);
+        div.onmouseleave = hideTooltip;
+        canvas.appendChild(div);
+    });
+}
+
+
 function renderPrestige() {
     if (document.getElementById('prestige-view').style.display !== 'block') return;
     const btn = document.getElementById('prestige-btn');
@@ -1320,37 +1455,7 @@ function renderPrestige() {
     const available = getAvailableSouls();
     document.getElementById('soul-available').textContent = available;
 
-    // Heavenly upgrades shop (skill tree: nodes with a prerequisite are indented and locked until it's owned)
-    const hList = document.getElementById('heavenly-list');
-    hList.innerHTML = '';
-    HEAVENLY_UPGRADES.forEach(h => {
-        const owned = state.heavenlyUpgrades.includes(h.id);
-        const prereqMet = !h.requires || state.heavenlyUpgrades.includes(h.requires);
-        const canBuy = !owned && prereqMet && available >= h.cost;
-        const div = document.createElement('div');
-        div.className = `building-item ${owned ? '' : (canBuy ? 'can-buy' : 'locked')}`;
-        div.style.opacity = owned ? '0.6' : (canBuy ? '1' : '0.4');
-        if (h.requires) div.style.marginLeft = '24px';
-        let costLine;
-        if (owned) costLine = '購入済み';
-        else if (!prereqMet) {
-            const prereq = HEAVENLY_UPGRADES.find(x => x.id === h.requires);
-            costLine = `🔒 「${prereq.name}」が必要`;
-        } else costLine = '👻 ' + h.cost + ' 越前魂';
-        div.innerHTML = `
-            <div class="b-icon">${prereqMet ? h.icon : '🔒'}</div>
-            <div class="b-info">
-                <div class="b-name">${h.name}</div>
-                <div class="b-cost" style="color:var(--prestige)">${costLine}</div>
-            </div>
-        `;
-        if (!owned && prereqMet) {
-            div.onpointerdown = (e) => { e.preventDefault(); buyHeavenly(h.id); };
-        }
-        div.onmouseenter = (e) => showTooltip(e, h.name, h.desc, 0);
-        div.onmouseleave = hideTooltip;
-        hList.appendChild(div);
-    });
+    renderSkillTree(available);
 
     // Sugar lump aging list - only owned buildings
     const lList = document.getElementById('lump-list');
@@ -1777,7 +1882,7 @@ function loadGame() {
         calculateCps();
 
         // --- オフライン進行(初回転生後にのみ解放) ---
-        if (state.prestigeCount >= 1) {
+        if (state.heavenlyUpgrades.includes('heav_11')) {
             const now = Date.now();
             const offlineSec = (now - (state.lastSave || now)) / 1000;
             const MAX_OFFLINE_SEC = 24 * 60 * 60; // 最大24時間分
@@ -1841,7 +1946,7 @@ document.addEventListener('visibilitychange', () => {
         // タブに戻ってきたとき：隠れていた間の分を加算(初回転生後にのみ解放)
         const now = Date.now();
         const offlineSec = (now - state.lastSave) / 1000;
-        if (state.prestigeCount >= 1 && offlineSec > 5 && cps > 0) {
+        if (state.heavenlyUpgrades.includes('heav_11') && offlineSec > 5 && cps > 0) {
             const gained = cps * offlineSec;
             state.soba += gained;
             state.totalSoba += gained;
