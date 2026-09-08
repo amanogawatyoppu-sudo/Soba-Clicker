@@ -118,6 +118,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 
 /* Glossary */
 #glossary-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
+#challenge-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
 .glossary-category{font-size:12px;color:#8fd6ff;text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px}
 .glossary-category:first-child{margin-top:0}
 .glossary-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
@@ -185,6 +186,10 @@ button{touch-action:manipulation}
 
 <div id="app">
     <div id="left-panel">
+        <div id="challenge-banner" style="display:none; width:100%; text-align:center; padding:8px; background:linear-gradient(90deg, #4a0000, #1a0000); border-bottom:2px solid #ff6b6b; font-size:12px; font-weight:bold; color:#ff9b9b;">
+            ⚔️ 挑戦中: <span id="challenge-banner-name"></span>　進捗: <span id="challenge-banner-progress"></span>
+            <button onclick="abandonChallenge()" style="margin-left:10px; padding:3px 10px; background:#600; border:1px solid #ff6b6b; color:#fff; border-radius:5px; cursor:pointer; font-size:11px">中断する</button>
+        </div>
         <div id="top-title">⚡ ECHIZEN SOBA CLICKER PRO v2.2 ⚡</div>
         <div id="stats-display">
             <div id="soba-count">0 杯</div>
@@ -241,6 +246,7 @@ button{touch-action:manipulation}
             <div class="tab" onclick="switchTab('stats')">統計</div>
             <div class="tab" id="shrine-tab" onclick="switchTab('shrine')" style="display:none; color:#c77dff">祭壇</div>
             <div class="tab" id="prestige-tab" onclick="switchTab('prestige')" style="display:none; color:var(--prestige)">転生</div>
+            <div class="tab" id="challenge-tab" onclick="switchTab('challenge')" style="display:none; color:#ff6b6b">挑戦</div>
             <div class="tab" onclick="switchTab('glossary')" style="color:#8fd6ff">用語集</div>
         </div>
         
@@ -260,7 +266,7 @@ button{touch-action:manipulation}
 
         <div id="shrine-view">
             <h3 style="margin-bottom:10px; color:#c77dff">そばの祭壇</h3>
-            <p style="font-size:12px; color:#aaa; margin-bottom:15px">2柱までそばの精霊を祀ることができます。精霊はいつでも自由に交代できます。祀られた精霊にカーソルを合わせると効果が確認できます。</p>
+            <p style="font-size:12px; color:#aaa; margin-bottom:15px"><span id="shrine-slot-count">2</span>柱までそばの精霊を祀ることができます。精霊はいつでも自由に交代できます。祀られた精霊にカーソルを合わせると効果が確認できます。</p>
             <div class="section-label">祀っている精霊 (最大2柱)</div>
             <div id="shrine-slots" style="display:flex; gap:10px; margin-bottom:20px;"></div>
             <div class="section-label">精霊一覧</div>
@@ -280,12 +286,19 @@ button{touch-action:manipulation}
                 使用可能な越前魂: <span id="soul-available" style="color:var(--prestige); font-weight:bold">0</span> 個
             </div>
 
-            <h3 style="margin:25px 0 10px; color:var(--prestige)">天界の力 (越前魂で購入・永続効果)</h3>
+            <h3 style="margin:25px 0 10px; color:var(--prestige)">天界の力 (越前魂で購入・永続効果・スキルツリー式)</h3>
+            <p style="font-size:11px; color:#888; margin-bottom:10px">インデントされた項目は、その上の項目を先に取得しないと解放されません。</p>
             <div id="heavenly-list"></div>
 
             <h3 style="margin:25px 0 10px; color:var(--accent)">そば粉の塊で施設を熟成</h3>
             <p style="font-size:12px; color:#aaa; margin-bottom:10px">20分ごとに1個たまる「そば粉の塊」を使い、既に所有している施設を熟成させて永続的に生産量を+1%できます。</p>
             <div id="lump-list"></div>
+        </div>
+
+        <div id="challenge-view">
+            <h3 style="margin-bottom:6px; color:#ff6b6b">挑戦モード</h3>
+            <p style="font-size:12px; color:#aaa; margin-bottom:15px">通常のセーブとは別に、特殊なルールの中で目標達成を目指します。開始すると現在の進行状況は安全に退避され、挑戦を終える(または中断する)と元に戻ります。クリアすると恒久ボーナスがもらえます。</p>
+            <div id="challenge-list"></div>
         </div>
 
         <div id="glossary-view">
@@ -326,7 +339,8 @@ const BUILDINGS = [
     { id: 'infinity', name: '無限の越前', icon: '♾️', baseCost: 30000000000000000000000, baseCps: 3000000000000000, desc: '終わりなきそばの輪廻。' },
     { id: 'origin', name: '起源のそば', icon: '🌱', baseCost: 500000000000000000000000, baseCps: 4e16, desc: '全てのそばの始まりに触れる。' },
     { id: 'eternity', name: '永劫の一杯', icon: '🕰️', baseCost: 8e25, baseCps: 7e17, desc: '茹で上がることも冷めることもない、永遠の一杯。' },
-    { id: 'omniscience', name: '全知のそば', icon: '🧠', baseCost: 1e28, baseCps: 1e20, desc: 'そばを打つという行為そのものを理解し尽くした境地。' }
+    { id: 'omniscience', name: '全知のそば', icon: '🧠', baseCost: 1e28, baseCps: 1e20, desc: 'そばを打つという行為そのものを理解し尽くした境地。' },
+    { id: 'you', name: 'あなた', icon: '🧑‍🍳', baseCost: 1.5e30, baseCps: 1.2e22, desc: 'もはや誰が誰にそばを打たせているのかは分からない。生産の最後のピースは、あなた自身だった。' }
 ];
 
 const UPGRADES = [
@@ -367,26 +381,49 @@ const UPGRADES = [
     { id: 'upg_god_1', name: '悟りの境地', icon: '🕉️', cost: 4e14, type: 'building', target: 'god', mult: 4, desc: 'そばの神髄の効率4倍。', req: { buildings: { god: 10 } } },
     { id: 'upg_galaxy_1', name: '路線の全拡張', icon: '🌠', cost: 6e15, type: 'building', target: 'galaxy', mult: 4, desc: '越前そば銀河鉄道の効率4倍。', req: { buildings: { galaxy: 10 } } },
     { id: 'upg_parallel_1', name: '並行意識の統合', icon: '🪞', cost: 9e16, type: 'building', target: 'parallel', mult: 4, desc: '多次元そば並行世界の効率4倍。', req: { buildings: { parallel: 10 } } },
-    { id: 'upg_quantum_1', name: '波動関数の収束', icon: '🔬', cost: 1.5e18, type: 'building', target: 'quantum', mult: 4, desc: '量子もつれ製麺の効率4倍。', req: { buildings: { quantum: 10 } } }
+    { id: 'upg_quantum_1', name: '波動関数の収束', icon: '🔬', cost: 1.5e18, type: 'building', target: 'quantum', mult: 4, desc: '量子もつれ製麺の効率4倍。', req: { buildings: { quantum: 10 } } },
+    { id: 'upg_blackhole_1', name: '特異点の圧縮', icon: '🌑', cost: 2.5e19, type: 'building', target: 'blackhole', mult: 4, desc: 'ブラックホール石臼の効率4倍。', req: { buildings: { blackhole: 10 } } },
+    { id: 'upg_universe_1', name: '第二のビッグバン', icon: '💫', cost: 3e20, type: 'building', target: 'universe', mult: 4, desc: '宇宙創成そばの効率4倍。', req: { buildings: { universe: 10 } } },
+    { id: 'upg_simulation_1', name: '演算資源の増強', icon: '🖥️', cost: 4.5e21, type: 'building', target: 'simulation', mult: 4, desc: 'シミュレーション越前の効率4倍。', req: { buildings: { simulation: 10 } } },
+    { id: 'upg_concept_1', name: '観念の純化', icon: '🌀', cost: 6e22, type: 'building', target: 'concept', mult: 4, desc: '概念的そば打ちの効率4倍。', req: { buildings: { concept: 10 } } },
+    { id: 'upg_infinity_1', name: '無限階梯の突破', icon: '♾️', cost: 9e23, type: 'building', target: 'infinity', mult: 4, desc: '無限の越前の効率4倍。', req: { buildings: { infinity: 10 } } },
+    { id: 'upg_origin_1', name: '始原への回帰', icon: '🌱', cost: 1.5e25, type: 'building', target: 'origin', mult: 4, desc: '起源のそばの効率4倍。', req: { buildings: { origin: 10 } } },
+    { id: 'upg_eternity_1', name: '不変の一瞬', icon: '🕰️', cost: 2.5e27, type: 'building', target: 'eternity', mult: 4, desc: '永劫の一杯の効率4倍。', req: { buildings: { eternity: 10 } } },
+    { id: 'upg_omniscience_1', name: '全知の到達点', icon: '🧠', cost: 3e29, type: 'building', target: 'omniscience', mult: 4, desc: '全知のそばの効率4倍。', req: { buildings: { omniscience: 10 } } },
+    { id: 'upg_you_1', name: '自己複製のパラドックス', icon: '🪞', cost: 4.5e31, type: 'building', target: 'you', mult: 4, desc: 'あなたの効率4倍。', req: { buildings: { you: 10 } } },
+    { id: 'upg_click_6', name: '悟りの一撃', icon: '🕊️', cost: 1e21, type: 'click', power: 10, desc: 'クリックが悟りの境地に達する。', req: { clicks: 50000 } },
+    { id: 'upg_global_7', name: '概念そのものの生産', icon: '💭', cost: 1e30, type: 'global', mult: 4, desc: '全生産4倍。', req: { totalSoba: 1e29 } }
 ];
 
 const HEAVENLY_UPGRADES = [
-    { id: 'heav_1', name: '越前の加護', icon: '🙏', cost: 5, desc: '施設のコスト上昇率が緩やかになる(1.15→1.13)。', effect: 'cheapBuild' },
-    { id: 'heav_2', name: '黄金の巡り', icon: '🌟', cost: 10, desc: 'ゴールデンそば・呪われしそばの出現率が上昇する。', effect: 'goldenFreq' },
-    { id: 'heav_3', name: '魂の共鳴', icon: '💠', cost: 15, desc: '全生産が永続的に+10%される。', effect: 'globalMult', mult: 1.1 },
-    { id: 'heav_4', name: '開祖の記憶', icon: '🧓', cost: 25, desc: 'クリックパワーの基礎値が永続的に+50される。', effect: 'clickBase', amount: 50 },
-    { id: 'heav_5', name: '天界の加速', icon: '🚀', cost: 40, desc: '全生産が永続的に+25%される。', effect: 'globalMult', mult: 1.25 },
-    { id: 'heav_6', name: '熟成の秘技', icon: '🍡', cost: 30, desc: 'そば粉の塊がたまる速度が2倍になる。', effect: 'lumpSpeed' },
-    { id: 'heav_7', name: '究極の悟り', icon: '☯️', cost: 100, desc: '全生産が永続的に2倍になる。', effect: 'globalMult', mult: 2 }
+    { id: 'heav_1', name: '越前の加護', icon: '🙏', cost: 5, desc: '施設のコスト上昇率が緩やかになる(1.15→1.13)。', effect: 'cheapBuild', requires: null },
+    { id: 'heav_3', name: '魂の共鳴', icon: '💠', cost: 15, desc: '全生産が永続的に+10%される。', effect: 'globalMult', mult: 1.1, requires: null },
+    { id: 'heav_2', name: '黄金の巡り', icon: '🌟', cost: 10, desc: 'ゴールデンそば・呪われしそばの出現率が上昇する。', effect: 'goldenFreq', requires: 'heav_1' },
+    { id: 'heav_4', name: '開祖の記憶', icon: '🧓', cost: 25, desc: 'クリックパワーの基礎値が永続的に+50される。', effect: 'clickBase', amount: 50, requires: 'heav_1' },
+    { id: 'heav_6', name: '熟成の秘技', icon: '🍡', cost: 30, desc: 'そば粉の塊がたまる速度が2倍になる。', effect: 'lumpSpeed', requires: 'heav_3' },
+    { id: 'heav_5', name: '天界の加速', icon: '🚀', cost: 40, desc: '全生産が永続的に+25%される。', effect: 'globalMult', mult: 1.25, requires: 'heav_3' },
+    { id: 'heav_8', name: '双子の精霊', icon: '👯', cost: 60, desc: '祭壇に祀れる精霊が1柱増える(2→3柱)。', effect: 'extraSpiritSlot', requires: 'heav_4' },
+    { id: 'heav_9', name: '刻の加速', icon: '⏳', cost: 50, desc: '手打ちそば道場の休憩時間が半分になる。', effect: 'artisanCooldown', requires: 'heav_6' },
+    { id: 'heav_7', name: '究極の悟り', icon: '☯️', cost: 100, desc: '全生産が永続的に2倍になる。', effect: 'globalMult', mult: 2, requires: 'heav_5' },
+    { id: 'heav_10', name: '慈悲の解脱', icon: '🕊️', cost: 150, desc: '転生に必要な累計そば量が緩和され、越前魂が少し得やすくなる。', effect: 'prestigeBoost', requires: 'heav_7' }
 ];
 
 const SPIRITS = [
-    { id: 'spirit_speed', name: '疾風の精霊', icon: '💨', desc: '全生産が+15%される。', effect: 'globalMult', value: 1.15 },
-    { id: 'spirit_harvest', name: '豊穣の精霊', icon: '🌾', desc: 'ゴールデンそば・呪われしそばの報酬が+30%される。', effect: 'goldenBonus', value: 1.3 },
-    { id: 'spirit_guardian', name: '守護の精霊', icon: '🛡️', desc: '呪われしそばで失うそばの量が半分になる。', effect: 'wrathShield', value: 0.5 },
-    { id: 'spirit_wisdom', name: '知恵の精霊', icon: '📖', desc: 'クリックパワーが+20%される。', effect: 'clickMult', value: 1.2 },
-    { id: 'spirit_commerce', name: '商いの精霊', icon: '💴', desc: '施設のコストが少しだけ安くなる。', effect: 'cheaperBuild', value: 0.97 }
+    { id: 'spirit_speed', name: '疾風の精霊', icon: '💨', desc: '全生産+15%。ただし気が急いて、ゴールデン/呪われしそばの出現率が-15%される。', effects: [{ type: 'globalMult', value: 1.15 }, { type: 'goldenFreqMult', value: 0.85 }] },
+    { id: 'spirit_harvest', name: '豊穣の精霊', icon: '🌾', desc: 'ゴールデン/呪われしそばの報酬+30%。ただし収穫に気を取られ、クリックパワーが-8%される。', effects: [{ type: 'goldenBonus', value: 1.3 }, { type: 'clickMult', value: 0.92 }] },
+    { id: 'spirit_guardian', name: '守護の精霊', icon: '🛡️', desc: '呪われしそばの被害半減。ただし守りに徹するあまり、全生産が-10%される。', effects: [{ type: 'wrathShield', value: 0.5 }, { type: 'globalMult', value: 0.9 }] },
+    { id: 'spirit_wisdom', name: '知恵の精霊', icon: '📖', desc: 'クリックパワー+20%。ただし考え込みすぎて、全生産が-8%される。', effects: [{ type: 'clickMult', value: 1.2 }, { type: 'globalMult', value: 0.92 }] },
+    { id: 'spirit_commerce', name: '商いの精霊', icon: '💴', desc: '施設のコストが少し安くなる。ただし値切り交渉に気を取られ、クリックパワーが-8%される。', effects: [{ type: 'cheaperBuild', value: 0.97 }, { type: 'clickMult', value: 0.92 }] },
+    { id: 'spirit_chaos', name: '混沌の精霊', icon: '🌀', desc: '全生産+50%という破格の力を持つが、その代償として呪われしそばの出現率が2倍になる。上級者向け。', effects: [{ type: 'globalMult', value: 1.5 }, { type: 'wrathChanceMult', value: 2.0 }] }
 ];
+
+function getSpiritEffectMult(type) {
+    let mult = 1;
+    SPIRITS.filter(s => state.spirits.includes(s.id)).forEach(s => {
+        s.effects.forEach(e => { if (e.type === type) mult *= e.value; });
+    });
+    return mult;
+}
 
 const SEASONS = [
     { id: 'spring', name: '桜そばの陣', icon: '🌸', months: [3, 4, 5], effect: 'globalMult', value: 1.05, effectDesc: '全生産+5%', specialName: '花見そば', specialIcon: '🌸🍜' },
@@ -445,6 +482,8 @@ const ACHIEVEMENTS = [
     { id: 'ach_clickpower_2', name: '一撃必殺', icon: '💢', desc: 'クリックパワーが100万に到達。', req: { clickPower: 1000000 } },
     { id: 'ach_building_origin', name: '新境地の開拓者', icon: '🌱', desc: '起源のそばを1つ以上所有。', req: { buildings: { origin: 1 } } },
     { id: 'ach_building_omni', name: '全知への到達', icon: '🧠', desc: '全知のそばを1つ以上所有。', req: { buildings: { omniscience: 1 } } },
+    { id: 'ach_building_you_1', name: '自分自身を見出す', icon: '🪞', desc: '「あなた」を1人以上雇う。', req: { buildings: { you: 1 } } },
+    { id: 'ach_building_you_50', name: '無数のあなた', icon: '👥', desc: '「あなた」を50人雇う。', req: { buildings: { you: 50 } } },
     { id: 'ach_upgrade_all', name: '改良の極み', icon: '🏆', desc: '全てのアップグレードを購入する。', req: { allUpgrades: 1 } },
     { id: 'ach_rich_4', name: '想像を絶する生産', icon: '💫', desc: '1秒間に1穣杯生産。', req: { cps: 1e28 } },
     { id: 'ach_dashi_1', name: '初めてのだし', icon: '🍲', desc: 'だしレベル1に到達。', req: { dashiLevel: 1 } },
@@ -456,7 +495,7 @@ const ACHIEVEMENTS = [
     { id: 'ach_lump_2', name: '塊職人', icon: '🧺', desc: 'そば粉の塊を10個獲得。', req: { totalLumps: 10 } },
     { id: 'ach_lump_3', name: '熟成の探求者', icon: '🏺', desc: 'そば粉の塊を50個獲得。', req: { totalLumps: 50 } },
     { id: 'ach_heavenly_1', name: '天界への一歩', icon: '☁️', desc: '天界の力を1つ購入。', req: { heavenlyCount: 1 } },
-    { id: 'ach_heavenly_2', name: '天界の支配者', icon: '👼', desc: '天界の力を全て購入。', req: { heavenlyCount: 7 } },
+    { id: 'ach_heavenly_2', name: '天界の支配者', icon: '👼', desc: '天界の力を全て購入。', req: { heavenlyCount: 10 } },
     { id: 'ach_shrine_1', name: '祭壇の目覚め', icon: '⛩️', desc: '初めて精霊を祀る。', req: { spiritsCount: 1 } },
     { id: 'ach_shrine_2', name: '二柱の加護', icon: '🙏', desc: '2柱の精霊を同時に祀る。', req: { spiritsCount: 2 } },
     { id: 'ach_season_1', name: '特別な一杯', icon: '🎐', desc: '季節限定のそばを1回発見する。', req: { seasonSobaClicks: 1 } },
@@ -464,7 +503,31 @@ const ACHIEVEMENTS = [
     { id: 'ach_season_all', name: '四季を制覇', icon: '🌗', desc: '春夏秋冬すべての季節を体験する。', req: { seasonsAll: 1 } },
     { id: 'ach_artisan_1', name: '初めての手打ち', icon: '🥢', desc: '手打ちそば道場に1回挑戦する。', req: { artisanAttempts: 1 } },
     { id: 'ach_artisan_crit', name: '会心の一撃', icon: '✨', desc: '手打ちそば道場で会心の一撃を出す。', req: { artisanCrits: 1 } },
-    { id: 'ach_artisan_master', name: '職人の頂', icon: '🏔️', desc: '職人ポイントを上限(50%)まで極める。', req: { artisanPoints: 50 } }
+    { id: 'ach_artisan_master', name: '職人の頂', icon: '🏔️', desc: '職人ポイントを上限(50%)まで極める。', req: { artisanPoints: 50 } },
+    { id: 'ach_11', name: '数字を超えた者', icon: '🌠', desc: 'そばを1𥝱杯打つ。', req: { totalSoba: 1e24 } },
+    { id: 'ach_12', name: '想像を絶する蓄積', icon: '🔆', desc: 'そばを1穣杯打つ。', req: { totalSoba: 1e28 } },
+    { id: 'ach_13', name: '数の彼方', icon: '🕳️', desc: 'そばを1溝杯打つ。', req: { totalSoba: 1e32 } },
+    { id: 'ach_click_5', name: '指の限界突破', icon: '🖐️', desc: '5万回クリック。', req: { clicks: 50000 } },
+    { id: 'ach_click_6', name: '無限連打', icon: '♾️', desc: '10万回クリック。', req: { clicks: 100000 } },
+    { id: 'ach_build_5', name: '越前コンツェルン', icon: '🏙️', desc: '施設合計2000個。', req: { totalBuildings: 2000 } },
+    { id: 'ach_build_6', name: '宇宙規模の生産網', icon: '🛰️', desc: '施設合計5000個。', req: { totalBuildings: 5000 } },
+    { id: 'ach_prestige_2', name: '五度目の輪廻', icon: '🔄', desc: '5回転生する。', req: { prestigeCount: 5 } },
+    { id: 'ach_prestige_3', name: '転生の求道者', icon: '🕉️', desc: '25回転生する。', req: { prestigeCount: 25 } },
+    { id: 'ach_soul_4', name: '越前魂の王', icon: '👑', desc: '越前魂を1000個獲得する。', req: { souls: 1000 } },
+    { id: 'ach_dashi_4', name: 'だしの探究者', icon: '🍵', desc: 'だしレベル15に到達。', req: { dashiLevel: 15 } },
+    { id: 'ach_dashi_5', name: 'だしの極み', icon: '🏆', desc: 'だしレベル20に到達。', req: { dashiLevel: 20 } },
+    { id: 'ach_time_3', name: '一週間の求道', icon: '📅', desc: 'プレイ時間が1週間に到達。', req: { playTime: 604800 } },
+    { id: 'ach_artisan_10', name: '通いの職人', icon: '🚶', desc: '手打ちそば道場に10回挑戦する。', req: { artisanAttempts: 10 } },
+    { id: 'ach_artisan_50', name: '道場の主', icon: '🏯', desc: '手打ちそば道場に50回挑戦する。', req: { artisanAttempts: 50 } },
+    { id: 'ach_artisan_crit10', name: '会心の連続', icon: '💥', desc: '会心の一撃を10回出す。', req: { artisanCrits: 10 } },
+    { id: 'ach_golden_4', name: '幸運の化身', icon: '🎰', desc: 'ゴールデンそば100回。', req: { goldenClicks: 100 } },
+    { id: 'ach_spirit_chaos', name: '混沌を愛する者', icon: '🌀', desc: '混沌の精霊を祀る。', req: { spiritEquipped: 'spirit_chaos' } },
+    { id: 'ach_upgrade_click_all', name: 'クリック道の極意', icon: '🥢', desc: '全てのクリック系アップグレードを購入する。', req: { upgradeTypeAll: 'click' } },
+    { id: 'ach_upgrade_kitten_all', name: '猫又の頂点', icon: '🐈‍⬛', desc: '全てのだし猫系アップグレードを購入する。', req: { upgradeTypeAll: 'kitten' } },
+    { id: 'ach_upgrade_global_all', name: '全域生産の覇者', icon: '🌐', desc: '全てのグローバル系アップグレードを購入する。', req: { upgradeTypeAll: 'global' } },
+    { id: 'ach_upgrade_building_all', name: '施設改良の達人', icon: '🔩', desc: '全ての施設専用アップグレードを購入する。', req: { upgradeTypeAll: 'building' } },
+    { id: 'ach_challenge_1', name: '挑戦者', icon: '⚔️', desc: '挑戦モードを1つクリアする。', req: { challengesCompletedCount: 1 } },
+    { id: 'ach_challenge_all', name: '挑戦の覇者', icon: '🏅', desc: '全ての挑戦モードをクリアする。', req: { challengesAll: 1 } }
 ];
 
 // Secret/shadow achievements - not counted in the normal achievement total, quirky unlock conditions
@@ -473,6 +536,12 @@ const SHADOW_ACHIEVEMENTS = [
     { id: 'shadow_equal', name: '均等分配', icon: '⚖️', desc: '全ての施設をちょうど1つずつ所有する。' },
     { id: 'shadow_reset_addict', name: 'リセット常習犯', icon: '🌀', desc: 'リセットボタンを50回見る。' },
     { id: 'shadow_midnight', name: '満月の夜', icon: '🌕', desc: '深夜0時〜4時の間にプレイする。' }
+];
+
+const CHALLENGES = [
+    { id: 'no_click', name: '不動の一杯', icon: '🧘', desc: 'クリックせずに施設の力だけで累計1000万杯を目指す。挑戦中はクリックパワーが常に0になる。', goal: 1e7, modifier: 'noClick' },
+    { id: 'no_golden', name: '幸運を捨てし者', icon: '🚫', desc: 'ゴールデンそば・呪われしそば・季節限定そばが一切出現しない状態で累計1億杯を目指す。', goal: 1e8, modifier: 'noGolden' },
+    { id: 'expensive', name: '高騰の時代', icon: '📈', desc: '施設のコストが常に1.5倍の状態で累計1000万杯を目指す。', goal: 1e7, modifier: 'expensiveBuildings' }
 ];
 
 const GLOSSARY = [
@@ -486,15 +555,16 @@ const GLOSSARY = [
     { category: '特殊出現物', term: '呪われしそば', icon: '😈', desc: 'ゴールデンそばの代わりに稀に出現する黒いそば。クリックするとそばを失うか、逆に大量ボーナスを得るかの賭け。' },
     { category: '特殊出現物', term: '季節限定そば', icon: '🎐', desc: '現在の季節に応じた特別なそばが稀に出現し、大きな一括ボーナスをくれる。' },
     { category: '特殊出現物', term: 'フィーバータイム', icon: '🔥', desc: 'ゴールデンそばの効果の一つ。一定時間、全生産量が7倍になる。' },
-    { category: '転生システム', term: '転生(プレステージ)', icon: '♻️', desc: '累計そば生産量が1兆杯を超えると可能。施設やそばをリセットする代わりに「越前魂」を獲得する。' },
+    { category: '転生システム', term: '転生(プレステージ)', icon: '♻️', desc: '累計そば生産量が1兆杯を超えると可能。施設やそばをリセットする代わりに「越前魂」を獲得する。また、1回目の転生を行うまでオフライン中の生産は発生しない(転生することで解放される)。' },
     { category: '転生システム', term: '越前魂', icon: '👻', desc: '転生で得られる永続通貨。1個につき全生産+1%される他、天界の力の購入にも使える。' },
-    { category: '転生システム', term: '天界の力', icon: '☁️', desc: '転生タブで越前魂を使って買う恒久アップグレード。買っても越前魂によるボーナス(%)は減らない。' },
+    { category: '転生システム', term: '天界の力', icon: '☁️', desc: '転生タブで越前魂を使って買う恒久アップグレード。買っても越前魂によるボーナス(%)は減らない。スキルツリー式になっており、一部の項目は前提の項目を先に取得する必要がある。' },
     { category: '転生システム', term: 'そば粉の塊', icon: '🍡', desc: '20分ごとに1個たまる資源(現実時間で進行)。既に所有している施設を「熟成」させて永続+1%できる。' },
     { category: '育成要素', term: 'だし', icon: '🍲', desc: '実績7個ごとに1レベル上がる。「だし猫」系アップグレードの効果を強化する。' },
-    { category: '育成要素', term: '祭壇・そばの精霊', icon: '⛩️', desc: '施設合計50個で解放。5柱の精霊から最大2柱を選んで祀り、それぞれ異なる永続効果を得られる。' },
+    { category: '育成要素', term: '祭壇・そばの精霊', icon: '⛩️', desc: '施設合計50個で解放。6柱の精霊から最大2柱を選んで祀れる。それぞれ強力な恩恵と引き換えのデメリットを持つので、組み合わせを考える必要がある。' },
     { category: '育成要素', term: '季節イベント', icon: '🌸', desc: '現実の日付に応じて春夏秋冬が自動で切り替わり、季節ごとに異なる永続ボーナスがかかる。' },
     { category: 'ミニゲーム', term: '手打ちそば道場', icon: '🥢', desc: '5分に1回挑戦できるタイミングゲーム。真ん中で「切る！」を押せるほど「職人ポイント」(永続の生産ボーナス)がたくさん貯まる。' },
     { category: '隠し要素', term: '隠された熟練の力', icon: '🧠', desc: '実績10個ごとに自動で発動する非公開の生産ボーナス。ショップには表示されない。' },
+    { category: 'ミニゲーム', term: '挑戦モード', icon: '⚔️', desc: '初回転生後に解放。特殊なルール(クリック不可・特殊出現物なし・施設コスト1.5倍など)の中で目標達成を目指す。開始すると今の進行状況は安全に退避され、クリアか中断でいつでも戻せる。クリアすると永久に+3%の生産ボーナスがもらえる。' },
     { category: '隠し要素', term: '裏実績', icon: '🌑', desc: '通常の実績数にはカウントされない、少し変わった条件で解除される隠し実績。統計タブで確認できる。' }
 ];
 
@@ -522,37 +592,45 @@ const NEWS = [
 ];
 
 // --- Game State ---
-let state = {
-    soba: 0,
-    totalSoba: 0,
-    allTimeSoba: 0,
-    clicks: 0,
-    goldenClicks: 0,
-    feverCount: 0,
-    prestigeCount: 0,
-    souls: 0,
-    buildings: {},
-    buildingLevels: {},
-    upgrades: [],
-    achievements: [],
-    startTime: Date.now(),
-    lastSave: Date.now(),
-    secretCounter: 0,
-    lumps: 0,
-    totalLumps: 0,
-    lastLumpTime: Date.now(),
-    heavenlyUpgrades: [],
-    wrathClicks: 0,
-    spirits: [],
-    seasonsExperienced: [],
-    seasonSobaClicks: 0,
-    shadowAchievements: [],
-    lastMasteryTier: 0,
-    artisanPoints: 0,
-    artisanAttempts: 0,
-    artisanCrits: 0,
-    lastArtisanTime: 0
-};
+function createFreshState() {
+    return {
+        soba: 0,
+        totalSoba: 0,
+        allTimeSoba: 0,
+        clicks: 0,
+        goldenClicks: 0,
+        feverCount: 0,
+        prestigeCount: 0,
+        souls: 0,
+        buildings: {},
+        buildingLevels: {},
+        upgrades: [],
+        achievements: [],
+        startTime: Date.now(),
+        lastSave: Date.now(),
+        secretCounter: 0,
+        lumps: 0,
+        totalLumps: 0,
+        lastLumpTime: Date.now(),
+        heavenlyUpgrades: [],
+        wrathClicks: 0,
+        spirits: [],
+        seasonsExperienced: [],
+        seasonSobaClicks: 0,
+        shadowAchievements: [],
+        lastMasteryTier: 0,
+        artisanPoints: 0,
+        artisanAttempts: 0,
+        artisanCrits: 0,
+        lastArtisanTime: 0,
+        challengesCompleted: [],
+        challengeBonusPoints: 0,
+        isChallengeRun: null,
+        challengeStartTime: 0
+    };
+}
+
+let state = createFreshState();
 
 function resetState() {
     BUILDINGS.forEach(b => { state.buildings[b.id] = 0; state.buildingLevels[b.id] = 0; });
@@ -608,9 +686,8 @@ function calculateCps() {
     HEAVENLY_UPGRADES.filter(h => h.effect === 'globalMult' && state.heavenlyUpgrades.includes(h.id))
             .forEach(h => newCps *= h.mult);
 
-    // Shrine spirits: speed spirit boosts all production
-    SPIRITS.filter(s => s.effect === 'globalMult' && state.spirits.includes(s.id))
-            .forEach(s => newCps *= s.value);
+    // Shrine spirits: net effect of all equipped spirits' globalMult entries (benefits and drawbacks both apply)
+    newCps *= getSpiritEffectMult('globalMult');
 
     // Seasonal event bonus
     const season = getCurrentSeason();
@@ -621,6 +698,9 @@ function calculateCps() {
 
     // Artisan points from the handmade soba workshop minigame (this game's original mechanic)
     newCps *= (1 + state.artisanPoints / 100);
+
+    // Permanent bonus per completed challenge (+3% each)
+    newCps *= (1 + (state.challengeBonusPoints || 0) * 0.03);
     
     // Prestige Bonus: Each soul gives +1% bonus
     let prestigeMult = 1 + (state.souls * 0.01);
@@ -632,31 +712,32 @@ function calculateCps() {
     let clickBaseBonus = 0;
     HEAVENLY_UPGRADES.filter(h => h.effect === 'clickBase' && state.heavenlyUpgrades.includes(h.id))
             .forEach(h => clickBaseBonus += h.amount);
-    let spiritClickMult = 1;
-    SPIRITS.filter(s => s.effect === 'clickMult' && state.spirits.includes(s.id))
-            .forEach(s => spiritClickMult *= s.value);
+    let spiritClickMult = getSpiritEffectMult('clickMult');
     if (season && season.effect === 'clickMult') spiritClickMult *= season.value;
     clickPower = (newClickPower + clickBaseBonus + (cps * 0.04)) * prestigeMult * clickBuffMult * spiritClickMult;
+    if (state.isChallengeRun === 'no_click') clickPower = 0;
 }
 
 function getGoldenBonusMult() {
-    let mult = 1;
-    SPIRITS.filter(s => s.effect === 'goldenBonus' && state.spirits.includes(s.id))
-            .forEach(s => mult *= s.value);
+    let mult = getSpiritEffectMult('goldenBonus');
     const season = getCurrentSeason();
     if (season && season.effect === 'goldenBonus') mult *= season.value;
     return mult;
 }
 
-function getSeasonFreqMult() {
+function getSpawnFreqMult() {
     const season = getCurrentSeason();
-    return (season && season.effect === 'goldenFreq') ? season.value : 1;
+    let mult = (season && season.effect === 'goldenFreq') ? season.value : 1;
+    mult *= getSpiritEffectMult('goldenFreqMult');
+    return mult;
+}
+
+function getWrathChanceMult() {
+    return getSpiritEffectMult('wrathChanceMult');
 }
 
 function getWrathShieldMult() {
-    let mult = 1;
-    SPIRITS.filter(s => s.effect === 'wrathShield' && state.spirits.includes(s.id))
-            .forEach(s => mult *= s.value);
+    let mult = getSpiritEffectMult('wrathShield');
     return mult;
 }
 
@@ -703,6 +784,7 @@ function update() {
     }
 
     accumulateLumps(now);
+    checkChallengeProgress();
 
     clickTimestamps = clickTimestamps.filter(t => now - t < 1000);
     checkAchievements();
@@ -761,6 +843,10 @@ function render() {
     if (totalBuildingsOwned >= 50) {
         document.getElementById('shrine-tab').style.display = 'block';
     }
+    if (state.prestigeCount >= 1 || state.isChallengeRun) {
+        document.getElementById('challenge-tab').style.display = 'block';
+    }
+    renderChallengeBanner();
 
     renderShop();
     renderUpgrades();
@@ -865,6 +951,7 @@ function renderStats() {
         <div class="stat-row"><span class="stat-label">季節限定そば発見数</span><span>${state.seasonSobaClicks} 回 (制覇: ${state.seasonsExperienced.length}/${SEASONS.length})</span></div>
         <div class="stat-row"><span class="stat-label">裏実績</span><span>🌑 ${state.shadowAchievements.length}/${SHADOW_ACHIEVEMENTS.length}</span></div>
         <div class="stat-row"><span class="stat-label">手打ちそば道場</span><span>${state.artisanAttempts}回挑戦 (会心${state.artisanCrits}回・職人ポイント+${state.artisanPoints.toFixed(1)}%)</span></div>
+        <div class="stat-row"><span class="stat-label">挑戦モード</span><span>${(state.challengesCompleted || []).length}/${CHALLENGES.length} クリア (恒久ボーナス+${((state.challengeBonusPoints || 0) * 3)}%)</span></div>
     `;
 }
 
@@ -873,7 +960,9 @@ function renderShrine() {
 
     const slots = document.getElementById('shrine-slots');
     slots.innerHTML = '';
-    for (let i = 0; i < 2; i++) {
+    const maxSlots = getMaxSpiritSlots();
+    document.getElementById('shrine-slot-count').textContent = maxSlots;
+    for (let i = 0; i < maxSlots; i++) {
         const spiritId = state.spirits[i];
         const spirit = spiritId ? SPIRITS.find(s => s.id === spiritId) : null;
         const div = document.createElement('div');
@@ -893,7 +982,7 @@ function renderShrine() {
     list.innerHTML = '';
     SPIRITS.forEach(s => {
         const active = state.spirits.includes(s.id);
-        const full = state.spirits.length >= 2 && !active;
+        const full = state.spirits.length >= getMaxSpiritSlots() && !active;
         const div = document.createElement('div');
         div.className = `spirit-item ${active ? 'active' : ''} ${full ? 'disabled' : ''}`;
         div.innerHTML = `
@@ -912,13 +1001,22 @@ function renderShrine() {
     });
 }
 
+function getMaxSpiritSlots() {
+    return state.heavenlyUpgrades.includes('heav_8') ? 3 : 2;
+}
+
+function getPrestigeDivisor() {
+    return state.heavenlyUpgrades.includes('heav_10') ? 8e11 : 1e12;
+}
+
 function toggleSpirit(id) {
     const idx = state.spirits.indexOf(id);
     if (idx >= 0) {
         state.spirits.splice(idx, 1);
     } else {
-        if (state.spirits.length >= 2) {
-            notify("祭壇は2柱までしか祀れません。", "⛩️");
+        const maxSlots = getMaxSpiritSlots();
+        if (state.spirits.length >= maxSlots) {
+            notify(`祭壇は${maxSlots}柱までしか祀れません。`, "⛩️");
             return;
         }
         state.spirits.push(id);
@@ -936,13 +1034,17 @@ function renderSeasonBar() {
 
 // --- 手打ちそば道場: this game's original minigame (not derived from any other clicker) ---
 const ARTISAN_STAGES = ['💧 水回し中...', '👐 こね中...', '🪵 延し中...', '📖 たたみ中...', '🔪 切りどき！今だ！'];
-const ARTISAN_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+const ARTISAN_BASE_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 let artisanRunning = false;
 let artisanMarkerAnim = null;
 let artisanStageTimer = null;
 
+function getArtisanCooldown() {
+    return state.heavenlyUpgrades.includes('heav_9') ? ARTISAN_BASE_COOLDOWN / 2 : ARTISAN_BASE_COOLDOWN;
+}
+
 function getArtisanCooldownLeft() {
-    return Math.max(0, ARTISAN_COOLDOWN - (Date.now() - (state.lastArtisanTime || 0)));
+    return Math.max(0, getArtisanCooldown() - (Date.now() - (state.lastArtisanTime || 0)));
 }
 
 function startArtisanChallenge() {
@@ -1046,6 +1148,137 @@ function getAvailableSouls() {
     return state.souls - spent;
 }
 
+// --- Challenge Mode: a temporary alternate save with special rules, backed up and restored via localStorage ---
+function startChallenge(id) {
+    if (state.isChallengeRun) {
+        notify("既に挑戦中です。先に完了か中断をしてください。", "⚔️");
+        return;
+    }
+    const challenge = CHALLENGES.find(c => c.id === id);
+    if (!challenge) return;
+    if (!confirm(`「${challenge.name}」に挑戦しますか？\n現在の進行状況は安全に退避され、挑戦を終える（または中断する）といつでも戻せます。`)) return;
+
+    localStorage.setItem('echizenSobaChallengeBackup', JSON.stringify(state));
+
+    state = createFreshState();
+    resetState();
+    state.isChallengeRun = id;
+    state.challengeStartTime = Date.now();
+    lastUpdate = Date.now();
+    calculateCps();
+    saveGame(true);
+    switchTab('shop');
+    notify(`挑戦開始: ${challenge.name}`, challenge.icon);
+    render();
+}
+
+function checkChallengeProgress() {
+    if (!state.isChallengeRun) return;
+    const challenge = CHALLENGES.find(c => c.id === state.isChallengeRun);
+    if (!challenge) return;
+    if (state.allTimeSoba >= challenge.goal) completeChallenge();
+}
+
+function completeChallenge() {
+    const challengeId = state.isChallengeRun;
+    const challenge = CHALLENGES.find(c => c.id === challengeId);
+    const backupRaw = localStorage.getItem('echizenSobaChallengeBackup');
+    if (!backupRaw) return;
+    const backup = JSON.parse(backupRaw);
+    normalizeStateObject(backup);
+    backup.achievements = Array.from(new Set([...backup.achievements, ...state.achievements]));
+    backup.shadowAchievements = Array.from(new Set([...backup.shadowAchievements, ...state.shadowAchievements]));
+
+    let rewardMsg = '';
+    if (!backup.challengesCompleted.includes(challengeId)) {
+        backup.challengesCompleted.push(challengeId);
+        backup.challengeBonusPoints = (backup.challengeBonusPoints || 0) + 1;
+        rewardMsg = ` 恒久ボーナス+3%を獲得！`;
+    } else {
+        rewardMsg = '(再挑戦のため追加ボーナスなし)';
+    }
+
+    state = backup;
+    state.isChallengeRun = null;
+    state.challengeStartTime = 0;
+    localStorage.removeItem('echizenSobaChallengeBackup');
+    localStorage.removeItem('echizenSobaChallengeState');
+    calculateCps();
+    saveGame(true);
+    switchTab('challenge');
+    notify(`挑戦クリア: ${challenge.name}！${rewardMsg}`, "🏆");
+    render();
+}
+
+function abandonChallenge() {
+    if (!state.isChallengeRun) return;
+    if (!confirm("挑戦を中断しますか？(挑戦中の進行は失われますが、元のセーブデータは無事です)")) return;
+    const backupRaw = localStorage.getItem('echizenSobaChallengeBackup');
+    if (!backupRaw) {
+        notify("元のセーブデータが見つかりません。念のため中断を取り消しました。ページを再読み込みしてから再度お試しください。", "⚠️", true);
+        return;
+    }
+    const backup = JSON.parse(backupRaw);
+    normalizeStateObject(backup);
+    backup.achievements = Array.from(new Set([...backup.achievements, ...state.achievements]));
+    backup.shadowAchievements = Array.from(new Set([...backup.shadowAchievements, ...state.shadowAchievements]));
+    state = backup;
+    state.isChallengeRun = null;
+    state.challengeStartTime = 0;
+    localStorage.removeItem('echizenSobaChallengeBackup');
+    localStorage.removeItem('echizenSobaChallengeState');
+    calculateCps();
+    saveGame(true);
+    switchTab('shop');
+    notify("挑戦を中断し、元の進行状況に戻りました。", "↩️");
+    render();
+}
+
+function normalizeStateObject(obj) {
+    const prevState = state;
+    state = obj;
+    normalizeState();
+    state = prevState;
+}
+
+function renderChallengeBanner() {
+    const banner = document.getElementById('challenge-banner');
+    if (!state.isChallengeRun) {
+        banner.style.display = 'none';
+        return;
+    }
+    const challenge = CHALLENGES.find(c => c.id === state.isChallengeRun);
+    if (!challenge) { banner.style.display = 'none'; return; }
+    banner.style.display = 'block';
+    document.getElementById('challenge-banner-name').textContent = `${challenge.icon} ${challenge.name}`;
+    document.getElementById('challenge-banner-progress').textContent = `${fmt(state.allTimeSoba)} / ${fmt(challenge.goal)} 杯`;
+}
+
+function renderChallengeList() {
+    const list = document.getElementById('challenge-list');
+    list.innerHTML = '';
+    CHALLENGES.forEach(c => {
+        const completed = state.challengesCompleted && state.challengesCompleted.includes(c.id);
+        const active = state.isChallengeRun === c.id;
+        const div = document.createElement('div');
+        div.className = `building-item ${active ? '' : (state.isChallengeRun ? 'locked' : 'can-buy')}`;
+        div.style.opacity = state.isChallengeRun && !active ? '0.4' : '1';
+        div.innerHTML = `
+            <div class="b-icon">${c.icon}</div>
+            <div class="b-info">
+                <div class="b-name">${c.name} ${completed ? '<span style="color:gold">✓クリア済</span>' : ''}</div>
+                <div class="b-cost">${c.desc}</div>
+            </div>
+        `;
+        if (!state.isChallengeRun) {
+            div.onpointerdown = (e) => { e.preventDefault(); startChallenge(c.id); };
+        } else if (active) {
+            div.onpointerdown = (e) => { e.preventDefault(); switchTab('shop'); };
+        }
+        list.appendChild(div);
+    });
+}
+
 function renderGlossary() {
     const list = document.getElementById('glossary-list');
     list.innerHTML = '';
@@ -1074,7 +1307,7 @@ function renderGlossary() {
 function renderPrestige() {
     if (document.getElementById('prestige-view').style.display !== 'block') return;
     const btn = document.getElementById('prestige-btn');
-    const soulsToGet = Math.floor(Math.pow(state.allTimeSoba / 1e12, 0.5)) - state.souls;
+    const soulsToGet = Math.floor(Math.pow(state.allTimeSoba / getPrestigeDivisor(), 1/3)) - state.souls;
     const canPrestige = soulsToGet > 0;
     
     btn.disabled = !canPrestige;
@@ -1087,23 +1320,31 @@ function renderPrestige() {
     const available = getAvailableSouls();
     document.getElementById('soul-available').textContent = available;
 
-    // Heavenly upgrades shop
+    // Heavenly upgrades shop (skill tree: nodes with a prerequisite are indented and locked until it's owned)
     const hList = document.getElementById('heavenly-list');
     hList.innerHTML = '';
     HEAVENLY_UPGRADES.forEach(h => {
         const owned = state.heavenlyUpgrades.includes(h.id);
-        const canBuy = !owned && available >= h.cost;
+        const prereqMet = !h.requires || state.heavenlyUpgrades.includes(h.requires);
+        const canBuy = !owned && prereqMet && available >= h.cost;
         const div = document.createElement('div');
         div.className = `building-item ${owned ? '' : (canBuy ? 'can-buy' : 'locked')}`;
         div.style.opacity = owned ? '0.6' : (canBuy ? '1' : '0.4');
+        if (h.requires) div.style.marginLeft = '24px';
+        let costLine;
+        if (owned) costLine = '購入済み';
+        else if (!prereqMet) {
+            const prereq = HEAVENLY_UPGRADES.find(x => x.id === h.requires);
+            costLine = `🔒 「${prereq.name}」が必要`;
+        } else costLine = '👻 ' + h.cost + ' 越前魂';
         div.innerHTML = `
-            <div class="b-icon">${h.icon}</div>
+            <div class="b-icon">${prereqMet ? h.icon : '🔒'}</div>
             <div class="b-info">
                 <div class="b-name">${h.name}</div>
-                <div class="b-cost" style="color:var(--prestige)">${owned ? '購入済み' : '👻 ' + h.cost + ' 越前魂'}</div>
+                <div class="b-cost" style="color:var(--prestige)">${costLine}</div>
             </div>
         `;
-        if (!owned) {
+        if (!owned && prereqMet) {
             div.onpointerdown = (e) => { e.preventDefault(); buyHeavenly(h.id); };
         }
         div.onmouseenter = (e) => showTooltip(e, h.name, h.desc, 0);
@@ -1141,6 +1382,11 @@ function renderPrestige() {
 function buyHeavenly(id) {
     const h = HEAVENLY_UPGRADES.find(x => x.id === id);
     if (!h || state.heavenlyUpgrades.includes(id)) return;
+    if (h.requires && !state.heavenlyUpgrades.includes(h.requires)) {
+        const prereq = HEAVENLY_UPGRADES.find(x => x.id === h.requires);
+        notify(`先に「${prereq.name}」を取得する必要があります。`, "🔒");
+        return;
+    }
     if (getAvailableSouls() >= h.cost) {
         state.heavenlyUpgrades.push(id);
         calculateCps();
@@ -1204,7 +1450,8 @@ document.addEventListener('keydown', (e) => {
 function getBuildingCost(b) {
     const rate = state.heavenlyUpgrades.includes('heav_1') ? 1.13 : 1.15;
     let cost = b.baseCost * Math.pow(rate, state.buildings[b.id] || 0);
-    if (state.spirits.includes('spirit_commerce')) cost *= 0.97;
+    cost *= getSpiritEffectMult('cheaperBuild');
+    if (state.isChallengeRun === 'expensive') cost *= 1.5;
     return Math.floor(cost);
 }
 
@@ -1271,6 +1518,13 @@ function checkAchievements() {
         if (a.req.artisanAttempts && state.artisanAttempts < a.req.artisanAttempts) met = false;
         if (a.req.artisanCrits && state.artisanCrits < a.req.artisanCrits) met = false;
         if (a.req.artisanPoints && state.artisanPoints < a.req.artisanPoints) met = false;
+        if (a.req.spiritEquipped && !state.spirits.includes(a.req.spiritEquipped)) met = false;
+        if (a.req.upgradeTypeAll) {
+            const typeUpgrades = UPGRADES.filter(u => u.type === a.req.upgradeTypeAll);
+            if (!typeUpgrades.every(u => state.upgrades.includes(u.id))) met = false;
+        }
+        if (a.req.challengesCompletedCount && (!state.challengesCompleted || state.challengesCompleted.length < a.req.challengesCompletedCount)) met = false;
+        if (a.req.challengesAll && (!state.challengesCompleted || state.challengesCompleted.length < CHALLENGES.length)) met = false;
 
         if (met) {
             state.achievements.push(a.id);
@@ -1296,7 +1550,7 @@ function checkShadowAchievements() {
 }
 
 function prestige() {
-    const soulsToGet = Math.floor(Math.pow(state.allTimeSoba / 1e12, 0.5)) - state.souls;
+    const soulsToGet = Math.floor(Math.pow(state.allTimeSoba / getPrestigeDivisor(), 1/3)) - state.souls;
     if (soulsToGet <= 0) return;
     
     if (confirm(`本当に転生しますか？\n獲得する越前魂: ${soulsToGet} 個\n(施設やアップグレードはリセットされますが、生産ボーナスが得られます)`)) {
@@ -1313,9 +1567,10 @@ function spawnGoldenSoba() {
     const gs = document.getElementById('golden-soba');
     const rand = Math.random();
     const season = getCurrentSeason();
+    const wrathThreshold = Math.min(0.6, 0.20 * getWrathChanceMult());
     let type;
-    if (rand < 0.20) type = 'wrath';
-    else if (rand < 0.32) type = 'season';
+    if (rand < wrathThreshold) type = 'wrath';
+    else if (rand < wrathThreshold + 0.12) type = 'season';
     else type = 'golden';
 
     gs.dataset.type = type;
@@ -1416,8 +1671,9 @@ function flashWrath() {
 }
 
 setInterval(() => {
+    if (state.isChallengeRun === 'no_golden') return;
     const freqBonus = state.heavenlyUpgrades.includes('heav_2') ? 1.6 : 1;
-    if (Math.random() < 0.05 * freqBonus * getSeasonFreqMult()) spawnGoldenSoba();
+    if (Math.random() < 0.05 * freqBonus * getSpawnFreqMult()) spawnGoldenSoba();
 }, 10000);
 
 function showTooltip(e, name, desc, cost) {
@@ -1461,6 +1717,7 @@ function switchTab(tab) {
     document.getElementById('stats-view').style.display = 'none';
     document.getElementById('shrine-view').style.display = 'none';
     document.getElementById('prestige-view').style.display = 'none';
+    document.getElementById('challenge-view').style.display = 'none';
     document.getElementById('glossary-view').style.display = 'none';
     
     if (tab === 'shop') {
@@ -1478,8 +1735,12 @@ function switchTab(tab) {
         document.getElementById('prestige-tab').classList.add('active');
         document.getElementById('prestige-view').style.display = 'block';
         renderPrestige();
+    } else if (tab === 'challenge') {
+        document.getElementById('challenge-tab').classList.add('active');
+        document.getElementById('challenge-view').style.display = 'block';
+        renderChallengeList();
     } else if (tab === 'glossary') {
-        document.querySelector('.tab:nth-child(5)').classList.add('active');
+        document.querySelector('.tab:nth-child(6)').classList.add('active');
         document.getElementById('glossary-view').style.display = 'block';
         renderGlossary();
     }
@@ -1488,63 +1749,87 @@ function switchTab(tab) {
 function saveGame(silent = false) {
     if (isResetting) return;
     state.lastSave = Date.now();
+    if (state.isChallengeRun) {
+        localStorage.setItem('echizenSobaChallengeState', JSON.stringify(state));
+        if (!silent) notify("挑戦の進行状況を保存しました。");
+        return;
+    }
     localStorage.setItem('echizenSobaSaveV2_2', JSON.stringify(state));
     if (!silent) notify("ゲームを保存しました。");
 }
 
 function loadGame() {
+    const challengeBackup = localStorage.getItem('echizenSobaChallengeBackup');
+    const challengeState = localStorage.getItem('echizenSobaChallengeState');
+    if (challengeBackup && challengeState) {
+        // A challenge was in progress when the tab closed - resume it instead of the main save
+        state = { ...state, ...JSON.parse(challengeState) };
+        normalizeState();
+        calculateCps();
+        return;
+    }
+
     const saved = localStorage.getItem('echizenSobaSaveV2_2');
     if (saved) {
         const loadedState = JSON.parse(saved);
         state = { ...state, ...loadedState };
-        // Ensure all buildings are present in state
-        if (!state.buildingLevels) state.buildingLevels = {};
-        BUILDINGS.forEach(b => {
-            if (state.buildings[b.id] === undefined) state.buildings[b.id] = 0;
-            if (state.buildingLevels[b.id] === undefined) state.buildingLevels[b.id] = 0;
-        });
-        if (!state.heavenlyUpgrades) state.heavenlyUpgrades = [];
-        if (!state.spirits) state.spirits = [];
-        delete state.currentSeason; // legacy field, no longer used (season is derived live, not stored)
-        if (!state.seasonsExperienced) state.seasonsExperienced = [];
-        if (!state.seasonsExperienced.includes(getCurrentSeason().id)) state.seasonsExperienced.push(getCurrentSeason().id);
-        if (state.seasonSobaClicks === undefined) state.seasonSobaClicks = 0;
-        delete state.wrinklers; // legacy field, feature removed
-        delete state.wrinklersPopped;
-        delete state.shinyWrinklersPopped;
-        if (!state.shadowAchievements) state.shadowAchievements = [];
-        if (state.lastMasteryTier === undefined) state.lastMasteryTier = Math.floor(state.achievements.length / 10);
-        if (state.artisanPoints === undefined) state.artisanPoints = 0;
-        if (state.artisanAttempts === undefined) state.artisanAttempts = 0;
-        if (state.artisanCrits === undefined) state.artisanCrits = 0;
-        if (state.lastArtisanTime === undefined) state.lastArtisanTime = 0;
-        if (state.lumps === undefined) state.lumps = 0;
-        if (state.totalLumps === undefined) state.totalLumps = 0;
-        if (state.wrathClicks === undefined) state.wrathClicks = 0;
-        if (!state.lastLumpTime) state.lastLumpTime = Date.now();
+        normalizeState();
         calculateCps();
 
-        // --- オフライン進行 ---
-        const now = Date.now();
-        const offlineSec = (now - (state.lastSave || now)) / 1000;
-        const MAX_OFFLINE_SEC = 24 * 60 * 60; // 最大24時間分
-        const elapsed = Math.min(offlineSec, MAX_OFFLINE_SEC);
-        if (elapsed > 10 && cps > 0) {
-            const gained = cps * elapsed;
-            state.soba += gained;
-            state.totalSoba += gained;
-            state.allTimeSoba += gained;
-            const h = Math.floor(elapsed / 3600);
-            const m = Math.floor((elapsed % 3600) / 60);
-            const s = Math.floor(elapsed % 60);
-            const timeStr = h > 0 ? `${h}時間${m}分` : m > 0 ? `${m}分${s}秒` : `${s}秒`;
-            setTimeout(() => {
-                notify(`留守中に ${timeStr} 分の生産！ +${fmt(gained)} 杯`, "⏰");
-            }, 1000);
+        // --- オフライン進行(初回転生後にのみ解放) ---
+        if (state.prestigeCount >= 1) {
+            const now = Date.now();
+            const offlineSec = (now - (state.lastSave || now)) / 1000;
+            const MAX_OFFLINE_SEC = 24 * 60 * 60; // 最大24時間分
+            const elapsed = Math.min(offlineSec, MAX_OFFLINE_SEC);
+            if (elapsed > 10 && cps > 0) {
+                const gained = cps * elapsed;
+                state.soba += gained;
+                state.totalSoba += gained;
+                state.allTimeSoba += gained;
+                const h = Math.floor(elapsed / 3600);
+                const m = Math.floor((elapsed % 3600) / 60);
+                const s = Math.floor(elapsed % 60);
+                const timeStr = h > 0 ? `${h}時間${m}分` : m > 0 ? `${m}分${s}秒` : `${s}秒`;
+                setTimeout(() => {
+                    notify(`留守中に ${timeStr} 分の生産！ +${fmt(gained)} 杯`, "⏰");
+                }, 1000);
+            }
         }
-        state.lastSave = now;
-        lastUpdate = now;
+        state.lastSave = Date.now();
+        lastUpdate = state.lastSave;
     }
+}
+
+function normalizeState() {
+    if (!state.buildingLevels) state.buildingLevels = {};
+    BUILDINGS.forEach(b => {
+        if (state.buildings[b.id] === undefined) state.buildings[b.id] = 0;
+        if (state.buildingLevels[b.id] === undefined) state.buildingLevels[b.id] = 0;
+    });
+    if (!state.heavenlyUpgrades) state.heavenlyUpgrades = [];
+    if (!state.spirits) state.spirits = [];
+    delete state.currentSeason; // legacy field, no longer used (season is derived live, not stored)
+    if (!state.seasonsExperienced) state.seasonsExperienced = [];
+    if (!state.seasonsExperienced.includes(getCurrentSeason().id)) state.seasonsExperienced.push(getCurrentSeason().id);
+    if (state.seasonSobaClicks === undefined) state.seasonSobaClicks = 0;
+    delete state.wrinklers; // legacy field, feature removed
+    delete state.wrinklersPopped;
+    delete state.shinyWrinklersPopped;
+    if (!state.shadowAchievements) state.shadowAchievements = [];
+    if (state.lastMasteryTier === undefined) state.lastMasteryTier = Math.floor(state.achievements.length / 10);
+    if (state.artisanPoints === undefined) state.artisanPoints = 0;
+    if (state.artisanAttempts === undefined) state.artisanAttempts = 0;
+    if (state.artisanCrits === undefined) state.artisanCrits = 0;
+    if (state.lastArtisanTime === undefined) state.lastArtisanTime = 0;
+    if (state.lumps === undefined) state.lumps = 0;
+    if (state.totalLumps === undefined) state.totalLumps = 0;
+    if (state.wrathClicks === undefined) state.wrathClicks = 0;
+    if (!state.lastLumpTime) state.lastLumpTime = Date.now();
+    if (!state.challengesCompleted) state.challengesCompleted = [];
+    if (state.challengeBonusPoints === undefined) state.challengeBonusPoints = 0;
+    if (state.isChallengeRun === undefined) state.isChallengeRun = null;
+    if (state.challengeStartTime === undefined) state.challengeStartTime = 0;
 }
 
 // タブが隠れたとき自動セーブ（次回起動時のオフライン計算のため）
@@ -1553,10 +1838,10 @@ document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') {
         saveGame(true);
     } else {
-        // タブに戻ってきたとき：隠れていた間の分を加算
+        // タブに戻ってきたとき：隠れていた間の分を加算(初回転生後にのみ解放)
         const now = Date.now();
         const offlineSec = (now - state.lastSave) / 1000;
-        if (offlineSec > 5 && cps > 0) {
+        if (state.prestigeCount >= 1 && offlineSec > 5 && cps > 0) {
             const gained = cps * offlineSec;
             state.soba += gained;
             state.totalSoba += gained;
@@ -1576,6 +1861,8 @@ function resetGame() {
     if (confirm("本当にリセットしますか？全ての進捗が失われます。")) {
         isResetting = true;
         localStorage.removeItem('echizenSobaSaveV2_2');
+        localStorage.removeItem('echizenSobaChallengeBackup');
+        localStorage.removeItem('echizenSobaChallengeState');
         location.reload();
     }
 }
