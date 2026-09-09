@@ -114,7 +114,6 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 .stat-label{color:var(--muted)}
 
 /* Prestige UI */
-#prestige-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
 
 /* Glossary */
 #glossary-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
@@ -138,6 +137,14 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 .prestige-btn{width:100%;padding:20px;background:linear-gradient(135deg, #004466 0%, #001122 100%);border:2px solid var(--prestige);border-radius:12px;color:#fff;font-weight:bold;cursor:pointer;margin-bottom:20px;transition:0.3s}
 .prestige-btn:hover:not(:disabled){box-shadow: 0 0 20px rgba(0,212,255,0.4); transform: scale(1.02)}
 .prestige-btn:disabled{opacity:0.5; cursor:not-allowed; border-color: #333}
+
+/* Full-screen Ascension overlay - completely replaces normal gameplay, original-inspired */
+#ascension-screen{display:none;position:fixed;inset:0;z-index:2000;background:radial-gradient(circle at 50% 30%, #1a0a2e 0%, #05020a 80%);overflow-y:auto;flex-direction:column;align-items:center;padding:20px;}
+#ascension-header{width:100%;max-width:600px;display:flex;flex-direction:column;align-items:center;margin-bottom:10px;}
+#ascension-header-box{background:linear-gradient(135deg, #2a1845 0%, #150a25 100%);border:2px solid var(--prestige);border-radius:16px;padding:16px 30px;text-align:center;box-shadow:0 0 25px rgba(0,212,255,0.25);margin-bottom:10px;}
+#skill-tree-wrap{width:100%; max-width:920px; overflow:auto; border:1px solid var(--border); border-radius:10px; background:radial-gradient(circle, #1a0a2e 0%, #0d0515 100%); margin-bottom:15px;}
+#skill-tree-canvas{position:relative; width:900px; height:700px;}
+#ascension-lump-section{width:100%; max-width:600px; background:rgba(0,0,0,0.25); border-radius:12px; padding:15px;}
 
 /* Shrine (Spirits) UI */
 #shrine-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
@@ -182,6 +189,9 @@ button{touch-action:manipulation}
     .b-name{font-size:14px}
     .upgrade-item{width:48px;height:48px;font-size:22px}
     #upgrades-grid{grid-template-columns:repeat(auto-fill, minmax(48px, 1fr))}
+
+    #ascension-header-box{padding:12px 20px}
+    #ascension-bonus{font-size:20px}
 }
 
 @media (max-width: 480px) {
@@ -255,7 +265,7 @@ button{touch-action:manipulation}
             <div class="tab active" onclick="switchTab('shop')">ショップ</div>
             <div class="tab" onclick="switchTab('stats')">統計</div>
             <div class="tab" id="shrine-tab" onclick="switchTab('shrine')" style="display:none; color:#c77dff">祭壇</div>
-            <div class="tab" id="prestige-tab" onclick="switchTab('prestige')" style="display:none; color:var(--prestige)">転生</div>
+            <div class="tab" id="prestige-tab" onclick="openAscensionScreen()" style="display:none; color:var(--prestige)">転生</div>
             <div class="tab" id="challenge-tab" onclick="switchTab('challenge')" style="display:none; color:#ff6b6b">挑戦</div>
             <div class="tab" onclick="switchTab('glossary')" style="color:#8fd6ff">用語集</div>
         </div>
@@ -283,32 +293,6 @@ button{touch-action:manipulation}
             <div id="shrine-list"></div>
         </div>
 
-        <div id="prestige-view">
-            <h3 style="margin-bottom:15px; color:var(--prestige)">転生 (プレステージ)</h3>
-            <p style="font-size:13px; color:#aaa; margin-bottom:20px">現在のそばを全て捧げ、永続的なボーナスを得て最初からやり直します。</p>
-            <button id="prestige-btn" class="prestige-btn" onclick="prestige()">
-                転生して 0 個の「越前魂」を獲得<br>
-                <span style="font-size:11px; font-weight:normal">(現在のボーナス: +0%)</span>
-            </button>
-            <div id="prestige-info" style="font-size:13px; color:var(--text)">
-                獲得済みの越前魂: <span id="soul-count" style="color:var(--prestige); font-weight:bold">0</span> 個<br>
-                現在の生産ボーナス: <span id="prestige-mult" style="color:var(--prestige); font-weight:bold">0</span> %<br>
-                使用可能な越前魂: <span id="soul-available" style="color:var(--prestige); font-weight:bold">0</span> 個
-            </div>
-
-            <h3 style="margin:25px 0 10px; color:var(--prestige)">天界の力 (越前魂で購入・永続効果)</h3>
-            <p style="font-size:11px; color:#aaa; margin-bottom:10px">ノードをタップ/クリックすると購入できます。線でつながった手前のノードを先に取得する必要があります。</p>
-            <div id="skill-tree-wrap" style="width:100%; overflow:auto; border:1px solid var(--border); border-radius:10px; background:radial-gradient(circle, #1a0a2e 0%, #0d0515 100%); margin-bottom:15px;">
-                <div id="skill-tree-canvas" style="position:relative; width:900px; height:700px;">
-                    <svg id="skill-tree-svg" width="900" height="700" style="position:absolute; top:0; left:0; pointer-events:none;"></svg>
-                </div>
-            </div>
-
-            <h3 style="margin:25px 0 10px; color:var(--accent)">そば粉の塊で施設を熟成</h3>
-            <p style="font-size:12px; color:#aaa; margin-bottom:10px">20分ごとに1個たまる「そば粉の塊」を使い、既に所有している施設を熟成させて永続的に生産量を+1%できます。</p>
-            <div id="lump-list"></div>
-        </div>
-
         <div id="challenge-view">
             <h3 style="margin-bottom:6px; color:#ff6b6b">挑戦モード</h3>
             <p style="font-size:12px; color:#aaa; margin-bottom:15px">通常のセーブとは別に、特殊なルールの中で目標達成を目指します。開始すると現在の進行状況は安全に退避され、挑戦を終える(または中断する)と元に戻ります。クリアすると恒久ボーナスがもらえます。</p>
@@ -323,6 +307,31 @@ button{touch-action:manipulation}
     </div>
 </div>
 
+<div id="ascension-screen">
+    <div id="ascension-header">
+        <div id="ascension-header-box">
+            <div style="font-size:13px; color:var(--muted)">現在のプレステージボーナス</div>
+            <div id="ascension-bonus" style="font-size:26px; font-weight:900; color:var(--prestige)">+0%</div>
+            <div style="font-size:12px; margin-top:6px;">越前魂: <span id="ascension-souls" style="color:var(--prestige); font-weight:bold">0</span> 個(使用可能: <span id="ascension-available" style="color:var(--prestige); font-weight:bold">0</span> 個)</div>
+        </div>
+        <button id="ascension-transcend-btn" class="prestige-btn" onclick="prestige()" style="max-width:420px; margin:14px auto;">
+            転生して 0 個の「越前魂」を獲得
+        </button>
+        <button id="ascension-back-btn" onclick="closeAscensionScreen()" style="padding:8px 20px; background:var(--border); border:1px solid var(--muted); color:var(--text); border-radius:6px; cursor:pointer; font-size:12px;">↩ 転生せずに戻る</button>
+    </div>
+
+    <div id="skill-tree-wrap">
+        <div id="skill-tree-canvas">
+            <svg id="skill-tree-svg" width="900" height="700" style="position:absolute; top:0; left:0; pointer-events:none;"></svg>
+        </div>
+    </div>
+
+    <div id="ascension-lump-section">
+        <h3 style="margin:10px 0; color:var(--accent); text-align:center;">🍡 そば粉の塊で施設を熟成</h3>
+        <p style="font-size:12px; color:#aaa; margin-bottom:10px; text-align:center;">20分ごとに1個たまる「そば粉の塊」を使い、既に所有している施設を熟成させて永続的に生産量を+1%できます。</p>
+        <div id="lump-list"></div>
+    </div>
+</div>
 
 <div id="notif-container"></div>
 <div id="tooltip"></div>
@@ -876,7 +885,7 @@ function render() {
     renderAchievements();
     renderStats();
     renderShrine();
-    renderPrestige();
+    renderAscensionScreen();
 }
 
 function renderShop() {
@@ -1439,21 +1448,28 @@ function renderSkillTree(available) {
 }
 
 
-function renderPrestige() {
-    if (document.getElementById('prestige-view').style.display !== 'block') return;
-    const btn = document.getElementById('prestige-btn');
+function openAscensionScreen() {
+    document.getElementById('ascension-screen').style.display = 'flex';
+    renderAscensionScreen();
+}
+
+function closeAscensionScreen() {
+    document.getElementById('ascension-screen').style.display = 'none';
+    switchTab('shop');
+}
+
+function renderAscensionScreen() {
+    if (document.getElementById('ascension-screen').style.display !== 'flex') return;
+    const btn = document.getElementById('ascension-transcend-btn');
     const soulsToGet = Math.floor(Math.pow(state.allTimeSoba / getPrestigeDivisor(), 1/3)) - state.souls;
     const canPrestige = soulsToGet > 0;
     
     btn.disabled = !canPrestige;
-    btn.innerHTML = `
-        転生して ${Math.max(0, soulsToGet)} 個の「越前魂」を獲得<br>
-        <span style="font-size:11px; font-weight:normal">(現在のボーナス: +${state.souls}%)</span>
-    `;
-    document.getElementById('soul-count').textContent = state.souls;
-    document.getElementById('prestige-mult').textContent = state.souls;
+    btn.innerHTML = `転生して ${Math.max(0, soulsToGet)} 個の「越前魂」を獲得`;
+    document.getElementById('ascension-souls').textContent = state.souls;
+    document.getElementById('ascension-bonus').textContent = `+${state.souls}%`;
     const available = getAvailableSouls();
-    document.getElementById('soul-available').textContent = available;
+    document.getElementById('ascension-available').textContent = available;
 
     renderSkillTree(available);
 
@@ -1663,7 +1679,7 @@ function prestige() {
         state.prestigeCount++;
         resetState();
         calculateCps();
-        switchTab('shop');
+        closeAscensionScreen();
         notify("輪廻転生しました。新たな人生の始まりです。", "♻️");
     }
 }
@@ -1821,7 +1837,6 @@ function switchTab(tab) {
     document.getElementById('shop-view').style.display = 'none';
     document.getElementById('stats-view').style.display = 'none';
     document.getElementById('shrine-view').style.display = 'none';
-    document.getElementById('prestige-view').style.display = 'none';
     document.getElementById('challenge-view').style.display = 'none';
     document.getElementById('glossary-view').style.display = 'none';
     
@@ -1836,10 +1851,6 @@ function switchTab(tab) {
         document.getElementById('shrine-tab').classList.add('active');
         document.getElementById('shrine-view').style.display = 'block';
         renderShrine();
-    } else if (tab === 'prestige') {
-        document.getElementById('prestige-tab').classList.add('active');
-        document.getElementById('prestige-view').style.display = 'block';
-        renderPrestige();
     } else if (tab === 'challenge') {
         document.getElementById('challenge-tab').classList.add('active');
         document.getElementById('challenge-view').style.display = 'block';
