@@ -56,6 +56,8 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 #shop-view{flex:1;overflow:hidden;display:flex;flex-direction:column}
 #shop-content{flex:1;overflow-y:auto;padding:12px;scrollbar-width: thin;scrollbar-color: var(--border) transparent;-webkit-overflow-scrolling: touch;}
 .section-label{font-size:11px;color:var(--muted);text-transform:uppercase;margin:18px 5px 10px;letter-spacing:0.15em;display: flex;justify-content: space-between;align-items: center;}
+.buy-amt-btn{font-size:10px;text-transform:none;letter-spacing:0;padding:3px 8px;background:#2a1800;border:1px solid var(--border);color:var(--muted);border-radius:5px;cursor:pointer;font-weight:bold}
+.buy-amt-btn.active{background:var(--accent);color:#1a0f00;border-color:var(--accent)}
 
 /* Upgrades Grid */
 #upgrades-grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(54px, 1fr));gap:8px;padding:5px}
@@ -274,7 +276,7 @@ button{touch-action:manipulation}
             <div id="shop-content">
                 <div class="section-label">アップグレード <span id="upg-count" style="font-size:10px">0/0</span></div>
                 <div id="upgrades-grid"></div>
-                <div class="section-label">施設</div>
+                <div class="section-label">施設 <span id="buy-amount-toggle" style="display:flex; gap:4px;"></span></div>
                 <div id="buildings-list"></div>
             </div>
         </div>
@@ -576,7 +578,7 @@ const GLOSSARY = [
     { category: '基本', term: 'そば', icon: '🍜', desc: 'このゲームの基本通貨。クリックや施設で増える。' },
     { category: '基本', term: '毎秒(CPS)', icon: '⏱️', desc: '1秒間に自動で生産されるそばの量。施設やアップグレードで伸ばせる。' },
     { category: '基本', term: 'クリックパワー', icon: '👆', desc: 'ボウルを1回クリック(またはスペースキー)した時に得られるそばの量。' },
-    { category: '基本', term: '施設', icon: '🏠', desc: '購入すると自動でそばを生産し続けてくれる建物。買うたびに次の値段が上がっていく。' },
+    { category: '基本', term: '施設', icon: '🏠', desc: '購入すると自動でそばを生産し続けてくれる建物。買うたびに次の値段が上がっていく。ショップ上部の×1/×10/×100/MAXボタンで、一度に複数まとめて購入できる。' },
     { category: '基本', term: 'アップグレード', icon: '⭐', desc: '施設やクリックの効率を倍増させる一度きりの購入。特定の条件を満たすと出現する。' },
     { category: '基本', term: '実績', icon: '🏆', desc: '特定の条件を満たすと解除される。実績の数が「だし」レベルに影響する。' },
     { category: '特殊出現物', term: 'ゴールデンそば', icon: '✨', desc: '画面にランダムで出現。クリックするとフィーバー・ボーナス・クリックフィーバー・大量ボーナスのいずれかが発生する。' },
@@ -679,6 +681,12 @@ let clickBuffMult = 1;
 let clickBuffTimer = 0;
 let lastUpdate = Date.now();
 let clickTimestamps = [];
+let buyAmount = 1;
+
+function setBuyAmount(amt) {
+    buyAmount = amt === 'max' ? 'max' : parseInt(amt, 10);
+    render();
+}
 
 // --- Core Logic ---
 
@@ -888,22 +896,49 @@ function render() {
     renderAscensionScreen();
 }
 
+function renderBuyAmountToggle() {
+    const toggle = document.getElementById('buy-amount-toggle');
+    const options = [1, 10, 100, 'max'];
+    toggle.innerHTML = options.map(opt =>
+        `<button class="buy-amt-btn ${buyAmount === opt ? 'active' : ''}" onclick="setBuyAmount('${opt}')">${opt === 'max' ? 'MAX' : '×' + opt}</button>`
+    ).join('');
+}
+
 function renderShop() {
+    renderBuyAmountToggle();
     const list = document.getElementById('buildings-list');
     list.innerHTML = '';
     BUILDINGS.forEach(b => {
-        const cost = getBuildingCost(b);
-        const canBuy = state.soba >= cost;
         const locked = state.totalSoba < b.baseCost * 0.4 && state.buildings[b.id] === 0;
+        let quantity, cost, canBuy;
+        if (!locked) {
+            if (buyAmount === 'max') {
+                const result = getMaxAffordable(b);
+                if (result.quantity > 0) {
+                    quantity = result.quantity;
+                    cost = result.cost;
+                    canBuy = true;
+                } else {
+                    quantity = 0;
+                    cost = getBuildingCost(b);
+                    canBuy = false;
+                }
+            } else {
+                quantity = buyAmount;
+                cost = getBulkCost(b, quantity);
+                canBuy = state.soba >= cost;
+            }
+        }
         
         const level = state.buildingLevels[b.id] || 0;
         const div = document.createElement('div');
         div.className = `building-item ${locked ? 'locked' : (canBuy ? 'can-buy' : '')}`;
+        const qtyLabel = locked ? '' : (buyAmount === 'max' ? ` (MAX: ${quantity})` : (quantity > 1 ? ` ×${quantity}` : ''));
         div.innerHTML = `
             <div class="b-icon">${locked ? '❓' : b.icon}</div>
             <div class="b-info">
                 <div class="b-name">${locked ? '???' : b.name}${!locked && level > 0 ? ` <span style="color:var(--accent); font-size:11px">Lv.${level}</span>` : ''}</div>
-                <div class="b-cost">${locked ? '---' : '🍜 ' + fmt(cost)}</div>
+                <div class="b-cost">${locked ? '---' : '🍜 ' + fmt(cost) + qtyLabel}</div>
             </div>
             <div class="b-count">${state.buildings[b.id] || 0}</div>
         `;
@@ -1568,23 +1603,55 @@ document.addEventListener('keydown', (e) => {
     setTimeout(() => { bowl.style.transform = ''; }, 100);
 });
 
-function getBuildingCost(b) {
+function getBuildingCost(b, atCount) {
     const rate = state.heavenlyUpgrades.includes('heav_1') ? 1.13 : 1.15;
-    let cost = b.baseCost * Math.pow(rate, state.buildings[b.id] || 0);
+    const count = atCount !== undefined ? atCount : (state.buildings[b.id] || 0);
+    let cost = b.baseCost * Math.pow(rate, count);
     cost *= getSpiritEffectMult('cheaperBuild');
     if (state.isChallengeRun === 'expensive') cost *= 1.5;
     return Math.floor(cost);
 }
 
+function getBulkCost(b, quantity) {
+    const startCount = state.buildings[b.id] || 0;
+    let total = 0;
+    for (let i = 0; i < quantity; i++) {
+        total += getBuildingCost(b, startCount + i);
+    }
+    return total;
+}
+
+function getMaxAffordable(b) {
+    const startCount = state.buildings[b.id] || 0;
+    const CAP = 100000; // safety cap against runaway loops
+    let total = 0;
+    let n = 0;
+    while (n < CAP) {
+        const nextCost = getBuildingCost(b, startCount + n);
+        if (total + nextCost > state.soba) break;
+        total += nextCost;
+        n++;
+    }
+    return { quantity: n, cost: total };
+}
+
 function buyBuilding(id) {
     const b = BUILDINGS.find(x => x.id === id);
-    const cost = getBuildingCost(b);
-    if (state.soba >= cost) {
-        state.soba -= cost;
-        state.buildings[id] = (state.buildings[id] || 0) + 1;
-        calculateCps();
-        render();
+    let quantity, cost;
+    if (buyAmount === 'max') {
+        const result = getMaxAffordable(b);
+        quantity = result.quantity;
+        cost = result.cost;
+        if (quantity <= 0) return;
+    } else {
+        quantity = buyAmount;
+        cost = getBulkCost(b, quantity);
+        if (state.soba < cost) return;
     }
+    state.soba -= cost;
+    state.buildings[id] = (state.buildings[id] || 0) + quantity;
+    calculateCps();
+    render();
 }
 
 function buyUpgrade(id) {
