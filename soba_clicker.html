@@ -120,6 +120,16 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 /* Glossary */
 #glossary-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
 
+/* Fukui Map */
+#map-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
+#fukui-map{position:relative;width:100%;height:340px;margin-bottom:20px;border-radius:12px;overflow:hidden;background:linear-gradient(180deg, #0a2a3a 0%, #0a1a2a 100%);border:1px solid var(--border)}
+#fukui-map-shape{position:absolute;left:15%;top:8%;width:55%;height:85%;background:rgba(126,217,87,0.08);border:2px dashed rgba(126,217,87,0.3);border-radius:45% 55% 40% 60% / 60% 40% 60% 40%}
+.region-marker{position:absolute;width:56px;height:56px;border-radius:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;font-size:24px;cursor:pointer;border:3px solid #333;background:radial-gradient(circle, #16202a 0%, #0a1218 100%);transition:0.2s;z-index:2}
+.region-marker.established{border-color:#7ed957;box-shadow:0 0 14px rgba(126,217,87,0.6)}
+.region-marker.available{border-color:var(--accent);animation:skill-pulse 1.8s ease-in-out infinite}
+.region-marker.locked{border-color:#333;opacity:0.35;cursor:not-allowed;filter:grayscale(1)}
+.region-marker-label{position:absolute;top:100%;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:var(--text);margin-top:4px;font-weight:bold}
+
 /* Skill Tree */
 .skill-hub{position:absolute;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle, #3a1a5c 0%, #1a0a2e 100%);border:3px solid var(--prestige);display:flex;align-items:center;justify-content:center;font-size:28px;transform:translate(-50%,-50%);box-shadow:0 0 20px rgba(0,212,255,0.4);z-index:2}
 .skill-node{position:absolute;width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;transform:translate(-50%,-50%);cursor:pointer;transition:0.2s;z-index:3;border:3px solid #333;background:radial-gradient(circle, #221830 0%, #150d20 100%)}
@@ -269,6 +279,7 @@ button{touch-action:manipulation}
             <div class="tab" id="shrine-tab" onclick="switchTab('shrine')" style="display:none; color:#c77dff">祭壇</div>
             <div class="tab" id="prestige-tab" onclick="openAscensionScreen()" style="display:none; color:var(--prestige)">転生</div>
             <div class="tab" id="challenge-tab" onclick="switchTab('challenge')" style="display:none; color:#ff6b6b">挑戦</div>
+            <div class="tab" id="map-tab" onclick="switchTab('map')" style="display:none; color:#7ed957">地図</div>
             <div class="tab" onclick="switchTab('glossary')" style="color:#8fd6ff">用語集</div>
         </div>
         
@@ -299,6 +310,15 @@ button{touch-action:manipulation}
             <h3 style="margin-bottom:6px; color:#ff6b6b">挑戦モード</h3>
             <p style="font-size:12px; color:#aaa; margin-bottom:15px">通常のセーブとは別に、特殊なルールの中で目標達成を目指します。開始すると現在の進行状況は安全に退避され、挑戦を終える(または中断する)と元に戻ります。クリアすると恒久ボーナスがもらえます。</p>
             <div id="challenge-list"></div>
+        </div>
+
+        <div id="map-view">
+            <h3 style="margin-bottom:6px; color:#7ed957">越前(福井)ご当地MAP</h3>
+            <p style="font-size:12px; color:#aaa; margin-bottom:15px">施設を増やすと福井県内の各地に支店を展開できるようになります。マーカーをタップして支店を設立しよう。</p>
+            <div id="fukui-map">
+                <div id="fukui-map-shape"></div>
+            </div>
+            <div id="region-list"></div>
         </div>
 
         <div id="glossary-view">
@@ -455,6 +475,20 @@ function getSpiritEffectMult(type) {
     return mult;
 }
 
+function getRegionEffectMult(type) {
+    let mult = 1;
+    REGIONS.filter(r => state.regions.includes(r.id) && r.effect === type)
+           .forEach(r => mult *= r.value);
+    return mult;
+}
+
+function getRegionFlatBonus(type) {
+    let bonus = 0;
+    REGIONS.filter(r => state.regions.includes(r.id) && r.effect === type)
+           .forEach(r => bonus += r.value);
+    return bonus;
+}
+
 const SEASONS = [
     { id: 'spring', name: '桜そばの陣', icon: '🌸', months: [3, 4, 5], effect: 'globalMult', value: 1.05, effectDesc: '全生産+5%', specialName: '花見そば', specialIcon: '🌸🍜' },
     { id: 'summer', name: '冷やしそばの陣', icon: '🍧', months: [6, 7, 8], effect: 'goldenFreq', value: 1.25, effectDesc: 'ゴールデン/呪われしそばの出現率+25%', specialName: '冷やしそば', specialIcon: '🍧🍜' },
@@ -557,7 +591,9 @@ const ACHIEVEMENTS = [
     { id: 'ach_upgrade_global_all', name: '全域生産の覇者', icon: '🌐', desc: '全てのグローバル系アップグレードを購入する。', req: { upgradeTypeAll: 'global' } },
     { id: 'ach_upgrade_building_all', name: '施設改良の達人', icon: '🔩', desc: '全ての施設専用アップグレードを購入する。', req: { upgradeTypeAll: 'building' } },
     { id: 'ach_challenge_1', name: '挑戦者', icon: '⚔️', desc: '挑戦モードを1つクリアする。', req: { challengesCompletedCount: 1 } },
-    { id: 'ach_challenge_all', name: '挑戦の覇者', icon: '🏅', desc: '全ての挑戦モードをクリアする。', req: { challengesAll: 1 } }
+    { id: 'ach_challenge_all', name: '挑戦の覇者', icon: '🏅', desc: '全ての挑戦モードをクリアする。', req: { challengesAll: 1 } },
+    { id: 'ach_region_1', name: '地域開拓者', icon: '🗾', desc: '福井県内に支店を1つ設立する。', req: { regionsCount: 1 } },
+    { id: 'ach_region_all', name: '越前制覇', icon: '🏯', desc: '福井県内の全ての支店を設立する。', req: { regionsAll: 1 } }
 ];
 
 // Secret/shadow achievements - not counted in the normal achievement total, quirky unlock conditions
@@ -572,6 +608,13 @@ const CHALLENGES = [
     { id: 'no_click', name: '不動の一杯', icon: '🧘', desc: 'クリックせずに施設の力だけで累計1000万杯を目指す。挑戦中はクリックパワーが常に0になる。', goal: 1e7, modifier: 'noClick' },
     { id: 'no_golden', name: '幸運を捨てし者', icon: '🚫', desc: 'ゴールデンそば・呪われしそば・季節限定そばが一切出現しない状態で累計1億杯を目指す。', goal: 1e8, modifier: 'noGolden' },
     { id: 'expensive', name: '高騰の時代', icon: '📈', desc: '施設のコストが常に1.5倍の状態で累計1000万杯を目指す。', goal: 1e7, modifier: 'expensiveBuildings' }
+];
+
+const REGIONS = [
+    { id: 'katsuyama', name: '勝山', icon: '🦕', x: 45, y: 20, unlockBuildings: 150, cost: 5e7, bonusName: '恐竜ボーナス', bonusDesc: '太古の地層から呼び覚まされた力で、全生産が+10%される。', effect: 'globalMult', value: 1.10, requires: null, flavor: '恐竜博物館で知られる勝山に支店を開いた。地元の子供たちがそば打ちを恐竜の骨掘りのように楽しんでいる。' },
+    { id: 'tsuruga', name: '敦賀', icon: '⚓', x: 55, y: 62, unlockBuildings: 300, cost: 5e10, bonusName: '港町ボーナス', bonusDesc: '港からそば粉を安く仕入れられるようになり、施設のコストが-5%される。', effect: 'cheaperBuild', value: 0.95, requires: 'katsuyama', flavor: '古くから港町として栄えた敦賀に支店を開いた。海を渡ってきた上質なそば粉が手に入るようになった。' },
+    { id: 'obama', name: '小浜', icon: '🐟', x: 25, y: 78, unlockBuildings: 500, cost: 5e13, bonusName: '御食国ボーナス', bonusDesc: 'かつて都に食を献上した御食国の技が、だしの実効レベルを+3する。', effect: 'dashiBonusFlat', value: 3, requires: 'tsuruga', flavor: '御食国として知られた小浜に支店を開いた。鯖街道の記憶が、極上のだしを生み出す。' },
+    { id: 'takefu', name: '武生(越前市)', icon: '⚔️', x: 40, y: 48, unlockBuildings: 800, cost: 5e16, bonusName: '打刃物ボーナス', bonusDesc: '越前打刃物の伝統的な切れ味で、クリックパワーが+15%される。', effect: 'clickMult', value: 1.15, requires: 'obama', flavor: '越前打刃物と越前和紙の町、武生に支店を開いた。鍛え抜かれた刃物が、そば切りの一撃を鋭くする。' }
 ];
 
 const GLOSSARY = [
@@ -595,6 +638,7 @@ const GLOSSARY = [
     { category: 'ミニゲーム', term: '手打ちそば道場', icon: '🥢', desc: '5分に1回挑戦できるタイミングゲーム。真ん中で「切る！」を押せるほど「職人ポイント」(永続の生産ボーナス)がたくさん貯まる。' },
     { category: '隠し要素', term: '隠された熟練の力', icon: '🧠', desc: '実績10個ごとに自動で発動する非公開の生産ボーナス。ショップには表示されない。' },
     { category: 'ミニゲーム', term: '挑戦モード', icon: '⚔️', desc: '初回転生後に解放。特殊なルール(クリック不可・特殊出現物なし・施設コスト1.5倍など)の中で目標達成を目指す。開始すると今の進行状況は安全に退避され、クリアか中断でいつでも戻せる。クリアすると永久に+3%の生産ボーナスがもらえる。' },
+    { category: '育成要素', term: '福井ご当地MAP・支店', icon: '🗾', desc: '施設合計100個で「地図」タブが解放。勝山・敦賀・小浜・武生に、施設数の条件を満たしそばを払うことで支店を設立できる(順番に前の支店が必要)。支店ごとに恐竜ボーナス・港町ボーナスなど、その土地ならではの永続効果が手に入る。' },
     { category: '隠し要素', term: '裏実績', icon: '🌑', desc: '通常の実績数にはカウントされない、少し変わった条件で解除される隠し実績。統計タブで確認できる。' }
 ];
 
@@ -656,7 +700,8 @@ function createFreshState() {
         challengesCompleted: [],
         challengeBonusPoints: 0,
         isChallengeRun: null,
-        challengeStartTime: 0
+        challengeStartTime: 0,
+        regions: []
     };
 }
 
@@ -691,7 +736,7 @@ function setBuyAmount(amt) {
 // --- Core Logic ---
 
 function getDashiLevel() {
-    return Math.floor(state.achievements.length / 7);
+    return Math.floor(state.achievements.length / 7) + getRegionFlatBonus('dashiBonusFlat');
 }
 
 function getMasteryBonusMult() {
@@ -726,6 +771,9 @@ function calculateCps() {
     // Shrine spirits: net effect of all equipped spirits' globalMult entries (benefits and drawbacks both apply)
     newCps *= getSpiritEffectMult('globalMult');
 
+    // Fukui branch-store regional bonuses (globalMult, e.g. Katsuyama's dinosaur bonus)
+    newCps *= getRegionEffectMult('globalMult');
+
     // Seasonal event bonus
     const season = getCurrentSeason();
     if (season && season.effect === 'globalMult') newCps *= season.value;
@@ -749,7 +797,7 @@ function calculateCps() {
     let clickBaseBonus = 0;
     HEAVENLY_UPGRADES.filter(h => h.effect === 'clickBase' && state.heavenlyUpgrades.includes(h.id))
             .forEach(h => clickBaseBonus += h.amount);
-    let spiritClickMult = getSpiritEffectMult('clickMult');
+    let spiritClickMult = getSpiritEffectMult('clickMult') * getRegionEffectMult('clickMult');
     if (season && season.effect === 'clickMult') spiritClickMult *= season.value;
     clickPower = (newClickPower + clickBaseBonus + (cps * 0.04)) * prestigeMult * clickBuffMult * spiritClickMult;
     if (state.isChallengeRun === 'no_click') clickPower = 0;
@@ -886,6 +934,9 @@ function render() {
     if (state.prestigeCount >= 1 || state.isChallengeRun) {
         document.getElementById('challenge-tab').style.display = 'block';
     }
+    if (totalBuildingsOwned >= 100 || state.regions.length > 0) {
+        document.getElementById('map-tab').style.display = 'block';
+    }
     renderChallengeBanner();
 
     renderShop();
@@ -893,6 +944,7 @@ function render() {
     renderAchievements();
     renderStats();
     renderShrine();
+    renderMap();
     renderAscensionScreen();
 }
 
@@ -1019,6 +1071,7 @@ function renderStats() {
         <div class="stat-row"><span class="stat-label">裏実績</span><span>🌑 ${state.shadowAchievements.length}/${SHADOW_ACHIEVEMENTS.length}</span></div>
         <div class="stat-row"><span class="stat-label">手打ちそば道場</span><span>${state.artisanAttempts}回挑戦 (会心${state.artisanCrits}回・職人ポイント+${state.artisanPoints.toFixed(1)}%)</span></div>
         <div class="stat-row"><span class="stat-label">挑戦モード</span><span>${(state.challengesCompleted || []).length}/${CHALLENGES.length} クリア (恒久ボーナス+${((state.challengeBonusPoints || 0) * 3)}%)</span></div>
+        <div class="stat-row"><span class="stat-label">福井支店展開</span><span>${(state.regions || []).length}/${REGIONS.length} 箇所</span></div>
     `;
 }
 
@@ -1346,6 +1399,63 @@ function renderChallengeList() {
     });
 }
 
+function renderMap() {
+    if (document.getElementById('map-view').style.display !== 'block') return;
+    const totalBuildingsOwned = Object.values(state.buildings).reduce((a, b) => a + b, 0);
+    const mapEl = document.getElementById('fukui-map');
+    mapEl.querySelectorAll('.region-marker, .region-marker-label').forEach(el => el.remove());
+
+    REGIONS.forEach(r => {
+        const established = state.regions.includes(r.id);
+        const prereqMet = !r.requires || state.regions.includes(r.requires);
+        const unlocked = totalBuildingsOwned >= r.unlockBuildings && prereqMet;
+
+        const marker = document.createElement('div');
+        marker.className = `region-marker ${established ? 'established' : (unlocked ? 'available' : 'locked')}`;
+        marker.style.left = r.x + '%';
+        marker.style.top = r.y + '%';
+        marker.textContent = unlocked ? r.icon : '❓';
+        if (unlocked && !established) {
+            marker.onpointerdown = (e) => { e.preventDefault(); establishBranch(r.id); };
+        }
+        let tipDesc = established ? `✅ 支店設立済み<br>${r.bonusName}: ${r.bonusDesc}` : (unlocked ? `${r.bonusName}: ${r.bonusDesc}<br>費用: 🍜 ${fmt(r.cost)}杯` : `施設合計${r.unlockBuildings}個で解禁`);
+        marker.onmouseenter = (e) => showTooltip(e, unlocked ? r.name : '？？？', tipDesc, 0);
+        marker.onmouseleave = hideTooltip;
+        mapEl.appendChild(marker);
+
+        const label = document.createElement('div');
+        label.className = 'region-marker-label';
+        label.style.left = r.x + '%';
+        label.style.top = r.y + '%';
+        label.textContent = unlocked ? r.name : '？？？';
+        mapEl.appendChild(label);
+    });
+
+    const list = document.getElementById('region-list');
+    list.innerHTML = '';
+    REGIONS.forEach(r => {
+        const established = state.regions.includes(r.id);
+        const prereqMet = !r.requires || state.regions.includes(r.requires);
+        const unlocked = totalBuildingsOwned >= r.unlockBuildings && prereqMet;
+        const canBuy = unlocked && !established && state.soba >= r.cost;
+
+        const div = document.createElement('div');
+        div.className = `building-item ${established ? '' : (canBuy ? 'can-buy' : 'locked')}`;
+        div.style.opacity = established ? '0.6' : (unlocked ? '1' : '0.4');
+        div.innerHTML = `
+            <div class="b-icon">${unlocked ? r.icon : '❓'}</div>
+            <div class="b-info">
+                <div class="b-name">${unlocked ? r.name : '？？？'}</div>
+                <div class="b-cost">${established ? `✅ ${r.bonusName} 取得済み` : (unlocked ? `🍜 ${fmt(r.cost)} で設立 (${r.bonusName})` : `施設合計${r.unlockBuildings}個で解禁`)}</div>
+            </div>
+        `;
+        if (unlocked && !established) {
+            div.onpointerdown = (e) => { e.preventDefault(); establishBranch(r.id); };
+        }
+        list.appendChild(div);
+    });
+}
+
 function renderGlossary() {
     const list = document.getElementById('glossary-list');
     list.innerHTML = '';
@@ -1551,6 +1661,28 @@ function buyHeavenly(id) {
     }
 }
 
+function establishBranch(id) {
+    const r = REGIONS.find(x => x.id === id);
+    if (!r || state.regions.includes(id)) return;
+    const totalBuildingsOwned = Object.values(state.buildings).reduce((a, b) => a + b, 0);
+    if (totalBuildingsOwned < r.unlockBuildings) {
+        notify(`施設合計${r.unlockBuildings}個が必要です。`, "🗾");
+        return;
+    }
+    if (r.requires && !state.regions.includes(r.requires)) {
+        const prereq = REGIONS.find(x => x.id === r.requires);
+        notify(`先に「${prereq.name}」に支店を設立する必要があります。`, "🔒");
+        return;
+    }
+    if (state.soba < r.cost) return;
+    if (!confirm(`${r.name}に支店を設立しますか？\n費用: 🍜 ${fmt(r.cost)}杯\n効果: ${r.bonusName}(${r.bonusDesc})`)) return;
+    state.soba -= r.cost;
+    state.regions.push(id);
+    calculateCps();
+    render();
+    notify(`${r.name}に支店を設立！${r.bonusName}を獲得。`, r.icon);
+}
+
 function ageBuilding(id) {
     if (state.lumps <= 0) return;
     if (!state.buildings[id]) return;
@@ -1608,6 +1740,7 @@ function getBuildingCost(b, atCount) {
     const count = atCount !== undefined ? atCount : (state.buildings[b.id] || 0);
     let cost = b.baseCost * Math.pow(rate, count);
     cost *= getSpiritEffectMult('cheaperBuild');
+    cost *= getRegionEffectMult('cheaperBuild');
     if (state.isChallengeRun === 'expensive') cost *= 1.5;
     return Math.floor(cost);
 }
@@ -1713,6 +1846,8 @@ function checkAchievements() {
         }
         if (a.req.challengesCompletedCount && (!state.challengesCompleted || state.challengesCompleted.length < a.req.challengesCompletedCount)) met = false;
         if (a.req.challengesAll && (!state.challengesCompleted || state.challengesCompleted.length < CHALLENGES.length)) met = false;
+        if (a.req.regionsCount && (!state.regions || state.regions.length < a.req.regionsCount)) met = false;
+        if (a.req.regionsAll && (!state.regions || state.regions.length < REGIONS.length)) met = false;
 
         if (met) {
             state.achievements.push(a.id);
@@ -1905,6 +2040,7 @@ function switchTab(tab) {
     document.getElementById('stats-view').style.display = 'none';
     document.getElementById('shrine-view').style.display = 'none';
     document.getElementById('challenge-view').style.display = 'none';
+    document.getElementById('map-view').style.display = 'none';
     document.getElementById('glossary-view').style.display = 'none';
     
     if (tab === 'shop') {
@@ -1922,8 +2058,12 @@ function switchTab(tab) {
         document.getElementById('challenge-tab').classList.add('active');
         document.getElementById('challenge-view').style.display = 'block';
         renderChallengeList();
+    } else if (tab === 'map') {
+        document.getElementById('map-tab').classList.add('active');
+        document.getElementById('map-view').style.display = 'block';
+        renderMap();
     } else if (tab === 'glossary') {
-        document.querySelector('.tab:nth-child(6)').classList.add('active');
+        document.querySelector('.tab:nth-child(7)').classList.add('active');
         document.getElementById('glossary-view').style.display = 'block';
         renderGlossary();
     }
@@ -2013,6 +2153,7 @@ function normalizeState() {
     if (state.challengeBonusPoints === undefined) state.challengeBonusPoints = 0;
     if (state.isChallengeRun === undefined) state.isChallengeRun = null;
     if (state.challengeStartTime === undefined) state.challengeStartTime = 0;
+    if (!state.regions) state.regions = [];
 }
 
 // タブが隠れたとき自動セーブ（次回起動時のオフライン計算のため）
