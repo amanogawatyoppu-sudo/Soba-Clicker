@@ -131,14 +131,18 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 .region-marker-label{position:absolute;top:100%;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:var(--text);margin-top:4px;font-weight:bold}
 
 /* Skill Tree */
-.skill-hub{position:absolute;width:80px;height:80px;border-radius:50%;background:radial-gradient(circle, #3a1a5c 0%, #1a0a2e 100%);border:3px solid var(--prestige);display:flex;align-items:center;justify-content:center;font-size:28px;transform:translate(-50%,-50%);box-shadow:0 0 20px rgba(0,212,255,0.4);z-index:2}
-.skill-node{position:absolute;width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;transform:translate(-50%,-50%);cursor:pointer;transition:0.2s;z-index:3;border:3px solid #333;background:radial-gradient(circle, #221830 0%, #150d20 100%)}
-.skill-node.owned{border-color:gold;background:radial-gradient(circle, #4a3a10 0%, #2a1f08 100%);box-shadow:0 0 14px rgba(255,215,0,0.5)}
-.skill-node.available{border-color:var(--prestige);box-shadow:0 0 10px rgba(0,212,255,0.3);animation:skill-pulse 1.8s ease-in-out infinite}
-.skill-node.locked{border-color:#3a3a3a;opacity:0.4;cursor:not-allowed;filter:grayscale(1)}
-.skill-node.unaffordable{border-color:#555;opacity:0.75}
-@keyframes skill-pulse{0%,100%{box-shadow:0 0 10px rgba(0,212,255,0.3)}50%{box-shadow:0 0 18px rgba(0,212,255,0.7)}}
-.skill-node-cost{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--prestige);white-space:nowrap;font-weight:bold}
+.skill-hub{position:absolute;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle, #3a1a5c 0%, #1a0a2e 100%);border:3px solid var(--prestige);display:flex;align-items:center;justify-content:center;font-size:32px;transform:translate(-50%,-50%);box-shadow:0 0 20px rgba(0,212,255,0.4);z-index:2}
+.skill-node{position:absolute;width:70px;height:70px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;transform:translate(-50%,-50%);cursor:pointer;transition:0.2s;z-index:3;border:4px solid #333;background:radial-gradient(circle, #2a1f3d 0%, #150d20 100%)}
+.skill-node.owned{border-color:gold;background:radial-gradient(circle, #5a4816 0%, #2a1f08 100%);box-shadow:0 0 18px rgba(255,215,0,0.6)}
+.skill-node.available{border-color:#00e5ff;background:radial-gradient(circle, #16324a 0%, #0a1a2a 100%);box-shadow:0 0 14px rgba(0,229,255,0.5);animation:skill-pulse 1.8s ease-in-out infinite}
+.skill-node.locked{border-color:#4a4a5a;opacity:0.55;cursor:not-allowed;filter:grayscale(0.7) brightness(0.6)}
+.skill-node.unaffordable{border-color:#777;opacity:0.85}
+@keyframes skill-pulse{0%,100%{box-shadow:0 0 12px rgba(0,229,255,0.5)}50%{box-shadow:0 0 22px rgba(0,229,255,0.9)}}
+.skill-node-lock-badge{position:absolute;top:-6px;right:-6px;background:#1a0a2e;border:2px solid #4a4a5a;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.skill-node-cost{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:12px;color:#1a0f00;background:var(--prestige);padding:1px 7px;border-radius:8px;white-space:nowrap;font-weight:900;box-shadow:0 2px 4px rgba(0,0,0,0.4)}
+.skill-node.locked .skill-node-cost{background:#555;color:#ccc}
+.skill-node-label{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);font-size:12px;font-weight:bold;color:var(--text);white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,0.9);pointer-events:none}
+.skill-node-label.locked-label{color:#888}
 #challenge-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
 .glossary-category{font-size:12px;color:#8fd6ff;text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px}
 .glossary-category:first-child{margin-top:0}
@@ -155,7 +159,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 #ascension-header{width:100%;max-width:600px;display:flex;flex-direction:column;align-items:center;margin-bottom:10px;}
 #ascension-header-box{background:linear-gradient(135deg, #2a1845 0%, #150a25 100%);border:2px solid var(--prestige);border-radius:16px;padding:16px 30px;text-align:center;box-shadow:0 0 25px rgba(0,212,255,0.25);margin-bottom:10px;}
 #skill-tree-wrap{width:100%; max-width:920px; overflow:auto; border:1px solid var(--border); border-radius:10px; background:radial-gradient(circle, #1a0a2e 0%, #0d0515 100%); margin-bottom:15px;}
-#skill-tree-canvas{position:relative; width:900px; height:700px;}
+#skill-tree-canvas{position:relative; width:1400px; height:1200px;}
 #ascension-lump-section{width:100%; max-width:600px; background:rgba(0,0,0,0.25); border-radius:12px; padding:15px;}
 
 /* Shrine (Spirits) UI */
@@ -342,9 +346,16 @@ button{touch-action:manipulation}
         <button id="ascension-back-btn" onclick="closeAscensionScreen()" style="padding:8px 20px; background:var(--border); border:1px solid var(--muted); color:var(--text); border-radius:6px; cursor:pointer; font-size:12px;">↩ 転生せずに戻る</button>
     </div>
 
+    <div id="skill-tree-legend" style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center; font-size:11px; color:var(--text); margin-bottom:8px;">
+        <span>🟡 取得済み</span>
+        <span>🔵 取得可能</span>
+        <span>⚪ 魂が足りない</span>
+        <span>🔒 前提条件が未達成</span>
+    </div>
+
     <div id="skill-tree-wrap">
         <div id="skill-tree-canvas">
-            <svg id="skill-tree-svg" width="900" height="700" style="position:absolute; top:0; left:0; pointer-events:none;"></svg>
+            <svg id="skill-tree-svg" width="1400" height="1200" style="position:absolute; top:0; left:0; pointer-events:none;"></svg>
         </div>
     </div>
 
@@ -611,10 +622,10 @@ const CHALLENGES = [
 ];
 
 const REGIONS = [
-    { id: 'katsuyama', name: '勝山', icon: '🦕', x: 45, y: 20, unlockBuildings: 150, cost: 5e7, bonusName: '恐竜ボーナス', bonusDesc: '太古の地層から呼び覚まされた力で、全生産が+10%される。', effect: 'globalMult', value: 1.10, requires: null, flavor: '恐竜博物館で知られる勝山に支店を開いた。地元の子供たちがそば打ちを恐竜の骨掘りのように楽しんでいる。' },
-    { id: 'tsuruga', name: '敦賀', icon: '⚓', x: 55, y: 62, unlockBuildings: 300, cost: 5e10, bonusName: '港町ボーナス', bonusDesc: '港からそば粉を安く仕入れられるようになり、施設のコストが-5%される。', effect: 'cheaperBuild', value: 0.95, requires: 'katsuyama', flavor: '古くから港町として栄えた敦賀に支店を開いた。海を渡ってきた上質なそば粉が手に入るようになった。' },
-    { id: 'obama', name: '小浜', icon: '🐟', x: 25, y: 78, unlockBuildings: 500, cost: 5e13, bonusName: '御食国ボーナス', bonusDesc: 'かつて都に食を献上した御食国の技が、だしの実効レベルを+3する。', effect: 'dashiBonusFlat', value: 3, requires: 'tsuruga', flavor: '御食国として知られた小浜に支店を開いた。鯖街道の記憶が、極上のだしを生み出す。' },
-    { id: 'takefu', name: '武生(越前市)', icon: '⚔️', x: 40, y: 48, unlockBuildings: 800, cost: 5e16, bonusName: '打刃物ボーナス', bonusDesc: '越前打刃物の伝統的な切れ味で、クリックパワーが+15%される。', effect: 'clickMult', value: 1.15, requires: 'obama', flavor: '越前打刃物と越前和紙の町、武生に支店を開いた。鍛え抜かれた刃物が、そば切りの一撃を鋭くする。' }
+    { id: 'katsuyama', name: '勝山', icon: '🦕', x: 45, y: 20, unlockBuildings: 500, cost: 5e9, bonusName: '恐竜ボーナス', bonusDesc: '太古の地層から呼び覚まされた力で、全生産が+10%される。', effect: 'globalMult', value: 1.10, requires: null, flavor: '恐竜博物館で知られる勝山に支店を開いた。地元の子供たちがそば打ちを恐竜の骨掘りのように楽しんでいる。' },
+    { id: 'tsuruga', name: '敦賀', icon: '⚓', x: 55, y: 62, unlockBuildings: 1200, cost: 5e14, bonusName: '港町ボーナス', bonusDesc: '港からそば粉を安く仕入れられるようになり、施設のコストが-5%される。', effect: 'cheaperBuild', value: 0.95, requires: 'katsuyama', flavor: '古くから港町として栄えた敦賀に支店を開いた。海を渡ってきた上質なそば粉が手に入るようになった。' },
+    { id: 'obama', name: '小浜', icon: '🐟', x: 25, y: 78, unlockBuildings: 2500, cost: 5e19, bonusName: '御食国ボーナス', bonusDesc: 'かつて都に食を献上した御食国の技が、だしの実効レベルを+3する。', effect: 'dashiBonusFlat', value: 3, requires: 'tsuruga', flavor: '御食国として知られた小浜に支店を開いた。鯖街道の記憶が、極上のだしを生み出す。' },
+    { id: 'takefu', name: '武生(越前市)', icon: '⚔️', x: 40, y: 48, unlockBuildings: 4500, cost: 5e24, bonusName: '打刃物ボーナス', bonusDesc: '越前打刃物の伝統的な切れ味で、クリックパワーが+15%される。', effect: 'clickMult', value: 1.15, requires: 'obama', flavor: '越前打刃物と越前和紙の町、武生に支店を開いた。鍛え抜かれた刃物が、そば切りの一撃を鋭くする。' }
 ];
 
 const GLOSSARY = [
@@ -638,7 +649,7 @@ const GLOSSARY = [
     { category: 'ミニゲーム', term: '手打ちそば道場', icon: '🥢', desc: '5分に1回挑戦できるタイミングゲーム。真ん中で「切る！」を押せるほど「職人ポイント」(永続の生産ボーナス)がたくさん貯まる。' },
     { category: '隠し要素', term: '隠された熟練の力', icon: '🧠', desc: '実績10個ごとに自動で発動する非公開の生産ボーナス。ショップには表示されない。' },
     { category: 'ミニゲーム', term: '挑戦モード', icon: '⚔️', desc: '初回転生後に解放。特殊なルール(クリック不可・特殊出現物なし・施設コスト1.5倍など)の中で目標達成を目指す。開始すると今の進行状況は安全に退避され、クリアか中断でいつでも戻せる。クリアすると永久に+3%の生産ボーナスがもらえる。' },
-    { category: '育成要素', term: '福井ご当地MAP・支店', icon: '🗾', desc: '施設合計100個で「地図」タブが解放。勝山・敦賀・小浜・武生に、施設数の条件を満たしそばを払うことで支店を設立できる(順番に前の支店が必要)。支店ごとに恐竜ボーナス・港町ボーナスなど、その土地ならではの永続効果が手に入る。' },
+    { category: '育成要素', term: '福井ご当地MAP・支店', icon: '🗾', desc: '施設合計350個で「地図」タブが解放。勝山・敦賀・小浜・武生に、施設数の条件(500〜4500個)を満たしそばを払うことで支店を設立できる(順番に前の支店が必要な、かなり長期的な目標)。支店ごとに恐竜ボーナス・港町ボーナスなど、その土地ならではの永続効果が手に入る。' },
     { category: '隠し要素', term: '裏実績', icon: '🌑', desc: '通常の実績数にはカウントされない、少し変わった条件で解除される隠し実績。統計タブで確認できる。' }
 ];
 
@@ -934,7 +945,7 @@ function render() {
     if (state.prestigeCount >= 1 || state.isChallengeRun) {
         document.getElementById('challenge-tab').style.display = 'block';
     }
-    if (totalBuildingsOwned >= 100 || state.regions.length > 0) {
+    if (totalBuildingsOwned >= 350 || state.regions.length > 0) {
         document.getElementById('map-tab').style.display = 'block';
     }
     renderChallengeBanner();
@@ -1492,8 +1503,8 @@ function computeSkillTreeLayout() {
     });
     const positions = {};
     const angleStep = (2 * Math.PI) / roots.length;
-    const baseRadius = 110;
-    const radiusStep = 95;
+    const baseRadius = 130;
+    const radiusStep = 115;
 
     function place(nodeId, angle, angleSpan, depth) {
         const radius = baseRadius + depth * radiusStep;
@@ -1521,7 +1532,7 @@ function renderSkillTree(available) {
     if (!canvas || !svg) return;
 
     const layout = computeSkillTreeLayout();
-    const centerX = 450, centerY = 350;
+    const centerX = 700, centerY = 600;
 
     // Clear previous nodes (keep the svg element itself)
     canvas.querySelectorAll('.skill-node, .skill-hub').forEach(el => el.remove());
@@ -1567,14 +1578,26 @@ function renderSkillTree(available) {
         div.className = cls;
         div.style.left = (centerX + pos.x) + 'px';
         div.style.top = (centerY + pos.y) + 'px';
-        div.textContent = prereqMet ? h.icon : '🔒';
+        div.textContent = h.icon;
+
+        if (!prereqMet) {
+            const lockBadge = document.createElement('div');
+            lockBadge.className = 'skill-node-lock-badge';
+            lockBadge.textContent = '🔒';
+            div.appendChild(lockBadge);
+        }
 
         if (!owned) {
             const costTag = document.createElement('div');
             costTag.className = 'skill-node-cost';
-            costTag.textContent = prereqMet ? `👻${h.cost}` : '？？？';
+            costTag.textContent = `👻${h.cost}`;
             div.appendChild(costTag);
         }
+
+        const label = document.createElement('div');
+        label.className = `skill-node-label ${prereqMet ? '' : 'locked-label'}`;
+        label.textContent = prereqMet ? h.name : '？？？';
+        div.appendChild(label);
 
         if (!owned && prereqMet) {
             div.onpointerdown = (e) => { e.preventDefault(); buyHeavenly(h.id); };
@@ -1586,7 +1609,7 @@ function renderSkillTree(available) {
         } else if (owned) {
             tipDesc = `✅ 取得済み<br>${h.desc}`;
         }
-        div.onmouseenter = (e) => showTooltip(e, h.name, tipDesc, owned || !prereqMet ? 0 : h.cost);
+        div.onmouseenter = (e) => showTooltip(e, prereqMet ? h.name : '？？？', tipDesc, owned || !prereqMet ? 0 : h.cost);
         div.onmouseleave = hideTooltip;
         canvas.appendChild(div);
     });
