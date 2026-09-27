@@ -177,7 +177,9 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 ::-webkit-scrollbar-thumb:hover{background:var(--muted)}
 
 /* Touch-friendly refinements (all sizes) */
-button, .tab, .building-item, .upgrade-item, .shrine-slot, .spirit-item, #bowl, #golden-soba {
+button, .tab, .building-item, .upgrade-item, .shrine-slot, .spirit-item, .ach-icon-small, .skill-node, .skill-hub, .region-marker, #bowl, #golden-soba {
+    -webkit-user-select: none;
+    user-select: none;
     -webkit-tap-highlight-color: transparent;
     -webkit-touch-callout: none;
 }
@@ -2054,24 +2056,69 @@ function showTooltip(e, name, desc, cost) {
 let touchTooltipTimer = null;
 
 function hideTooltip(e) {
-    // Mouse boundary events emulated after a tap must not close a tooltip opened by that tap
-    if (e && e.type === 'mouseleave' && touchTooltipTimer) return;
+    // Mouse boundary events emulated after a touch must not close a tooltip opened by that touch
+    if (e && e.type === 'mouseleave' && (touchTooltipTimer || touchPress)) return;
     if (touchTooltipTimer) { clearTimeout(touchTooltipTimer); touchTooltipTimer = null; }
     document.getElementById('tooltip').style.display = 'none';
 }
 
-// Touch screens never fire mouseenter (pointerdown handlers call preventDefault), so on a tap
-// show the same tooltip the element would show on hover, then hide it after a few seconds.
-// Runs in the capture phase, before the element's own tap action re-renders the lists.
-document.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'touch') return;
-    let el = e.target;
-    while (el && el !== document.body && !el.onmouseenter) el = el.parentElement;
-    if (!el || el === document.body || !el.onmouseenter) { hideTooltip(); return; }
+function showTouchTooltip(el, e) {
     el.onmouseenter(e);
     if (touchTooltipTimer) clearTimeout(touchTooltipTimer);
     touchTooltipTimer = setTimeout(hideTooltip, 2500);
+}
+
+// Touch screens have no hover, so a long press shows the element's hover tooltip instead.
+// Touches on elements with a tooltip are intercepted in the capture phase: a short tap runs the
+// element's own pointerdown action on release, a long press only shows the tooltip, and a touch
+// that turns into a scroll (pointercancel) does nothing. Elements without an action (e.g.
+// achievement icons) show their tooltip on a plain tap too.
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
+let touchPress = null;
+
+function cancelTouchPress() {
+    if (touchPress) clearTimeout(touchPress.timer);
+    touchPress = null;
+}
+
+document.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'touch') return;
+    cancelTouchPress();
+    let el = e.target;
+    while (el && el !== document.body && !el.onmouseenter) el = el.parentElement;
+    if (!el || el === document.body || !el.onmouseenter) { hideTooltip(); return; }
+    // Stop the element's own handler; it runs on release if this turns out to be a short tap.
+    // The element may be re-rendered while the finger is down, so keep its handlers now.
+    e.stopPropagation();
+    e.preventDefault();
+    const press = { el, action: el.onpointerdown, x: e.clientX, y: e.clientY, longPressed: false };
+    press.timer = setTimeout(() => {
+        press.longPressed = true;
+        showTouchTooltip(press.el, { clientX: press.x, clientY: press.y });
+    }, LONG_PRESS_MS);
+    touchPress = press;
 }, true);
+
+document.addEventListener('pointermove', (e) => {
+    if (!touchPress || e.pointerType !== 'touch' || touchPress.longPressed) return;
+    if (Math.hypot(e.clientX - touchPress.x, e.clientY - touchPress.y) > LONG_PRESS_MOVE_TOLERANCE) cancelTouchPress();
+}, true);
+
+document.addEventListener('pointerup', (e) => {
+    if (!touchPress || e.pointerType !== 'touch') return;
+    const press = touchPress;
+    cancelTouchPress();
+    if (press.longPressed) return;
+    hideTooltip();
+    if (press.action) press.action.call(press.el, e);
+    else showTouchTooltip(press.el, e);
+}, true);
+
+document.addEventListener('pointercancel', cancelTouchPress, true);
+
+// Suppress the browser's long-press context menu while a press is being tracked
+document.addEventListener('contextmenu', (e) => { if (touchPress) e.preventDefault(); }, true);
 
 function notify(msg, icon = "🔔", flash = false) {
     const container = document.getElementById('notif-container');
