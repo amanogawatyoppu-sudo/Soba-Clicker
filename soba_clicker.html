@@ -530,6 +530,9 @@ button{touch-action:manipulation}
 
 <script>
 // --- Game Data ---
+// Later buildings pay back progressively slower (cost / production grows ~2.6x per step from the shrine on).
+// Before, the top buildings grew in production almost as fast as in price, so a big prestige bonus
+// climbed the whole list in minutes and the endgame was over within an hour.
 const BUILDINGS = [
     { id: 'student', name: 'そば打ち見習い', icon: '👦', baseCost: 15, baseCps: 0.5, desc: '地元の若者が手伝いに来てくれた。' },
     { id: 'kitchen', name: '家庭用厨房', icon: '🏠', baseCost: 100, baseCps: 2, desc: '台所を改造して効率アップ。' },
@@ -540,21 +543,21 @@ const BUILDINGS = [
     { id: 'robot', name: 'AI製麺ロボ', icon: '🤖', baseCost: 20000000, baseCps: 9500, desc: '完璧な加水率を計算する。' },
     { id: 'satellite', name: '宇宙そば農場', icon: '🛸', baseCost: 330000000, baseCps: 55000, desc: '無重力で育つ究極のそば粉。' },
     { id: 'shrine', name: 'そばの聖地', icon: '⛩️', baseCost: 5100000000, baseCps: 320000, desc: '越前そばはもはや信仰の対象。' },
-    { id: 'timemachine', name: '時間跳躍製麺機', icon: '⏳', baseCost: 75000000000, baseCps: 2000000, desc: '茹で上がる前に食べる。' },
-    { id: 'dimension', name: '異次元そば門', icon: '🌀', baseCost: 1000000000000, baseCps: 15000000, desc: '別の宇宙からそばを召喚する。' },
-    { id: 'god', name: 'そばの神髄', icon: '👁️', baseCost: 15000000000000, baseCps: 120000000, desc: 'もはや言葉では説明できない。' },
-    { id: 'galaxy', name: '越前そば銀河鉄道', icon: '🚂', baseCost: 200000000000000, baseCps: 1000000000, desc: '銀河中にそばを配達する。' },
-    { id: 'parallel', name: '多次元そば並行世界', icon: '🌌', baseCost: 3000000000000000, baseCps: 9000000000, desc: 'あらゆる可能性のそばを集める。' },
-    { id: 'quantum', name: '量子もつれ製麺', icon: '⚛️', baseCost: 50000000000000000, baseCps: 80000000000, desc: '観測するまで茹で上がらない。' },
-    { id: 'blackhole', name: 'ブラックホール石臼', icon: '🕳️', baseCost: 800000000000000000, baseCps: 700000000000, desc: '事象の地平線で粉を挽く。' },
-    { id: 'universe', name: '宇宙創成そば', icon: '💥', baseCost: 10000000000000000000, baseCps: 6000000000000, desc: 'ビッグバンはそばから始まった。' },
-    { id: 'simulation', name: 'シミュレーション越前', icon: '💻', baseCost: 150000000000000000000, baseCps: 50000000000000, desc: '世界そのものがそばである。' },
-    { id: 'concept', name: '概念的そば打ち', icon: '💭', baseCost: 2000000000000000000000, baseCps: 400000000000000, desc: '「そば」という概念そのものを打つ。' },
-    { id: 'infinity', name: '無限の越前', icon: '♾️', baseCost: 30000000000000000000000, baseCps: 3000000000000000, desc: '終わりなきそばの輪廻。' },
-    { id: 'origin', name: '起源のそば', icon: '🌱', baseCost: 500000000000000000000000, baseCps: 4e16, desc: '全てのそばの始まりに触れる。' },
-    { id: 'eternity', name: '永劫の一杯', icon: '🕰️', baseCost: 8e25, baseCps: 7e17, desc: '茹で上がることも冷めることもない、永遠の一杯。' },
-    { id: 'omniscience', name: '全知のそば', icon: '🧠', baseCost: 1e28, baseCps: 1e20, desc: 'そばを打つという行為そのものを理解し尽くした境地。' },
-    { id: 'you', name: 'あなた', icon: '🧑‍🍳', baseCost: 1.5e30, baseCps: 1.2e22, desc: 'もはや誰が誰にそばを打たせているのかは分からない。生産の最後のピースは、あなた自身だった。' }
+    { id: 'timemachine', name: '時間跳躍製麺機', icon: '⏳', baseCost: 75000000000, baseCps: 1.8e06, desc: '茹で上がる前に食べる。' },
+    { id: 'dimension', name: '異次元そば門', icon: '🌀', baseCost: 1000000000000, baseCps: 9.3e06, desc: '別の宇宙からそばを召喚する。' },
+    { id: 'god', name: 'そばの神髄', icon: '👁️', baseCost: 15000000000000, baseCps: 5.4e07, desc: 'もはや言葉では説明できない。' },
+    { id: 'galaxy', name: '越前そば銀河鉄道', icon: '🚂', baseCost: 200000000000000, baseCps: 2.7e08, desc: '銀河中にそばを配達する。' },
+    { id: 'parallel', name: '多次元そば並行世界', icon: '🌌', baseCost: 3000000000000000, baseCps: 1.6e09, desc: 'あらゆる可能性のそばを集める。' },
+    { id: 'quantum', name: '量子もつれ製麺', icon: '⚛️', baseCost: 50000000000000000, baseCps: 1e10, desc: '観測するまで茹で上がらない。' },
+    { id: 'blackhole', name: 'ブラックホール石臼', icon: '🕳️', baseCost: 800000000000000000, baseCps: 6.3e10, desc: '事象の地平線で粉を挽く。' },
+    { id: 'universe', name: '宇宙創成そば', icon: '💥', baseCost: 10000000000000000000, baseCps: 3e11, desc: 'ビッグバンはそばから始まった。' },
+    { id: 'simulation', name: 'シミュレーション越前', icon: '💻', baseCost: 150000000000000000000, baseCps: 1.7e12, desc: '世界そのものがそばである。' },
+    { id: 'concept', name: '概念的そば打ち', icon: '💭', baseCost: 2000000000000000000000, baseCps: 9e12, desc: '「そば」という概念そのものを打つ。' },
+    { id: 'infinity', name: '無限の越前', icon: '♾️', baseCost: 30000000000000000000000, baseCps: 5.2e13, desc: '終わりなきそばの輪廻。' },
+    { id: 'origin', name: '起源のそば', icon: '🌱', baseCost: 500000000000000000000000, baseCps: 3.3e14, desc: '全てのそばの始まりに触れる。' },
+    { id: 'eternity', name: '永劫の一杯', icon: '🕰️', baseCost: 8e25, baseCps: 2e16, desc: '茹で上がることも冷めることもない、永遠の一杯。' },
+    { id: 'omniscience', name: '全知のそば', icon: '🧠', baseCost: 1e28, baseCps: 1e18, desc: 'そばを打つという行為そのものを理解し尽くした境地。' },
+    { id: 'you', name: 'あなた', icon: '🧑‍🍳', baseCost: 1.5e30, baseCps: 5.8e19, desc: 'もはや誰が誰にそばを打たせているのかは分からない。生産の最後のピースは、あなた自身だった。' }
 ];
 
 const UPGRADES = [
@@ -577,14 +580,14 @@ const UPGRADES = [
     { id: 'upg_satellite_1', name: '軌道上プラント拡張', icon: '🛰️', cost: 8000000000, type: 'building', target: 'satellite', mult: 4, desc: '宇宙そば農場の効率4倍。', req: { buildings: { satellite: 10 } } },
     { id: 'upg_shrine_1', name: '総本山の建立', icon: '🎴', cost: 1.5e11, type: 'building', target: 'shrine', mult: 4, desc: 'そばの聖地の効率4倍。', req: { buildings: { shrine: 10 } } },
     { id: 'upg_click_5', name: '次元断裂の一撃', icon: '💥', cost: 1000000000, type: 'click', power: 8, desc: 'クリックが次元を切り裂く。', req: { clicks: 20000 } },
-    { id: 'upg_global_4', name: '大宇宙の摂理', icon: '🪐', cost: 1e18, type: 'global', mult: 2.5, desc: '全生産2.5倍。', req: { totalSoba: 1e17 } },
-    { id: 'upg_global_5', name: '無限ループの真実', icon: '🔁', cost: 1e22, type: 'global', mult: 3, desc: '全生産3倍。', req: { totalSoba: 1e21 } },
-    { id: 'upg_global_6', name: '起源への回帰', icon: '🌌', cost: 1e26, type: 'global', mult: 3.5, desc: '全生産3.5倍。', req: { totalSoba: 1e25 } },
+    { id: 'upg_global_4', name: '大宇宙の摂理', icon: '🪐', cost: 1e18, type: 'global', mult: 1.6, desc: '全生産60%アップ。', req: { totalSoba: 1e17 } },
+    { id: 'upg_global_5', name: '無限ループの真実', icon: '🔁', cost: 1e22, type: 'global', mult: 1.8, desc: '全生産80%アップ。', req: { totalSoba: 1e21 } },
+    { id: 'upg_global_6', name: '起源への回帰', icon: '🌌', cost: 1e26, type: 'global', mult: 2, desc: '全生産2倍。', req: { totalSoba: 1e25 } },
     { id: 'upg_kitten_1', name: '段ボール猫', icon: '📦', cost: 9000, type: 'kitten', kittenPercent: 0.02, desc: 'だしLv.1につき全生産+2%。', req: { totalSoba: 5000 } },
     { id: 'upg_kitten_2', name: 'だし猫', icon: '🍲', cost: 90000, type: 'kitten', kittenPercent: 0.04, desc: 'だしLv.1につき全生産+4%。', req: { totalSoba: 50000 } },
     { id: 'upg_kitten_3', name: 'そば猫', icon: '🐈', cost: 900000, type: 'kitten', kittenPercent: 0.06, desc: 'だしLv.1につき全生産+6%。', req: { totalSoba: 500000 } },
-    { id: 'upg_kitten_4', name: '越前招き猫', icon: '🐾', cost: 90000000, type: 'kitten', kittenPercent: 0.08, desc: 'だしLv.1につき全生産+8%。', req: { totalSoba: 50000000 } },
-    { id: 'upg_kitten_5', name: '猫又そば師匠', icon: '😼', cost: 9000000000, type: 'kitten', kittenPercent: 0.10, desc: 'だしLv.1につき全生産+10%。', req: { totalSoba: 5000000000 } },
+    { id: 'upg_kitten_4', name: '越前招き猫', icon: '🐾', cost: 90000000, type: 'kitten', kittenPercent: 0.05, desc: 'だしLv.1につき全生産+5%。', req: { totalSoba: 50000000 } },
+    { id: 'upg_kitten_5', name: '猫又そば師匠', icon: '😼', cost: 9000000000, type: 'kitten', kittenPercent: 0.06, desc: 'だしLv.1につき全生産+6%。', req: { totalSoba: 5000000000 } },
     { id: 'upg_kitchen_2', name: '薪窯の導入', icon: '🔥', cost: 40000, type: 'building', target: 'kitchen', mult: 3, desc: '家庭用厨房の効率さらに3倍。', req: { buildings: { kitchen: 25 } } },
     { id: 'upg_mill_2', name: '水車式石臼', icon: '🌊', cost: 400000, type: 'building', target: 'mill', mult: 3, desc: '石臼製粉機の効率さらに3倍。', req: { buildings: { mill: 25 } } },
     { id: 'upg_shop_2', name: '暖簾分けの拡大', icon: '🏯', cost: 4000000, type: 'building', target: 'shop', mult: 3, desc: 'そば処の効率さらに3倍。', req: { buildings: { shop: 25 } } },
@@ -606,13 +609,13 @@ const UPGRADES = [
     { id: 'upg_omniscience_1', name: '全知の到達点', icon: '🧠', cost: 3e29, type: 'building', target: 'omniscience', mult: 4, desc: '全知のそばの効率4倍。', req: { buildings: { omniscience: 10 } } },
     { id: 'upg_you_1', name: '自己複製のパラドックス', icon: '🪞', cost: 4.5e31, type: 'building', target: 'you', mult: 4, desc: 'あなたの効率4倍。', req: { buildings: { you: 10 } } },
     { id: 'upg_click_6', name: '悟りの一撃', icon: '🕊️', cost: 1e21, type: 'click', power: 10, desc: 'クリックが悟りの境地に達する。', req: { clicks: 50000 } },
-    { id: 'upg_global_7', name: '概念そのものの生産', icon: '💭', cost: 1e30, type: 'global', mult: 4, desc: '全生産4倍。', req: { totalSoba: 1e29 } },
+    { id: 'upg_global_7', name: '概念そのものの生産', icon: '💭', cost: 1e30, type: 'global', mult: 2, desc: '全生産2倍。', req: { totalSoba: 1e29 } },
     { id: 'upg_global_b1', name: '越前の地酒', icon: '🍶', cost: 1e11, type: 'global', mult: 1.3, desc: '全生産30%アップ。', req: { totalSoba: 1e10 } },
     { id: 'upg_global_b2', name: 'そば湯の極意', icon: '♨️', cost: 1e12, type: 'global', mult: 1.3, desc: '全生産30%アップ。', req: { totalSoba: 1e11 } },
     { id: 'upg_global_b3', name: '北陸新幹線の開業', icon: '🚄', cost: 1e14, type: 'global', mult: 1.5, desc: '全生産50%アップ。', req: { totalSoba: 1e13 } },
     { id: 'upg_global_b4', name: '世界そば博覧会', icon: '🎌', cost: 1e17, type: 'global', mult: 1.5, desc: '全生産50%アップ。', req: { totalSoba: 1e16 } },
     { id: 'upg_global_mid', name: '越前ブランドの確立', icon: '🏷️', cost: 1e13, type: 'global', mult: 1.5, desc: '全生産50%アップ。', req: { totalSoba: 1e12 } },
-    { id: 'upg_global_8', name: '全宇宙そば協定', icon: '📜', cost: 1e34, type: 'global', mult: 4, desc: '全生産4倍。', req: { totalSoba: 1e33 } },
+    { id: 'upg_global_8', name: '全宇宙そば協定', icon: '📜', cost: 1e34, type: 'global', mult: 2, desc: '全生産2倍。', req: { totalSoba: 1e33 } },
     { id: 'upg_click_7', name: '無限の麺棒', icon: '🪄', cost: 1e27, type: 'click', power: 10, desc: 'クリックパワー10倍。', req: { clicks: 100000 } },
     { id: 'upg_clickcps_1', name: 'そば切り包丁の研ぎ直し', icon: '🔪', cost: 50000, type: 'clickCps', cpsPercent: 0.01, desc: 'クリックごとに、毎秒生産の1%分のそばを追加で獲得。', req: { clicks: 1000 } },
     { id: 'upg_clickcps_2', name: '職人の手首', icon: '🤲', cost: 5e7, type: 'clickCps', cpsPercent: 0.01, desc: 'クリックごとに、毎秒生産の1%分のそばをさらに追加で獲得。', req: { clicks: 5000 } },
@@ -656,13 +659,13 @@ const HEAVENLY_UPGRADES = [
     { id: 'heav_5', name: '天界の加速', icon: '🚀', cost: 40, desc: '全生産が永続的に+25%される。', effect: 'globalMult', mult: 1.25, requires: 'heav_3' },
     { id: 'heav_8', name: '双子の精霊', icon: '👯', cost: 60, desc: '祭壇に祀れる精霊が1柱増える(2→3柱)。', effect: 'extraSpiritSlot', requires: 'heav_4' },
     { id: 'heav_9', name: '刻の加速', icon: '⏳', cost: 50, desc: '手打ちそば道場の休憩時間が半分になる。', effect: 'artisanCooldown', requires: 'heav_6' },
-    { id: 'heav_7', name: '究極の悟り', icon: '☯️', cost: 100, desc: '全生産が永続的に2倍になる。', effect: 'globalMult', mult: 2, requires: 'heav_5' },
+    { id: 'heav_7', name: '究極の悟り', icon: '☯️', cost: 100, desc: '全生産が永続的に1.5倍になる。', effect: 'globalMult', mult: 1.5, requires: 'heav_5' },
     { id: 'heav_10', name: '慈悲の解脱', icon: '🕊️', cost: 150, desc: '転生に必要な累計そば量が緩和され、越前魂が少し得やすくなる。', effect: 'prestigeBoost', requires: 'heav_7' },
     { id: 'heav_11', name: 'まどろみの生産', icon: '😴', cost: 10, desc: 'タブを閉じている間・離れている間もそばが生産されるようになる(オフライン生産解放)。', effect: 'offlineUnlock', requires: null },
     { id: 'heav_12', name: '厄除けの護符', icon: '🧿', cost: 35, desc: '呪われしそばで失うそばの量がさらに半分になる(精霊の効果と重複可)。', effect: 'wrathSafety', value: 0.5, requires: 'heav_2' },
     { id: 'heav_13', name: '越前の記憶', icon: '📿', cost: 45, desc: '隠された熟練の力の効果が実績10個ごとに+3%になる(通常は+2%)。', effect: 'masteryBoost', requires: 'heav_3' },
     { id: 'heav_14', name: '天界の慈雨', icon: '🌧️', cost: 70, desc: 'そば粉の塊がたまる速度がさらに1.5倍になる(熟成の秘技と重複)。', effect: 'lumpSpeed2', requires: 'heav_9' },
-    { id: 'heav_15', name: '悟りの果て', icon: '🌌', cost: 300, desc: '全生産が永続的にさらに3倍になる。天界の頂点。', effect: 'globalMult', mult: 3, requires: 'heav_10' },
+    { id: 'heav_15', name: '悟りの果て', icon: '🌌', cost: 300, desc: '全生産が永続的にさらに2倍になる。天界の頂点。', effect: 'globalMult', mult: 2, requires: 'heav_10' },
     { id: 'heav_16', name: '開店祝い', icon: '🎁', cost: 5, desc: '転生後、そば打ち見習い10人・家庭用厨房5つを持った状態で始まる。', effect: 'starterKit', requires: null },
     { id: 'heav_17', name: '二号店の暖簾', icon: '🏮', cost: 40, desc: '転生後、さらに石臼製粉機10台・そば処5軒を持った状態で始まる。', effect: 'starterKit', requires: 'heav_16' },
     { id: 'heav_18', name: '越前魂の覚醒', icon: '🔥', cost: 25, desc: '越前魂1個あたりの生産ボーナスが+1%から+1.5%になる。', effect: 'soulPower', requires: 'heav_3' }
@@ -1134,7 +1137,8 @@ function calculateCps() {
     let clickCpsPercent = 0.04;
     UPGRADES.filter(u => u.type === 'clickCps' && state.upgrades.includes(u.id))
             .forEach(u => clickCpsPercent += u.cpsPercent);
-    clickPower = (newClickPower + clickBaseBonus + (cps * clickCpsPercent)) * prestigeMult * clickBuffMult * spiritClickMult;
+    // The CPS-based part already includes the prestige bonus, so only the flat part gets it here
+    clickPower = ((newClickPower + clickBaseBonus) * prestigeMult + cps * clickCpsPercent) * clickBuffMult * spiritClickMult;
     if (state.isChallengeRun === 'no_click') clickPower = 0;
 }
 
