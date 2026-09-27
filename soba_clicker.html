@@ -257,7 +257,7 @@ body.reduced #fever-overlay.on{animation:none}
 #ascension-header{width:100%;max-width:600px;display:flex;flex-direction:column;align-items:center;margin-bottom:10px;flex-shrink:0;}
 #ascension-header-box{background:linear-gradient(135deg, #2a1845 0%, #150a25 100%);border:2px solid var(--prestige);border-radius:16px;padding:16px 30px;text-align:center;box-shadow:0 0 25px rgba(0,212,255,0.25);margin-bottom:10px;}
 #skill-tree-wrap{width:100%; flex:1; min-height:400px; overflow:auto; border:1px solid var(--border); border-radius:10px; background:radial-gradient(circle, #1a0a2e 0%, #0d0515 100%); margin-bottom:10px;}
-#skill-tree-canvas{position:relative; width:1400px; height:1200px;}
+#skill-tree-canvas{position:relative; width:1400px; height:1400px; margin:0 auto;}
 
 /* Shrine (Spirits) UI */
 #shrine-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
@@ -668,7 +668,31 @@ const HEAVENLY_UPGRADES = [
     { id: 'heav_15', name: '悟りの果て', icon: '🌌', cost: 300, desc: '全生産が永続的にさらに2倍になる。天界の頂点。', effect: 'globalMult', mult: 2, requires: 'heav_10' },
     { id: 'heav_16', name: '開店祝い', icon: '🎁', cost: 5, desc: '転生後、そば打ち見習い10人・家庭用厨房5つを持った状態で始まる。', effect: 'starterKit', requires: null },
     { id: 'heav_17', name: '二号店の暖簾', icon: '🏮', cost: 40, desc: '転生後、さらに石臼製粉機10台・そば処5軒を持った状態で始まる。', effect: 'starterKit', requires: 'heav_16' },
-    { id: 'heav_18', name: '越前魂の覚醒', icon: '🔥', cost: 25, desc: '越前魂1個あたりの生産ボーナスが+1%から+1.5%になる。', effect: 'soulPower', requires: 'heav_3' }
+    { id: 'heav_18', name: '越前魂の覚醒', icon: '🔥', cost: 25, desc: '越前魂1個あたりの生産ボーナスが+1%から+1.5%になる。', effect: 'soulPower', requires: 'heav_3' },
+    // --- Starting over faster ---
+    { id: 'heav_19', name: '三号店の大繁盛', icon: '🏬', cost: 150, desc: '転生後、さらに製麺工場10棟・越前そば祭り5つを持った状態で始まる。', effect: 'starterKit', requires: 'heav_17' },
+    { id: 'heav_20', name: '記憶のレシピ', icon: '📜', cost: 400, desc: '転生後も、クリック系のアップグレードを全て最初から持っている。', effect: 'keepClickUpgrades', requires: 'heav_19' },
+    // --- Away from the game ---
+    { id: 'heav_21', name: '夢見の職人', icon: '💤', cost: 60, desc: '留守中の生産がたまる上限が24時間から72時間になる。', effect: 'offlineCap', requires: 'heav_11' },
+    { id: 'heav_22', name: '留守番の招き猫', icon: '🐈', cost: 250, desc: '留守中の生産が1.5倍になる。', effect: 'offlineMult', requires: 'heav_21' },
+    // --- Customer orders ---
+    { id: 'heav_23', name: '老舗の信用', icon: '🤝', cost: 30, desc: 'お客さんの注文の報酬が2倍になり、評判の上限が100から150になる。', effect: 'orderReward', requires: 'heav_16' },
+    { id: 'heav_24', name: '行列の予感', icon: '🚶', cost: 120, desc: 'お客さんの注文が届く間隔が半分になる。', effect: 'orderFreq', requires: 'heav_23' },
+    // --- Soba farm ---
+    { id: 'heav_25', name: '土づくりの極意', icon: '🪱', cost: 45, desc: 'そば畑の作物が1.5倍の速さで育つ。', effect: 'farmSpeed', requires: 'heav_6' },
+    { id: 'heav_26', name: '在来種の守り人', icon: '🧬', cost: 150, desc: 'そば畑で新しい在来種が芽吹く確率が2倍、収穫で得られるそばも2倍になる。', effect: 'farmMutation', requires: 'heav_25' },
+    // --- Golden soba ---
+    { id: 'heav_27', name: '黄金の余韻', icon: '🎐', cost: 50, desc: 'フィーバータイムとクリックフィーバーが1.5倍長く続く。', effect: 'feverTime', requires: 'heav_2' },
+    { id: 'heav_28', name: '招福の鈴', icon: '🔔', cost: 180, desc: 'ゴールデンそば・季節限定そばの報酬が1.5倍になる。', effect: 'goldenReward', requires: 'heav_27' },
+    // --- Workshop / shrine ---
+    { id: 'heav_29', name: '名人の手', icon: '🙌', cost: 100, desc: '手打ちそば道場の職人ポイントの上限が50%から100%になり、獲得量も1.5倍になる。', effect: 'artisanMaster', requires: 'heav_9' },
+    { id: 'heav_30', name: '四柱の神楽', icon: '🪭', cost: 400, desc: '祭壇に祀れる精霊がさらに1柱増える(最大4柱)。', effect: 'extraSpiritSlot2', requires: 'heav_8' },
+    { id: 'heav_35', name: '挑戦者の誇り', icon: '⚔️', cost: 250, desc: '挑戦モードのクリア報酬が1つにつき+3%から+6%になる。', effect: 'challengeBonus', requires: 'heav_10' },
+    // --- Late game ---
+    { id: 'heav_31', name: '輪廻の果ての一杯', icon: '🍵', cost: 1000, desc: '全生産が永続的にさらに1.5倍になる。', effect: 'globalMult', mult: 1.5, requires: 'heav_15' },
+    { id: 'heav_34', name: '天地開闢', icon: '🌅', cost: 20000, desc: '全生産が永続的にさらに2倍になる。天界の真の頂点。', effect: 'globalMult', mult: 2, requires: 'heav_31' },
+    { id: 'heav_32', name: '越前魂の極致', icon: '💎', cost: 500, desc: '越前魂1個あたりの生産ボーナスが+2%になる。', effect: 'soulPower2', requires: 'heav_18' },
+    { id: 'heav_33', name: '魂の器', icon: '🏺', cost: 3000, desc: '越前魂の効果がゆるやかになり始める個数が1000個から5000個になる。', effect: 'soulCap', requires: 'heav_32' }
 ];
 
 const SPIRITS = [
@@ -773,6 +797,7 @@ const ACHIEVEMENTS = [
     { id: 'ach_lump_3', name: '熟成の探求者', icon: '🏺', desc: 'そば粉の塊を50個獲得。', req: { totalLumps: 50 } },
     { id: 'ach_heavenly_1', name: '天界への一歩', icon: '☁️', desc: '天界の力を1つ購入。', req: { heavenlyCount: 1 } },
     { id: 'ach_heavenly_2', name: '天界の支配者', icon: '👼', desc: '天界の力を全て購入。', req: { heavenlyCount: HEAVENLY_UPGRADES.length } },
+    { id: 'ach_heavenly_mid', name: '天界の住人', icon: '🕊️', desc: '天界の力を15個購入。', req: { heavenlyCount: 15 } },
     { id: 'ach_shrine_1', name: '祭壇の目覚め', icon: '⛩️', desc: '初めて精霊を祀る。', req: { spiritsCount: 1 } },
     { id: 'ach_shrine_2', name: '二柱の加護', icon: '🙏', desc: '2柱の精霊を同時に祀る。', req: { spiritsCount: 2 } },
     { id: 'ach_season_1', name: '特別な一杯', icon: '🎐', desc: '季節限定のそばを1回発見する。', req: { seasonSobaClicks: 1 } },
@@ -907,7 +932,7 @@ const ORDER_CUSTOMERS = [
 const ORDER_FIRST_DELAY = 90 * 1000;
 const ORDER_MIN_GAP = 180 * 1000;
 const ORDER_MAX_GAP = 360 * 1000;
-const REPUTATION_MAX = 100;
+const REPUTATION_MAX = 100; // raised to 150 by the heavenly upgrade 老舗の信用 (see getReputationMax)
 const REPUTATION_BONUS = 0.005; // +0.5% production per reputation point
 const SELL_REFUND_RATE = 0.25;
 
@@ -927,14 +952,14 @@ const GLOSSARY = [
     { category: '転生システム', term: '天界の力', icon: '☁️', desc: '転生タブで越前魂を使って買う恒久アップグレード。買っても越前魂によるボーナス(%)は減らない。スキルツリー式になっており、一部の項目は前提の項目を先に取得する必要がある。' },
     { category: '転生システム', term: 'そば粉の塊', icon: '🍡', desc: '20分ごとに1個たまる資源(現実時間で進行)。既に所有している施設を「熟成」させて永続+1%できる。' },
     { category: '育成要素', term: 'だし', icon: '🍲', desc: '実績7個ごとに1レベル上がる。「だし猫」系アップグレードの効果を強化する。' },
-    { category: '育成要素', term: '祭壇・そばの精霊', icon: '⛩️', desc: '施設合計50個で解放。6柱の精霊から最大2柱(天界の力「双子の精霊」で3柱)を選んで祀れる。それぞれ強力な恩恵と引き換えのデメリットを持つので、組み合わせを考える必要がある。' },
+    { category: '育成要素', term: '祭壇・そばの精霊', icon: '⛩️', desc: '施設合計50個で解放。6柱の精霊から最大2柱(天界の力で3柱・4柱)を選んで祀れる。それぞれ強力な恩恵と引き換えのデメリットを持つので、組み合わせを考える必要がある。' },
     { category: '育成要素', term: '季節イベント', icon: '🌸', desc: '現実の日付に応じて春夏秋冬が自動で切り替わり、季節ごとに異なる永続ボーナスがかかる。' },
     { category: 'ミニゲーム', term: '手打ちそば道場', icon: '🥢', desc: '5分に1回挑戦できるタイミングゲーム。真ん中で「切る！」を押せるほど「職人ポイント」(永続の生産ボーナス)がたくさん貯まる。' },
     { category: '隠し要素', term: '隠された熟練の力', icon: '🧠', desc: '実績10個ごとに自動で発動する非公開の生産ボーナス。ショップには表示されない。' },
-    { category: 'ミニゲーム', term: '挑戦モード', icon: '⚔️', desc: '初回転生後に解放。特殊なルール(クリック不可・特殊出現物なし・施設コスト1.5倍など)の中で目標達成を目指す。開始すると今の進行状況は安全に退避され、クリアか中断でいつでも戻せる。クリアすると永久に+3%の生産ボーナスがもらえる。' },
+    { category: 'ミニゲーム', term: '挑戦モード', icon: '⚔️', desc: '初回転生後に解放。特殊なルール(クリック不可・特殊出現物なし・施設コスト1.5倍など)の中で目標達成を目指す。開始すると今の進行状況は安全に退避され、クリアか中断でいつでも戻せる。クリアすると永久に+3%(天界の力「挑戦者の誇り」で+6%)の生産ボーナスがもらえる。' },
     { category: '育成要素', term: '福井ご当地MAP・支店', icon: '🗾', desc: '施設合計350個で「育成 → 地図」が解放。勝山・大野・永平寺・敦賀・鯖江・小浜・東尋坊・武生・越前海岸に、施設数の条件を満たしそばを払うことで支店を設立できる(前の支店が必要な、かなり長期的な目標)。支店ごとに恐竜ボーナス・名水ボーナスなど、その土地ならではの永続効果が手に入る。' },
     { category: '育成要素', term: 'そば畑・在来種', icon: '🌾', desc: '累計10万杯で「育成 → そば畑」が解放。種をまくと現実の時間で育ち、実っている間は作物ごとの効果が続く。収穫するとそばが手に入る。実った作物の隣の空き地には、組み合わせ次第で丸岡在来・大野在来など福井の在来種が芽吹くことがある。新種を見つけるたびに全生産が永続+2%。' },
-    { category: '育成要素', term: '評判', icon: '⭐', desc: 'お客さんの注文を達成するたびに1上がる(最大100)。評判1につき全生産+0.5%。転生してもなくならない。' },
+    { category: '育成要素', term: '評判', icon: '⭐', desc: 'お客さんの注文を達成するたびに1上がる(最大100)。評判1につき全生産+0.5%(天界の力で上限150)。転生してもなくならない。' },
     { category: 'ミニゲーム', term: 'お客さんの注文', icon: '📋', desc: '数分おきにお客さんから注文が届く。制限時間内に指定の杯数を作る(注文中に増えたそばの量で判定)と、報酬と「評判」がもらえる。失敗しても罰はないので気軽に挑戦しよう。' },
     { category: '基本', term: '売却', icon: '💸', desc: 'ショップの「売却」モードで施設を売れる。購入額の25%が戻る。' },
     { category: '基本', term: 'ログインボーナス', icon: '🎁', desc: '1日1回、その日最初に遊んだときにそばがもらえる。連続で遊ぶほど増え、7日目にはそば粉の塊ももらえる。' },
@@ -1116,7 +1141,7 @@ function calculateCps() {
     newCps *= (1 + state.artisanPoints / 100);
 
     // Permanent bonus per completed challenge (+3% each)
-    newCps *= (1 + (state.challengeBonusPoints || 0) * 0.03);
+    newCps *= (1 + (state.challengeBonusPoints || 0) * getChallengeBonusPerClear());
 
     // Reputation from customer orders, and the soba farm (mature crops + discovered strains)
     newCps *= (1 + state.reputation * REPUTATION_BONUS);
@@ -1142,8 +1167,13 @@ function calculateCps() {
     if (state.isChallengeRun === 'no_click') clickPower = 0;
 }
 
+function getChallengeBonusPerClear() {
+    return state.heavenlyUpgrades.includes('heav_35') ? 0.06 : 0.03;
+}
+
 function getGoldenBonusMult() {
     let mult = getSpiritEffectMult('goldenBonus') * (1 + getFarmEffectBonus('golden'));
+    if (state.heavenlyUpgrades.includes('heav_28')) mult *= 1.5;
     const season = getCurrentSeason();
     if (season && season.effect === 'goldenBonus') mult *= season.value;
     return mult;
@@ -1474,7 +1504,7 @@ function renderStats() {
         <div class="stat-row"><span class="stat-label">季節限定そば発見数</span><span>${state.seasonSobaClicks} 回 (制覇: ${state.seasonsExperienced.length}/${SEASONS.length})</span></div>
         <div class="stat-row"><span class="stat-label">裏実績</span><span>🌑 ${state.shadowAchievements.length}/${SHADOW_ACHIEVEMENTS.length}</span></div>
         <div class="stat-row"><span class="stat-label">手打ちそば道場</span><span>${state.artisanAttempts}回挑戦 (会心${state.artisanCrits}回・職人ポイント+${state.artisanPoints.toFixed(1)}%)</span></div>
-        <div class="stat-row"><span class="stat-label">挑戦モード</span><span>${(state.challengesCompleted || []).length}/${CHALLENGES.length} クリア (恒久ボーナス+${((state.challengeBonusPoints || 0) * 3)}%)</span></div>
+        <div class="stat-row"><span class="stat-label">挑戦モード</span><span>${(state.challengesCompleted || []).length}/${CHALLENGES.length} クリア (恒久ボーナス+${Math.round((state.challengeBonusPoints || 0) * getChallengeBonusPerClear() * 100)}%)</span></div>
         <div class="stat-row"><span class="stat-label">福井支店展開</span><span>${(state.regions || []).length}/${REGIONS.length} 箇所</span></div>
         <div class="stat-row"><span class="stat-label">お客さんの注文</span><span>達成 ${state.ordersCompleted} 回 / 失敗 ${state.ordersFailed} 回</span></div>
         <div class="stat-row"><span class="stat-label">評判</span><span>⭐ ${state.reputation} (全生産+${(state.reputation * REPUTATION_BONUS * 100).toFixed(1)}%)</span></div>
@@ -1534,6 +1564,7 @@ function renderShrine() {
 }
 
 function getMaxSpiritSlots() {
+    if (state.heavenlyUpgrades.includes('heav_30')) return 4;
     return state.heavenlyUpgrades.includes('heav_8') ? 3 : 2;
 }
 
@@ -1549,15 +1580,19 @@ function getSoulsToGet() {
 }
 
 function getSoulBonusPerSoul() {
+    if (state.heavenlyUpgrades.includes('heav_32')) return 0.02;
     return state.heavenlyUpgrades.includes('heav_18') ? 0.015 : 0.01;
 }
 
-// Beyond SOUL_SOFTCAP souls the bonus grows with the square root, so late prestiges keep paying off
+// Beyond the soft cap the bonus grows with the square root, so late prestiges keep paying off
 // without the production -> souls -> production loop running away into absurd numbers within hours.
-const SOUL_SOFTCAP = 1000;
+function getSoulSoftcap() {
+    return state.heavenlyUpgrades.includes('heav_33') ? 5000 : 1000;
+}
+
 function getEffectiveSouls() {
-    const souls = state.souls;
-    return souls <= SOUL_SOFTCAP ? souls : SOUL_SOFTCAP * Math.sqrt(souls / SOUL_SOFTCAP);
+    const souls = state.souls, cap = getSoulSoftcap();
+    return souls <= cap ? souls : cap * Math.sqrt(souls / cap);
 }
 
 function getSoulBonusPercent() {
@@ -1569,7 +1604,11 @@ function applyStarterKit() {
     const kit = [];
     if (state.heavenlyUpgrades.includes('heav_16')) kit.push(['student', 10], ['kitchen', 5]);
     if (state.heavenlyUpgrades.includes('heav_17')) kit.push(['mill', 10], ['shop', 5]);
+    if (state.heavenlyUpgrades.includes('heav_19')) kit.push(['factory', 10], ['festival', 5]);
     kit.forEach(([id, n]) => { state.buildings[id] = Math.max(state.buildings[id] || 0, n); });
+    if (state.heavenlyUpgrades.includes('heav_20')) {
+        UPGRADES.filter(u => u.type === 'click' && !state.upgrades.includes(u.id)).forEach(u => state.upgrades.push(u.id));
+    }
 }
 
 function toggleSpirit(id) {
@@ -1680,7 +1719,8 @@ function stopArtisanChallenge() {
     state.soba += bonus;
     state.totalSoba += bonus;
     state.allTimeSoba += bonus;
-    state.artisanPoints = Math.min(50, state.artisanPoints + pointsGain);
+    const artisanMaster = state.heavenlyUpgrades.includes('heav_29');
+    state.artisanPoints = Math.min(artisanMaster ? 100 : 50, state.artisanPoints + pointsGain * (artisanMaster ? 1.5 : 1));
 
     calculateCps();
     artisanRunning = false;
@@ -1757,7 +1797,7 @@ function completeChallenge() {
     if (!backup.challengesCompleted.includes(challengeId)) {
         backup.challengesCompleted.push(challengeId);
         backup.challengeBonusPoints = (backup.challengeBonusPoints || 0) + 1;
-        rewardMsg = ` 恒久ボーナス+3%を獲得！`;
+        rewardMsg = ` 恒久ボーナス+${Math.round(getChallengeBonusPerClear() * 100)}%を獲得！`;
     } else {
         rewardMsg = '(再挑戦のため追加ボーナスなし)';
     }
@@ -1934,36 +1974,40 @@ function renderGlossary() {
 }
 
 function computeSkillTreeLayout() {
-    const roots = HEAVENLY_UPGRADES.filter(h => !h.requires);
+    // Radial tree: each branch gets an angle proportional to how many leaves it has,
+    // so big branches don't crowd while small ones leave empty wedges
     const childrenMap = {};
     HEAVENLY_UPGRADES.forEach(h => {
-        if (h.requires) {
-            if (!childrenMap[h.requires]) childrenMap[h.requires] = [];
-            childrenMap[h.requires].push(h.id);
-        }
+        if (h.requires) (childrenMap[h.requires] = childrenMap[h.requires] || []).push(h.id);
     });
+    const weight = {};
+    const weigh = (id) => {
+        const kids = childrenMap[id] || [];
+        return (weight[id] = kids.length ? kids.reduce((sum, k) => sum + weigh(k), 0) : 1);
+    };
+    const roots = HEAVENLY_UPGRADES.filter(h => !h.requires).map(h => h.id);
+    const total = roots.reduce((sum, r) => sum + weigh(r), 0);
+
     const positions = {};
-    const angleStep = (2 * Math.PI) / roots.length;
     const baseRadius = 130;
     const radiusStep = 115;
-
-    function place(nodeId, angle, angleSpan, depth) {
+    function place(id, startAngle, span, depth) {
+        const angle = startAngle + span / 2;
         const radius = baseRadius + depth * radiusStep;
-        positions[nodeId] = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius, depth };
-        const kids = childrenMap[nodeId] || [];
-        if (kids.length === 0) return;
-        const childSpan = angleSpan / kids.length;
-        kids.forEach((kidId, i) => {
-            const kidAngle = angle - angleSpan / 2 + childSpan * (i + 0.5);
-            place(kidId, kidAngle, childSpan * 1.3, depth + 1);
+        positions[id] = { x: Math.cos(angle) * radius, y: Math.sin(angle) * radius, depth };
+        let cursor = startAngle;
+        (childrenMap[id] || []).forEach(kid => {
+            const kidSpan = span * weight[kid] / weight[id];
+            place(kid, cursor, kidSpan, depth + 1);
+            cursor += kidSpan;
         });
     }
-
-    roots.forEach((root, i) => {
-        const angle = -Math.PI / 2 + angleStep * i;
-        place(root.id, angle, angleStep * 0.9, 0);
+    let cursor = -Math.PI / 2 - Math.PI * weight[roots[0]] / total;
+    roots.forEach(r => {
+        const span = 2 * Math.PI * weight[r] / total;
+        place(r, cursor, span, 0);
+        cursor += span;
     });
-
     return positions;
 }
 
@@ -1974,7 +2018,13 @@ function renderSkillTree(available) {
     if (!hasChanged('skillTree', state.heavenlyUpgrades.join() + '|' + available + '|' + state.souls)) return;
 
     const layout = computeSkillTreeLayout();
-    const centerX = 700, centerY = 600;
+    // Size the canvas to the tree (it grows as upgrades are added) with room for labels
+    const extent = Math.max(...Object.values(layout).map(p => Math.hypot(p.x, p.y))) + 110;
+    const size = Math.ceil(extent * 2);
+    const centerX = size / 2, centerY = size / 2;
+    canvas.style.width = canvas.style.height = size + 'px';
+    svg.setAttribute('width', size);
+    svg.setAttribute('height', size);
 
     // Clear previous nodes (keep the svg element itself)
     canvas.querySelectorAll('.skill-node, .skill-hub').forEach(el => el.remove());
@@ -2464,10 +2514,10 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
     const rand = Math.random();
     if (rand < 0.35) {
         buffMult = 7;
-        buffTimer = 77;
+        buffTimer = 77 * getFeverTimeMult();
         state.feverCount++;
         document.getElementById('app').classList.add('fever');
-        notify("フィーバータイム！77秒間、生産力が7倍！", "🔥");
+        notify(`フィーバータイム！${Math.round(buffTimer)}秒間、生産力が7倍！`, "🔥");
     } else if (rand < 0.60) {
         const bonus = Math.max(777, cps * 900) * goldenBonusMult;
         state.soba += bonus;
@@ -2476,8 +2526,8 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
         notify(`ゴールデンそば！${fmt(bonus)}杯のそばを獲得！`, "✨");
     } else if (rand < 0.85) {
         clickBuffMult = 777;
-        clickBuffTimer = 13;
-        notify("クリックフィーバー！13秒間、クリックパワーが777倍！", "👆");
+        clickBuffTimer = 13 * getFeverTimeMult();
+        notify(`クリックフィーバー！${Math.round(clickBuffTimer)}秒間、クリックパワーが777倍！`, "👆");
     } else {
         const bonus = Math.max(1000, cps * 7200) * goldenBonusMult;
         state.soba += bonus;
@@ -2487,6 +2537,10 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
     }
     calculateCps();
 };
+
+function getFeverTimeMult() {
+    return state.heavenlyUpgrades.includes('heav_27') ? 1.5 : 1;
+}
 
 function flashWrath() {
     const el = document.getElementById('wrath-flash');
@@ -2937,8 +2991,13 @@ function orderTick(now) {
     startOrder(now);
 }
 
+function getReputationMax() {
+    return state.heavenlyUpgrades.includes('heav_23') ? 150 : REPUTATION_MAX;
+}
+
 function scheduleNextOrder() {
-    state.nextOrderTime = Date.now() + ORDER_MIN_GAP + Math.random() * (ORDER_MAX_GAP - ORDER_MIN_GAP);
+    const gapMult = state.heavenlyUpgrades.includes('heav_24') ? 0.5 : 1;
+    state.nextOrderTime = Date.now() + (ORDER_MIN_GAP + Math.random() * (ORDER_MAX_GAP - ORDER_MIN_GAP)) * gapMult;
 }
 
 function startOrder(now) {
@@ -2950,7 +3009,7 @@ function startOrder(now) {
     // Idle production alone falls a little short: steady clicking (about 3 per second), buying
     // buildings or a golden soba closes the gap. Tuned with a simulation to succeed most of the time.
     const target = Math.max(200, baseCps * duration * (1 + Math.random() * 0.15) + baseClick * duration * 1.5);
-    const reward = Math.max(500, baseCps * duration * 2);
+    const reward = Math.max(500, baseCps * duration * 2) * (state.heavenlyUpgrades.includes('heav_23') ? 2 : 1);
     state.activeOrder = { customer: customerIdx, target, reward, startAll: state.allTimeSoba, deadline: now + duration * 1000 };
     notify(`${customer.name}から注文！${duration}秒以内に${fmt(target)}杯を作ろう。`, customer.icon, true);
     playSound('order');
@@ -2963,8 +3022,8 @@ function completeOrder() {
     state.totalSoba += order.reward;
     state.allTimeSoba += order.reward;
     state.ordersCompleted++;
-    const repUp = state.reputation < REPUTATION_MAX;
-    state.reputation = Math.min(REPUTATION_MAX, state.reputation + 1);
+    const repUp = state.reputation < getReputationMax();
+    state.reputation = Math.min(getReputationMax(), state.reputation + 1);
     state.activeOrder = null;
     scheduleNextOrder();
     calculateCps();
@@ -3027,7 +3086,8 @@ function getCrop(id) {
 }
 
 function getCropGrowMs(crop) {
-    return crop.growMin * 60000 / getRegionEffectMult('farmSpeed');
+    const heavenly = state.heavenlyUpgrades.includes('heav_25') ? 1.5 : 1;
+    return crop.growMin * 60000 / (getRegionEffectMult('farmSpeed') * heavenly);
 }
 
 function getPlotProgress(plot) {
@@ -3076,11 +3136,16 @@ function plantSeed(i) {
     render();
 }
 
+function getHarvestAmount(crop) {
+    const mult = state.heavenlyUpgrades.includes('heav_26') ? 2 : 1;
+    return Math.max(crop.minCost * 2, getBaseCps() * crop.harvestSec) * mult;
+}
+
 function harvestPlot(i, silent) {
     const plot = state.farm.plots[i];
     if (!isPlotMature(plot)) return 0;
     const crop = getCrop(plot.crop);
-    const gain = Math.max(crop.minCost * 2, getBaseCps() * crop.harvestSec);
+    const gain = getHarvestAmount(crop);
     state.soba += gain;
     state.totalSoba += gain;
     state.allTimeSoba += gain;
@@ -3143,7 +3208,7 @@ function farmTick(now) {
             const ok = a === b
                 ? neighbors.filter(n => n === a).length >= 2
                 : neighbors.includes(a) && neighbors.includes(b);
-            if (!ok || Math.random() >= recipe.chance) continue;
+            if (!ok || Math.random() >= recipe.chance * (state.heavenlyUpgrades.includes('heav_26') ? 2 : 1)) continue;
             state.farm.plots[i] = { crop: recipe.child, plantedAt: now };
             const crop = getCrop(recipe.child);
             if (!state.farm.discovered.includes(crop.id)) {
@@ -3209,7 +3274,7 @@ function renderFarm() {
                 (mature ? '' : `<div class="plot-bar"><div style="width:${(progress * 100).toFixed(1)}%"></div></div>`);
             // Computed on hover: the grid is only rebuilt every 2% of growth
             div.onmouseenter = (e) => showTooltip(e, crop.name, isPlotMature(plot)
-                ? `実りました！タップで収穫(約${fmt(Math.max(crop.minCost * 2, getBaseCps() * crop.harvestSec))}杯)<br>${crop.effectDesc}`
+                ? `実りました！タップで収穫(約${fmt(getHarvestAmount(crop))}杯)<br>${crop.effectDesc}`
                 : `成長中… あと${formatDuration(getCropGrowMs(crop) * (1 - getPlotProgress(plot)))}`, 0);
         }
         div.onpointerdown = (e) => { e.preventDefault(); onPlotTap(i); };
@@ -3450,10 +3515,9 @@ function loadGame() {
         if (state.heavenlyUpgrades.includes('heav_11')) {
             const now = Date.now();
             const offlineSec = (now - (state.lastSave || now)) / 1000;
-            const MAX_OFFLINE_SEC = 24 * 60 * 60; // 最大24時間分
-            const elapsed = Math.min(offlineSec, MAX_OFFLINE_SEC);
+            const elapsed = Math.min(offlineSec, getMaxOfflineSec());
             if (elapsed > 10 && cps > 0) {
-                const gained = cps * elapsed;
+                const gained = cps * elapsed * getOfflineMult();
                 state.soba += gained;
                 state.totalSoba += gained;
                 state.allTimeSoba += gained;
@@ -3520,6 +3584,14 @@ function normalizeState() {
     }
 }
 
+function getMaxOfflineSec() {
+    return (state.heavenlyUpgrades.includes('heav_21') ? 72 : 24) * 60 * 60;
+}
+
+function getOfflineMult() {
+    return state.heavenlyUpgrades.includes('heav_22') ? 1.5 : 1;
+}
+
 // タブが隠れたとき自動セーブ（次回起動時のオフライン計算のため）
 document.addEventListener('visibilitychange', () => {
     if (isResetting) return;
@@ -3527,10 +3599,12 @@ document.addEventListener('visibilitychange', () => {
         saveGame(true);
     } else {
         // タブに戻ってきたとき：隠れていた間の分を加算(初回転生後にのみ解放)
+        // Only the time the game loop hasn't already credited: desktop browsers keep running the loop
+        // (throttled) in background tabs, so counting from the last save paid that time twice.
         const now = Date.now();
-        const offlineSec = (now - state.lastSave) / 1000;
+        const offlineSec = Math.min((now - lastUpdate) / 1000, getMaxOfflineSec());
         if (state.heavenlyUpgrades.includes('heav_11') && offlineSec > 5 && cps > 0) {
-            const gained = cps * offlineSec;
+            const gained = cps * offlineSec * getOfflineMult();
             state.soba += gained;
             state.totalSoba += gained;
             state.allTimeSoba += gained;
