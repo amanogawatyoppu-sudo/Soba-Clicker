@@ -119,11 +119,36 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 .login-day.done{background:rgba(245,200,66,0.15);color:var(--text)}
 .login-day.today{border-color:var(--accent);box-shadow:0 0 8px rgba(245,200,66,0.5);color:var(--accent);font-weight:700}
 
+/* Shop growth stages: the left panel's scenery changes as this life's production grows */
+#left-panel{background:var(--stage-bg, radial-gradient(circle at center, #2a1800 0%, #1a0f00 100%))}
+#left-panel::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1.5s;
+    background-image:radial-gradient(1.5px 1.5px at 12% 18%, rgba(255,255,255,0.9), transparent 60%),radial-gradient(1px 1px at 38% 72%, rgba(255,255,255,0.7), transparent 60%),radial-gradient(1.5px 1.5px at 64% 32%, rgba(255,255,255,0.8), transparent 60%),radial-gradient(1px 1px at 82% 84%, rgba(255,255,255,0.6), transparent 60%),radial-gradient(1px 1px at 90% 12%, rgba(255,255,255,0.7), transparent 60%),radial-gradient(1.5px 1.5px at 24% 52%, rgba(255,255,255,0.6), transparent 60%);
+    background-size:240px 240px}
+#left-panel.starry::before{opacity:0.7}
+#stage-label{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:0.08em}
+
+/* Running buffs (fever, click fever) */
+#buff-bar{min-height:0}
+.buff-chip{display:inline-block;padding:3px 10px;border-radius:12px;background:rgba(255,77,0,0.22);border:1px solid var(--fever);color:#ffb38a;font-size:12px;font-weight:700;margin:6px 3px 0}
+.buff-chip.click{background:rgba(0,212,255,0.15);border-color:var(--prestige);color:#9be9ff}
+#fever-overlay{position:fixed;inset:0;pointer-events:none;z-index:900;box-shadow:inset 0 0 140px rgba(255,77,0,0.45);opacity:0;transition:opacity 0.6s}
+#fever-overlay.on{opacity:1;animation:fever-pulse 1.2s ease-in-out infinite alternate}
+@keyframes fever-pulse{from{box-shadow:inset 0 0 100px rgba(255,77,0,0.35)}to{box-shadow:inset 0 0 170px rgba(255,120,0,0.55)}}
+
+/* Purchase pop */
+.buy-pop{position:fixed;pointer-events:none;z-index:950;font-weight:900;font-size:18px;color:var(--accent);text-shadow:0 2px 6px rgba(0,0,0,0.8);animation:buy-rise 0.8s ease-out forwards}
+@keyframes buy-rise{0%{opacity:0;transform:translateY(6px) scale(0.8)}20%{opacity:1;transform:translateY(0) scale(1.1)}100%{opacity:0;transform:translateY(-36px) scale(1)}}
+
+/* First-time hints */
+.hint-icon{font-size:42px;margin-bottom:4px}
+.hint-text{font-size:13px;line-height:1.75;margin:10px 0 18px;text-align:left;color:var(--text)}
+
 /* Reduced effects setting */
 body.reduced .building-item.can-buy,
 body.reduced .skill-node.available,
 body.reduced .region-marker.available,
-body.reduced #app.fever #bowl-glow{animation:none}
+body.reduced #app.fever #bowl-glow,
+body.reduced #fever-overlay.on{animation:none}
 
 /* Shop Content - PERFECT SCROLLING */
 #shop-view{flex:1;overflow:hidden;display:flex;flex-direction:column}
@@ -306,6 +331,8 @@ button{touch-action:manipulation}
         <div id="stats-display">
             <div id="soba-count">0 杯</div>
             <div id="soba-rate">毎秒: 0 杯</div>
+            <div id="stage-label"></div>
+            <div id="buff-bar"></div>
         </div>
         <div id="order-banner">
             <div class="order-head"><span id="order-customer"></span><button class="order-decline" onclick="declineOrder()">断る</button></div>
@@ -496,6 +523,7 @@ button{touch-action:manipulation}
 </div>
 
 <div id="modal-overlay" onclick="if (event.target === this) closeModal()"><div id="modal-box"></div></div>
+<div id="fever-overlay"></div>
 <div id="notif-container"></div>
 <div id="tooltip"></div>
 <div id="wrath-flash"></div>
@@ -848,11 +876,11 @@ const CROPS = [
 ];
 // Rarest first, so a plot next to rare parents tries the rare child before the common ones
 const CROP_RECIPES = [
-    { parents: ['miyama', 'imajo'], child: 'maboroshi', chance: 0.004 },
-    { parents: ['imajo', 'ono'], child: 'miyama', chance: 0.01 },
-    { parents: ['ono', 'maruoka'], child: 'imajo', chance: 0.015 },
-    { parents: ['maruoka', 'common'], child: 'ono', chance: 0.02 },
-    { parents: ['common', 'common'], child: 'maruoka', chance: 0.03 }
+    { parents: ['miyama', 'imajo'], child: 'maboroshi', chance: 0.0008 },
+    { parents: ['imajo', 'ono'], child: 'miyama', chance: 0.002 },
+    { parents: ['ono', 'maruoka'], child: 'imajo', chance: 0.003 },
+    { parents: ['maruoka', 'common'], child: 'ono', chance: 0.004 },
+    { parents: ['common', 'common'], child: 'maruoka', chance: 0.006 }
 ];
 
 // --- Customer orders ---
@@ -1180,6 +1208,7 @@ function update() {
         farmTick(now);
         calculateCps();
         checkLoginBonus();
+        checkHints();
     }
     checkChallengeProgress();
 
@@ -1238,6 +1267,8 @@ function render() {
     renderWorkshopBar();
     
     renderTabs();
+    renderStage();
+    renderBuffBar();
     renderChallengeBanner();
     renderOrderBanner();
     if (activeView === 'farm') renderFarm();
@@ -1253,7 +1284,23 @@ function render() {
     renderAscensionScreen();
 }
 
+// render() runs 10 times a second; rebuilding every list each time is what made phones sluggish.
+// Each panel computes a cheap signature of what it would show and only touches the DOM when it changes.
+const renderCache = {};
+function hasChanged(key, signature) {
+    if (renderCache[key] === signature) return false;
+    renderCache[key] = signature;
+    return true;
+}
+
+function setHTMLIfChanged(el, html) {
+    if (el._html === html) return;
+    el._html = html;
+    el.innerHTML = html;
+}
+
 function renderBuyAmountToggle() {
+    if (!hasChanged('buyToggle', shopMode + '|' + buyAmount)) return;
     const toggle = document.getElementById('buy-amount-toggle');
     const options = [1, 10, 100, 'max'];
     const modes = `<button class="buy-amt-btn ${shopMode === 'buy' ? 'active' : ''}" onclick="setShopMode('buy')">購入</button>` +
@@ -1264,82 +1311,119 @@ function renderBuyAmountToggle() {
     ).join('');
 }
 
+const shopItemEls = {};
+
+function getBuyItemView(b) {
+    const locked = state.totalSoba < b.baseCost * 0.4 && state.buildings[b.id] === 0;
+    const owned = state.buildings[b.id] || 0;
+    if (locked) {
+        return {
+            className: 'building-item locked',
+            html: `<div class="b-icon">❓</div><div class="b-info"><div class="b-name">???</div><div class="b-cost">---</div></div><div class="b-count">${owned}</div>`,
+            action: null, tooltip: null
+        };
+    }
+    let quantity, cost, canBuy;
+    if (buyAmount === 'max') {
+        const result = getMaxAffordable(b);
+        canBuy = result.quantity > 0;
+        quantity = result.quantity;
+        cost = canBuy ? result.cost : getBuildingCost(b);
+    } else {
+        quantity = buyAmount;
+        cost = getBulkCost(b, quantity);
+        canBuy = state.soba >= cost;
+    }
+    const level = state.buildingLevels[b.id] || 0;
+    const qtyLabel = buyAmount === 'max' ? ` (MAX: ${quantity})` : (quantity > 1 ? ` ×${quantity}` : '');
+    return {
+        className: `building-item ${canBuy ? 'can-buy' : ''}`,
+        html: `<div class="b-icon">${b.icon}</div>
+            <div class="b-info">
+                <div class="b-name">${b.name}${level > 0 ? ` <span style="color:var(--accent); font-size:11px">Lv.${level}</span>` : ''}</div>
+                <div class="b-cost">🍜 ${fmt(cost)}${qtyLabel}</div>
+            </div>
+            <div class="b-count">${owned}</div>`,
+        action: () => buyBuilding(b.id),
+        tooltip: [b.name, `${b.desc}<br>生産: ${fmt(b.baseCps)}/秒${level > 0 ? ` (熟成Lv.${level}: +${level}%)` : ''}`, cost]
+    };
+}
+
+function getSellItemView(b) {
+    const owned = state.buildings[b.id] || 0;
+    if (owned === 0 && state.totalSoba < b.baseCost * 0.4) return { hidden: true }; // not discovered yet
+    const quantity = getSellQuantity(b);
+    const refund = quantity > 0 ? getSellRefund(b, quantity) : 0;
+    return {
+        className: `building-item ${quantity > 0 ? 'can-sell' : 'locked'}`,
+        html: `<div class="b-icon">${b.icon}</div>
+            <div class="b-info">
+                <div class="b-name">${b.name}</div>
+                <div class="b-cost" style="color:${quantity > 0 ? '#ff8a8a' : 'var(--muted)'}">${quantity > 0 ? `💸 +${fmt(refund)} (${quantity}個売却)` : '所有していません'}</div>
+            </div>
+            <div class="b-count">${owned}</div>`,
+        action: quantity > 0 ? () => sellBuilding(b.id) : null,
+        tooltip: [`${b.name}を売却`, `購入額の${SELL_REFUND_RATE * 100}%が戻ります。<br>所有: ${owned}個`, 0]
+    };
+}
+
+function createShopItem() {
+    const el = document.createElement('div');
+    // Handlers read the element's latest view, so they stay correct without being re-attached
+    el.onpointerdown = (e) => { e.preventDefault(); if (el._view && el._view.action) el._view.action(); };
+    el.onmouseenter = (e) => { if (el._view && el._view.tooltip) showTooltip(e, ...el._view.tooltip); };
+    el.onmouseleave = hideTooltip;
+    return el;
+}
+
 function renderShop() {
     renderBuyAmountToggle();
+    if (activeView !== 'shop') return;
     const list = document.getElementById('buildings-list');
-    list.innerHTML = '';
-    if (shopMode === 'sell') { renderSellList(list); return; }
     BUILDINGS.forEach(b => {
-        const locked = state.totalSoba < b.baseCost * 0.4 && state.buildings[b.id] === 0;
-        let quantity, cost, canBuy;
-        if (!locked) {
-            if (buyAmount === 'max') {
-                const result = getMaxAffordable(b);
-                if (result.quantity > 0) {
-                    quantity = result.quantity;
-                    cost = result.cost;
-                    canBuy = true;
-                } else {
-                    quantity = 0;
-                    cost = getBuildingCost(b);
-                    canBuy = false;
-                }
-            } else {
-                quantity = buyAmount;
-                cost = getBulkCost(b, quantity);
-                canBuy = state.soba >= cost;
-            }
+        let el = shopItemEls[b.id];
+        if (!el) {
+            el = shopItemEls[b.id] = createShopItem();
+            list.appendChild(el);
         }
-        
-        const level = state.buildingLevels[b.id] || 0;
-        const div = document.createElement('div');
-        div.className = `building-item ${locked ? 'locked' : (canBuy ? 'can-buy' : '')}`;
-        const qtyLabel = locked ? '' : (buyAmount === 'max' ? ` (MAX: ${quantity})` : (quantity > 1 ? ` ×${quantity}` : ''));
-        div.innerHTML = `
-            <div class="b-icon">${locked ? '❓' : b.icon}</div>
-            <div class="b-info">
-                <div class="b-name">${locked ? '???' : b.name}${!locked && level > 0 ? ` <span style="color:var(--accent); font-size:11px">Lv.${level}</span>` : ''}</div>
-                <div class="b-cost">${locked ? '---' : '🍜 ' + fmt(cost) + qtyLabel}</div>
-            </div>
-            <div class="b-count">${state.buildings[b.id] || 0}</div>
-        `;
-        
-        if (!locked) {
-            div.onpointerdown = (e) => { e.preventDefault(); buyBuilding(b.id); };
-            div.onmouseenter = (e) => showTooltip(e, b.name, `${b.desc}<br>生産: ${fmt(b.baseCps)}/秒${level > 0 ? ` (熟成Lv.${level}: +${level}%)` : ''}`, cost);
-            div.onmouseleave = hideTooltip;
-        }
-        list.appendChild(div);
+        const view = shopMode === 'sell' ? getSellItemView(b) : getBuyItemView(b);
+        el._view = view;
+        el.style.display = view.hidden ? 'none' : '';
+        if (view.hidden) return;
+        if (el.className !== view.className) el.className = view.className;
+        setHTMLIfChanged(el, view.html);
     });
 }
 
 function renderUpgrades() {
-    const grid = document.getElementById('upgrades-grid');
-    grid.innerHTML = '';
-    UPGRADES.forEach(u => {
-        if (state.upgrades.includes(u.id)) return;
-        let visible = false;
-        if (u.req.totalSoba && state.totalSoba >= u.req.totalSoba * 0.5) visible = true;
-        if (u.req.clicks && state.clicks >= u.req.clicks * 0.5) visible = true;
+    if (activeView !== 'shop') return;
+    const visible = UPGRADES.filter(u => {
+        if (state.upgrades.includes(u.id)) return false;
+        if (u.req.totalSoba && state.totalSoba >= u.req.totalSoba * 0.5) return true;
+        if (u.req.clicks && state.clicks >= u.req.clicks * 0.5) return true;
         if (u.req.buildings) {
             for (let bid in u.req.buildings) {
-                if (state.buildings[bid] >= u.req.buildings[bid] * 0.5) visible = true;
+                if (state.buildings[bid] >= u.req.buildings[bid] * 0.5) return true;
             }
         }
-        if (visible) {
-            const canBuy = state.soba >= u.cost;
-            const div = document.createElement('div');
-            div.className = `upgrade-item ${canBuy ? '' : 'disabled'}`;
-            div.innerHTML = u.icon;
-            div.onpointerdown = (e) => { e.preventDefault(); buyUpgrade(u.id); };
-            div.onmouseenter = (e) => showTooltip(e, u.name, u.desc, u.cost);
-            div.onmouseleave = hideTooltip;
-            grid.appendChild(div);
-        }
+        return false;
+    });
+    if (!hasChanged('upgrades', visible.map(u => u.id + (state.soba >= u.cost ? '+' : '-')).join())) return;
+    const grid = document.getElementById('upgrades-grid');
+    grid.innerHTML = '';
+    visible.forEach(u => {
+        const div = document.createElement('div');
+        div.className = `upgrade-item ${state.soba >= u.cost ? '' : 'disabled'}`;
+        div.innerHTML = u.icon;
+        div.onpointerdown = (e) => { e.preventDefault(); buyUpgrade(u.id); };
+        div.onmouseenter = (e) => showTooltip(e, u.name, u.desc, u.cost);
+        div.onmouseleave = hideTooltip;
+        grid.appendChild(div);
     });
 }
 
 function renderAchievements() {
+    if (!hasChanged('achievements', state.achievements.length)) return;
     const list = document.getElementById('ach-list');
     list.innerHTML = '';
     ACHIEVEMENTS.forEach(a => {
@@ -1360,7 +1444,7 @@ function renderStats() {
     const h = Math.floor(playTime / 3600);
     const m = Math.floor((playTime % 3600) / 60);
     const s = playTime % 60;
-    container.innerHTML = `
+    const html = `
         <div class="stat-row"><span class="stat-label">現在のそば</span><span>${fmt(state.soba)} 杯</span></div>
         <div class="stat-row"><span class="stat-label">今世の生産量</span><span>${fmt(state.totalSoba)} 杯</span></div>
         <div class="stat-row"><span class="stat-label">全世の生産量</span><span>${fmt(state.allTimeSoba)} 杯</span></div>
@@ -1387,10 +1471,12 @@ function renderStats() {
         <div class="stat-row"><span class="stat-label">ログイン</span><span>連続 ${state.loginStreak} 日 (最高 ${state.bestLoginStreak} 日)</span></div>
         <div class="stat-row"><span class="stat-label">売却した施設</span><span>${state.buildingsSold} 個</span></div>
     `;
+    setHTMLIfChanged(container, html);
 }
 
 function renderShrine() {
     if (document.getElementById('shrine-view').style.display !== 'block') return;
+    if (!hasChanged('shrine', state.spirits.join() + '|' + getMaxSpiritSlots())) return;
 
     const slots = document.getElementById('shrine-slots');
     slots.innerHTML = '';
@@ -1719,6 +1805,11 @@ function renderChallengeList() {
 function renderMap() {
     if (document.getElementById('map-view').style.display !== 'block') return;
     const totalBuildingsOwned = Object.values(state.buildings).reduce((a, b) => a + b, 0);
+    const mapSig = REGIONS.map(r => {
+        const unlocked = totalBuildingsOwned >= r.unlockBuildings && (!r.requires || state.regions.includes(r.requires));
+        return `${state.regions.includes(r.id) ? 1 : 0}${unlocked ? 1 : 0}${state.soba >= r.cost ? 1 : 0}`;
+    }).join();
+    if (!hasChanged('map', mapSig)) return;
     const mapEl = document.getElementById('fukui-map');
     mapEl.querySelectorAll('.region-marker, .region-marker-label').forEach(el => el.remove());
 
@@ -1838,6 +1929,7 @@ function renderSkillTree(available) {
     const canvas = document.getElementById('skill-tree-canvas');
     const svg = document.getElementById('skill-tree-svg');
     if (!canvas || !svg) return;
+    if (!hasChanged('skillTree', state.heavenlyUpgrades.join() + '|' + available + '|' + state.souls)) return;
 
     const layout = computeSkillTreeLayout();
     const centerX = 700, centerY = 600;
@@ -1953,6 +2045,7 @@ function renderLumpList() {
     const lList = document.getElementById('lump-list');
     if (!lList) return;
     document.getElementById('lump-view-count').textContent = state.lumps;
+    if (!hasChanged('lumps', (state.lumps > 0) + '|' + BUILDINGS.map(b => (state.buildings[b.id] > 0 ? state.buildingLevels[b.id] : '-')).join())) return;
     lList.innerHTML = '';
     const ownedBuildings = BUILDINGS.filter(b => (state.buildings[b.id] || 0) > 0);
     if (ownedBuildings.length === 0) {
@@ -2126,6 +2219,7 @@ function buyBuilding(id) {
     state.soba -= cost;
     state.buildings[id] = (state.buildings[id] || 0) + quantity;
     playSound('buy');
+    spawnBuyPop(id, `+${quantity} ${b.icon}`);
     calculateCps();
     render();
 }
@@ -2566,9 +2660,7 @@ function switchTab(viewId) {
 }
 
 function openSettingsFromPanel() {
-    switchTab('settings');
-    // On phones the panels are stacked, so bring the settings into view
-    if (window.innerWidth <= 900) document.getElementById('right-panel').scrollIntoView({ behavior: 'smooth' });
+    goToView('settings');
 }
 
 function renderPrestigeView() {
@@ -2776,30 +2868,7 @@ function sellBuilding(id) {
     render();
 }
 
-function renderSellList(list) {
-    BUILDINGS.forEach(b => {
-        const owned = state.buildings[b.id] || 0;
-        if (owned === 0 && state.totalSoba < b.baseCost * 0.4) return; // not discovered yet
-        const quantity = getSellQuantity(b);
-        const refund = quantity > 0 ? getSellRefund(b, quantity) : 0;
-        const div = document.createElement('div');
-        div.className = `building-item ${quantity > 0 ? 'can-sell' : 'locked'}`;
-        div.innerHTML = `
-            <div class="b-icon">${b.icon}</div>
-            <div class="b-info">
-                <div class="b-name">${b.name}</div>
-                <div class="b-cost" style="color:${quantity > 0 ? '#ff8a8a' : 'var(--muted)'}">${quantity > 0 ? `💸 +${fmt(refund)} (${quantity}個売却)` : '所有していません'}</div>
-            </div>
-            <div class="b-count">${owned}</div>
-        `;
-        if (quantity > 0) {
-            div.onpointerdown = (e) => { e.preventDefault(); sellBuilding(b.id); };
-        }
-        div.onmouseenter = (e) => showTooltip(e, `${b.name}を売却`, `購入額の${SELL_REFUND_RATE * 100}%が戻ります。<br>所有: ${owned}個`, 0);
-        div.onmouseleave = hideTooltip;
-        list.appendChild(div);
-    });
-}
+
 
 // ===================================================================
 // Customer orders: make N soba within a time limit for money and reputation
@@ -2831,8 +2900,9 @@ function startOrder(now) {
     const baseCps = getBaseCps();
     const baseClick = clickPower / (clickBuffMult || 1);
     const duration = Math.round((60 + Math.random() * 60) * getRegionEffectMult('orderTime'));
-    // Idle production alone falls a little short: clicking, buying buildings or a golden soba closes the gap
-    const target = Math.max(200, baseCps * duration * (1 + Math.random() * 0.2) + baseClick * duration * 3);
+    // Idle production alone falls a little short: steady clicking (about 3 per second), buying
+    // buildings or a golden soba closes the gap. Tuned with a simulation to succeed most of the time.
+    const target = Math.max(200, baseCps * duration * (1 + Math.random() * 0.15) + baseClick * duration * 1.5);
     const reward = Math.max(500, baseCps * duration * 2);
     state.activeOrder = { customer: customerIdx, target, reward, startAll: state.allTimeSoba, deadline: now + duration * 1000 };
     notify(`${customer.name}から注文！${duration}秒以内に${fmt(target)}杯を作ろう。`, customer.icon, true);
@@ -3053,6 +3123,12 @@ function formatDuration(ms) {
 function renderFarm() {
     if (activeView !== 'farm') return;
     const size = getFarmSize();
+    const farmSig = [
+        selectedSeed, size, state.farm.discovered.join(),
+        CROPS.filter(c => state.farm.discovered.includes(c.id)).map(c => fmt(getSeedCost(c)) + (state.soba >= getSeedCost(c))).join(),
+        state.farm.plots.map(pl => pl ? pl.crop + Math.floor(getPlotProgress(pl) * 50) : '-').join()
+    ].join('|');
+    if (!hasChanged('farm', farmSig)) return;
 
     const seeds = document.getElementById('farm-seeds');
     seeds.innerHTML = '';
@@ -3084,9 +3160,10 @@ function renderFarm() {
             div.className = `farm-plot ${mature ? 'mature' : 'growing'}`;
             div.innerHTML = `<span class="plot-icon">${crop.icon}</span>` +
                 (mature ? '' : `<div class="plot-bar"><div style="width:${(progress * 100).toFixed(1)}%"></div></div>`);
-            const left = getCropGrowMs(crop) * (1 - progress);
-            div.onmouseenter = (e) => showTooltip(e, crop.name,
-                mature ? `実りました！タップで収穫(約${fmt(Math.max(crop.minCost * 2, getBaseCps() * crop.harvestSec))}杯)<br>${crop.effectDesc}` : `成長中… あと${formatDuration(left)}`, 0);
+            // Computed on hover: the grid is only rebuilt every 2% of growth
+            div.onmouseenter = (e) => showTooltip(e, crop.name, isPlotMature(plot)
+                ? `実りました！タップで収穫(約${fmt(Math.max(crop.minCost * 2, getBaseCps() * crop.harvestSec))}杯)<br>${crop.effectDesc}`
+                : `成長中… あと${formatDuration(getCropGrowMs(crop) * (1 - getPlotProgress(plot)))}`, 0);
         }
         div.onpointerdown = (e) => { e.preventDefault(); onPlotTap(i); };
         div.onmouseleave = hideTooltip;
@@ -3127,6 +3204,12 @@ function checkLoginBonus() {
     const now = new Date();
     const today = localDateStr(now);
     if (state.lastLoginDay === today) return;
+    if (!state.lastLoginDay && state.allTimeSoba === 0) {
+        // Very first launch: the welcome hint is enough; the streak starts today and pays out tomorrow
+        state.lastLoginDay = today;
+        state.loginStreak = state.bestLoginStreak = 1;
+        return;
+    }
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     state.loginStreak = state.lastLoginDay === localDateStr(yesterday) ? state.loginStreak + 1 : 1;
@@ -3162,13 +3245,128 @@ function showLoginBonusModal(day, reward, lumpBonus) {
     playSound('golden');
 }
 
+const modalQueue = [];
+
+function isModalOpen() {
+    return document.getElementById('modal-overlay').style.display === 'flex';
+}
+
 function showModal(html) {
+    // One dialog at a time: later ones (e.g. a hint right after the login bonus) wait their turn
+    if (isModalOpen()) { modalQueue.push(html); return; }
     document.getElementById('modal-box').innerHTML = html;
     document.getElementById('modal-overlay').style.display = 'flex';
 }
 
 function closeModal() {
     document.getElementById('modal-overlay').style.display = 'none';
+    if (modalQueue.length) showModal(modalQueue.shift());
+}
+
+// ===================================================================
+// Visual growth: scenery stages, buff display, purchase pops
+// ===================================================================
+const SHOP_STAGES = [
+    { min: 0, name: '🏮 小さなそば屋', bg: 'radial-gradient(circle at center, #2a1800 0%, #1a0f00 100%)' },
+    { min: 1e6, name: '🏘️ 越前の人気店', bg: 'radial-gradient(circle at 50% 40%, #3d2206 0%, #1a0f00 100%)' },
+    { min: 1e9, name: '🏙️ そばの街', bg: 'radial-gradient(circle at 50% 40%, #243240 0%, #120d08 100%)' },
+    { min: 1e15, name: '🌍 世界に広がるそば', bg: 'radial-gradient(circle at 50% 40%, #0f2b45 0%, #07121f 100%)', stars: true },
+    { min: 1e21, name: '🌌 宇宙そば時代', bg: 'radial-gradient(circle at 50% 40%, #2a1450 0%, #0a0518 100%)', stars: true },
+    { min: 1e27, name: '♾️ 概念のそば', bg: 'radial-gradient(circle at 50% 40%, #4a0f3a 0%, #12030e 100%)', stars: true }
+];
+let currentStageIdx = -1;
+
+function renderStage() {
+    let idx = 0;
+    SHOP_STAGES.forEach((st, i) => { if (state.totalSoba >= st.min) idx = i; });
+    if (idx === currentStageIdx) return;
+    const grew = currentStageIdx >= 0 && idx > currentStageIdx;
+    currentStageIdx = idx;
+    const stage = SHOP_STAGES[idx];
+    const panel = document.getElementById('left-panel');
+    panel.style.setProperty('--stage-bg', stage.bg);
+    panel.classList.toggle('starry', !!stage.stars);
+    document.getElementById('stage-label').textContent = stage.name;
+    if (grew) {
+        notify(`お店が成長した！「${stage.name}」`, "🎊", true);
+        playSound('achieve');
+    }
+}
+
+function renderBuffBar() {
+    let html = '';
+    if (buffMult > 1 && buffTimer > 0) html += `<span class="buff-chip">🔥 FEVER ×${buffMult} 残り${Math.ceil(buffTimer)}秒</span>`;
+    if (clickBuffMult > 1 && clickBuffTimer > 0) html += `<span class="buff-chip click">👆 クリック×${clickBuffMult} 残り${Math.ceil(clickBuffTimer)}秒</span>`;
+    setHTMLIfChanged(document.getElementById('buff-bar'), html);
+    document.getElementById('fever-overlay').classList.toggle('on', buffMult > 1);
+}
+
+function spawnBuyPop(buildingId, text) {
+    if (settings.reduceEffects) return;
+    const el = shopItemEls[buildingId];
+    if (!el || !el.offsetParent) return;
+    const rect = el.getBoundingClientRect();
+    const pop = document.createElement('div');
+    pop.className = 'buy-pop';
+    pop.textContent = text;
+    pop.style.left = (rect.right - 90) + 'px';
+    pop.style.top = (rect.top + rect.height / 2 - 14) + 'px';
+    document.body.appendChild(pop);
+    setTimeout(() => pop.remove(), 800);
+}
+
+// ===================================================================
+// First-time hints: a short explanation the first time each feature appears
+// ===================================================================
+function getViewDef(viewId) {
+    for (const g of TAB_GROUPS) {
+        const v = g.views.find(x => x.id === viewId);
+        if (v) return v;
+    }
+    return null;
+}
+
+function viewUnlocked(viewId) {
+    const v = getViewDef(viewId);
+    return !!v && isViewUnlocked(v);
+}
+
+const HINTS = [
+    { id: 'welcome', icon: '🍜', title: '越前そばクリッカーへようこそ！', text: '真ん中のそばをクリック(スペースキーでもOK)して、そばを打とう。<br>たまったそばでショップの「施設」を買うと、自動でそばが増えていきます。', when: () => state.allTimeSoba === 0 && state.clicks === 0 },
+    { id: 'upgrade', icon: '⭐', title: 'アップグレードが登場', text: 'ショップの上段に並ぶアイコンは「アップグレード」。一度買えば、クリックや施設の効率がずっと上がります。<br>カーソルを合わせる(スマホは長押し)と効果が見られます。', when: () => state.allTimeSoba >= 50 },
+    { id: 'order', icon: '📋', title: 'お客さんから注文が来た！', text: '左に出ている注文を制限時間内に達成すると、報酬と「評判」(全生産アップ)がもらえます。<br>クリックや施設の購入で追い込もう。失敗しても罰はありません。', when: () => !!state.activeOrder },
+    { id: 'lump', view: 'lump', icon: '🍡', title: 'そば粉の塊が手に入った', text: '「育成 → 熟成」で、持っている施設を塊1個につき永続+1%強化できます。<br>塊は20分に1個、遊んでいない間もたまります。', when: () => state.totalLumps > 0 },
+    { id: 'farm', view: 'farm', icon: '🌾', title: 'そば畑が解放された', text: '「育成 → そば畑」で種をまくと、現実の時間で育ちます。実っている間は効果が続き、収穫するとそばが手に入ります。<br>実った作物の隣の空き地には、福井の在来種が芽吹くことも…。', when: () => viewUnlocked('farm') },
+    { id: 'shrine', view: 'shrine', icon: '⛩️', title: 'そばの祭壇が解放された', text: '「育成 → 祭壇」で、そばの精霊を2柱まで祀れます。<br>精霊は強い恩恵と引き換えにデメリットも持つので、組み合わせを考えよう。', when: () => viewUnlocked('shrine') },
+    { id: 'map', view: 'map', icon: '🗾', title: '福井ご当地MAPが解放された', text: '「育成 → 地図」で、福井県内の各地に支店を出せます。<br>支店ごとに、その土地ならではの永続ボーナスがもらえます。', when: () => viewUnlocked('map') },
+    { id: 'prestige', view: 'prestige', icon: '☁️', title: '転生できるようになった', text: '累計1兆杯に到達しました。転生すると施設やそばはリセットされますが、「越前魂」を得て全生産がずっと強化されます。<br>越前魂は多く貯めてから転生するほど多くもらえるので、急がなくても大丈夫です。', when: () => viewUnlocked('prestige') },
+    { id: 'challenge', view: 'challenge', icon: '⚔️', title: '挑戦モードが解放された', text: '「転生 → 挑戦」で、特殊なルールのもとで目標を目指せます。今の進行状況は安全に退避されます。<br>クリアするごとに恒久ボーナス+3%。', when: () => viewUnlocked('challenge') }
+];
+
+function checkHints() {
+    if (state.isChallengeRun || isResetting || isModalOpen()) return;
+    if (!state.seenHints) state.seenHints = [];
+    const hint = HINTS.find(h => !state.seenHints.includes(h.id) && h.when());
+    if (!hint) return;
+    state.seenHints.push(hint.id);
+    const buttons = hint.view
+        ? `<div class="btn-row" style="justify-content:center">
+               <button class="action-btn" onclick="closeModal()">あとで</button>
+               <button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent)" onclick="closeModal(); goToView('${hint.view}')">見に行く</button>
+           </div>`
+        : `<button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent); min-width:140px" onclick="closeModal()">わかった</button>`;
+    showModal(`
+        <div class="hint-icon">${hint.icon}</div>
+        <div class="modal-title">${hint.title}</div>
+        <div class="hint-text">${hint.text}</div>
+        ${buttons}
+    `);
+}
+
+function goToView(viewId) {
+    switchTab(viewId);
+    // On phones the panels are stacked, so bring the tab into view
+    if (window.innerWidth <= 900) document.getElementById('right-panel').scrollIntoView({ behavior: 'smooth' });
 }
 
 function saveGame(silent = false) {
@@ -3269,6 +3467,10 @@ function normalizeState() {
     if (state.bestLoginStreak === undefined) state.bestLoginStreak = 0;
     if (state.lastLoginDay === undefined) state.lastLoginDay = '';
     if (state.buildingsSold === undefined) state.buildingsSold = 0;
+    if (state.seenHints === undefined) {
+        // Saves from before hints existed: only explain features the player hasn't reached yet
+        state.seenHints = HINTS.filter(h => h.id !== 'welcome' && h.when()).map(h => h.id);
+    }
 }
 
 // タブが隠れたとき自動セーブ（次回起動時のオフライン計算のため）
@@ -3312,6 +3514,7 @@ calculateCps();
 applySettings();
 switchTab('shop');
 render();
+checkHints();
 checkLoginBonus();
 </script>
 </body>
