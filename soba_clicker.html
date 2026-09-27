@@ -307,7 +307,7 @@ button{touch-action:manipulation}
         <div id="shrine-view">
             <h3 style="margin-bottom:10px; color:#c77dff">そばの祭壇</h3>
             <p style="font-size:12px; color:#aaa; margin-bottom:15px"><span id="shrine-slot-count">2</span>柱までそばの精霊を祀ることができます。精霊はいつでも自由に交代できます。祀られた精霊にカーソルを合わせると効果が確認できます。</p>
-            <div class="section-label">祀っている精霊 (最大2柱)</div>
+            <div class="section-label">祀っている精霊 (最大<span id="shrine-slot-max">2</span>柱)</div>
             <div id="shrine-slots" style="display:flex; gap:10px; margin-bottom:20px;"></div>
             <div class="section-label">精霊一覧</div>
             <div id="shrine-list"></div>
@@ -567,7 +567,7 @@ const ACHIEVEMENTS = [
     { id: 'ach_lump_2', name: '塊職人', icon: '🧺', desc: 'そば粉の塊を10個獲得。', req: { totalLumps: 10 } },
     { id: 'ach_lump_3', name: '熟成の探求者', icon: '🏺', desc: 'そば粉の塊を50個獲得。', req: { totalLumps: 50 } },
     { id: 'ach_heavenly_1', name: '天界への一歩', icon: '☁️', desc: '天界の力を1つ購入。', req: { heavenlyCount: 1 } },
-    { id: 'ach_heavenly_2', name: '天界の支配者', icon: '👼', desc: '天界の力を全て購入。', req: { heavenlyCount: 10 } },
+    { id: 'ach_heavenly_2', name: '天界の支配者', icon: '👼', desc: '天界の力を全て購入。', req: { heavenlyCount: HEAVENLY_UPGRADES.length } },
     { id: 'ach_shrine_1', name: '祭壇の目覚め', icon: '⛩️', desc: '初めて精霊を祀る。', req: { spiritsCount: 1 } },
     { id: 'ach_shrine_2', name: '二柱の加護', icon: '🙏', desc: '2柱の精霊を同時に祀る。', req: { spiritsCount: 2 } },
     { id: 'ach_season_1', name: '特別な一杯', icon: '🎐', desc: '季節限定のそばを1回発見する。', req: { seasonSobaClicks: 1 } },
@@ -641,7 +641,7 @@ const GLOSSARY = [
     { category: '転生システム', term: '天界の力', icon: '☁️', desc: '転生タブで越前魂を使って買う恒久アップグレード。買っても越前魂によるボーナス(%)は減らない。スキルツリー式になっており、一部の項目は前提の項目を先に取得する必要がある。' },
     { category: '転生システム', term: 'そば粉の塊', icon: '🍡', desc: '20分ごとに1個たまる資源(現実時間で進行)。既に所有している施設を「熟成」させて永続+1%できる。' },
     { category: '育成要素', term: 'だし', icon: '🍲', desc: '実績7個ごとに1レベル上がる。「だし猫」系アップグレードの効果を強化する。' },
-    { category: '育成要素', term: '祭壇・そばの精霊', icon: '⛩️', desc: '施設合計50個で解放。6柱の精霊から最大2柱を選んで祀れる。それぞれ強力な恩恵と引き換えのデメリットを持つので、組み合わせを考える必要がある。' },
+    { category: '育成要素', term: '祭壇・そばの精霊', icon: '⛩️', desc: '施設合計50個で解放。6柱の精霊から最大2柱(天界の力「双子の精霊」で3柱)を選んで祀れる。それぞれ強力な恩恵と引き換えのデメリットを持つので、組み合わせを考える必要がある。' },
     { category: '育成要素', term: '季節イベント', icon: '🌸', desc: '現実の日付に応じて春夏秋冬が自動で切り替わり、季節ごとに異なる永続ボーナスがかかる。' },
     { category: 'ミニゲーム', term: '手打ちそば道場', icon: '🥢', desc: '5分に1回挑戦できるタイミングゲーム。真ん中で「切る！」を押せるほど「職人ポイント」(永続の生産ボーナス)がたくさん貯まる。' },
     { category: '隠し要素', term: '隠された熟練の力', icon: '🧠', desc: '実績10個ごとに自動で発動する非公開の生産ボーナス。ショップには表示されない。' },
@@ -1090,6 +1090,7 @@ function renderShrine() {
     slots.innerHTML = '';
     const maxSlots = getMaxSpiritSlots();
     document.getElementById('shrine-slot-count').textContent = maxSlots;
+    document.getElementById('shrine-slot-max').textContent = maxSlots;
     for (let i = 0; i < maxSlots; i++) {
         const spiritId = state.spirits[i];
         const spirit = spiritId ? SPIRITS.find(s => s.id === spiritId) : null;
@@ -1757,32 +1758,39 @@ document.addEventListener('keydown', (e) => {
     setTimeout(() => { bowl.style.transform = ''; }, 100);
 });
 
-function getBuildingCost(b, atCount) {
+// Cost multipliers are the same for every unit of a building, so compute them once per lookup
+// instead of re-scanning spirits/regions for each unit in bulk/MAX calculations.
+function getBuildingCostParams() {
     const rate = state.heavenlyUpgrades.includes('heav_1') ? 1.13 : 1.15;
+    let mult = getSpiritEffectMult('cheaperBuild') * getRegionEffectMult('cheaperBuild');
+    if (state.isChallengeRun === 'expensive') mult *= 1.5;
+    return { rate, mult };
+}
+
+function getBuildingCost(b, atCount, params) {
+    const { rate, mult } = params || getBuildingCostParams();
     const count = atCount !== undefined ? atCount : (state.buildings[b.id] || 0);
-    let cost = b.baseCost * Math.pow(rate, count);
-    cost *= getSpiritEffectMult('cheaperBuild');
-    cost *= getRegionEffectMult('cheaperBuild');
-    if (state.isChallengeRun === 'expensive') cost *= 1.5;
-    return Math.floor(cost);
+    return Math.floor(b.baseCost * Math.pow(rate, count) * mult);
 }
 
 function getBulkCost(b, quantity) {
+    const params = getBuildingCostParams();
     const startCount = state.buildings[b.id] || 0;
     let total = 0;
     for (let i = 0; i < quantity; i++) {
-        total += getBuildingCost(b, startCount + i);
+        total += getBuildingCost(b, startCount + i, params);
     }
     return total;
 }
 
 function getMaxAffordable(b) {
+    const params = getBuildingCostParams();
     const startCount = state.buildings[b.id] || 0;
     const CAP = 100000; // safety cap against runaway loops
     let total = 0;
     let n = 0;
     while (n < CAP) {
-        const nextCost = getBuildingCost(b, startCount + n);
+        const nextCost = getBuildingCost(b, startCount + n, params);
         if (total + nextCost > state.soba) break;
         total += nextCost;
         n++;
@@ -1908,6 +1916,8 @@ function prestige() {
     }
 }
 
+let goldenHideTimer = null;
+
 function spawnGoldenSoba() {
     const gs = document.getElementById('golden-soba');
     const rand = Math.random();
@@ -1940,13 +1950,15 @@ function spawnGoldenSoba() {
     gs.style.fontSize = '45px';
     gs.style.alignItems = 'center';
     gs.style.justifyContent = 'center';
-    setTimeout(() => { gs.style.display = 'none'; }, 12000);
+    if (goldenHideTimer) clearTimeout(goldenHideTimer);
+    goldenHideTimer = setTimeout(() => { gs.style.display = 'none'; goldenHideTimer = null; }, 12000);
 }
 
 document.getElementById('golden-soba').onpointerdown = function(e) {
     e.preventDefault();
     const type = this.dataset.type || 'golden';
     this.style.display = 'none';
+    if (goldenHideTimer) { clearTimeout(goldenHideTimer); goldenHideTimer = null; }
 
     if (type === 'wrath') {
         state.wrathClicks++;
@@ -2029,11 +2041,37 @@ function showTooltip(e, name, desc, cost) {
         ${cost > 0 ? `<div class="tt-cost">🍜 ${fmt(cost)}</div>` : ''}
     `;
     tt.style.display = 'block';
-    tt.style.left = (e.clientX + 15) + 'px';
-    tt.style.top = (e.clientY + 15) + 'px';
+    // Keep the tooltip inside the viewport (matters on narrow phone screens)
+    const margin = 8;
+    let left = e.clientX + 15;
+    let top = e.clientY + 15;
+    if (left + tt.offsetWidth > window.innerWidth - margin) left = Math.max(margin, e.clientX - tt.offsetWidth - 15);
+    if (top + tt.offsetHeight > window.innerHeight - margin) top = Math.max(margin, e.clientY - tt.offsetHeight - 15);
+    tt.style.left = left + 'px';
+    tt.style.top = top + 'px';
 }
 
-function hideTooltip() { document.getElementById('tooltip').style.display = 'none'; }
+let touchTooltipTimer = null;
+
+function hideTooltip(e) {
+    // Mouse boundary events emulated after a tap must not close a tooltip opened by that tap
+    if (e && e.type === 'mouseleave' && touchTooltipTimer) return;
+    if (touchTooltipTimer) { clearTimeout(touchTooltipTimer); touchTooltipTimer = null; }
+    document.getElementById('tooltip').style.display = 'none';
+}
+
+// Touch screens never fire mouseenter (pointerdown handlers call preventDefault), so on a tap
+// show the same tooltip the element would show on hover, then hide it after a few seconds.
+// Runs in the capture phase, before the element's own tap action re-renders the lists.
+document.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'touch') return;
+    let el = e.target;
+    while (el && el !== document.body && !el.onmouseenter) el = el.parentElement;
+    if (!el || el === document.body || !el.onmouseenter) { hideTooltip(); return; }
+    el.onmouseenter(e);
+    if (touchTooltipTimer) clearTimeout(touchTooltipTimer);
+    touchTooltipTimer = setTimeout(hideTooltip, 2500);
+}, true);
 
 function notify(msg, icon = "🔔", flash = false) {
     const container = document.getElementById('notif-container');
@@ -2137,7 +2175,7 @@ function loadGame() {
                 const s = Math.floor(elapsed % 60);
                 const timeStr = h > 0 ? `${h}時間${m}分` : m > 0 ? `${m}分${s}秒` : `${s}秒`;
                 setTimeout(() => {
-                    notify(`留守中に ${timeStr} 分の生産！ +${fmt(gained)} 杯`, "⏰");
+                    notify(`留守中 (${timeStr}) の生産！ +${fmt(gained)} 杯`, "⏰");
                 }, 1000);
             }
         }
