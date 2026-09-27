@@ -447,8 +447,42 @@ const UPGRADES = [
     { id: 'upg_omniscience_1', name: '全知の到達点', icon: '🧠', cost: 3e29, type: 'building', target: 'omniscience', mult: 4, desc: '全知のそばの効率4倍。', req: { buildings: { omniscience: 10 } } },
     { id: 'upg_you_1', name: '自己複製のパラドックス', icon: '🪞', cost: 4.5e31, type: 'building', target: 'you', mult: 4, desc: 'あなたの効率4倍。', req: { buildings: { you: 10 } } },
     { id: 'upg_click_6', name: '悟りの一撃', icon: '🕊️', cost: 1e21, type: 'click', power: 10, desc: 'クリックが悟りの境地に達する。', req: { clicks: 50000 } },
-    { id: 'upg_global_7', name: '概念そのものの生産', icon: '💭', cost: 1e30, type: 'global', mult: 4, desc: '全生産4倍。', req: { totalSoba: 1e29 } }
+    { id: 'upg_global_7', name: '概念そのものの生産', icon: '💭', cost: 1e30, type: 'global', mult: 4, desc: '全生産4倍。', req: { totalSoba: 1e29 } },
+    { id: 'upg_global_mid', name: '越前ブランドの確立', icon: '🏷️', cost: 1e13, type: 'global', mult: 1.5, desc: '全生産50%アップ。', req: { totalSoba: 1e12 } },
+    { id: 'upg_global_8', name: '全宇宙そば協定', icon: '📜', cost: 1e34, type: 'global', mult: 4, desc: '全生産4倍。', req: { totalSoba: 1e33 } },
+    { id: 'upg_click_7', name: '無限の麺棒', icon: '🪄', cost: 1e27, type: 'click', power: 10, desc: 'クリックパワー10倍。', req: { clicks: 100000 } },
+    { id: 'upg_clickcps_1', name: 'そば切り包丁の研ぎ直し', icon: '🔪', cost: 50000, type: 'clickCps', cpsPercent: 0.01, desc: 'クリックごとに、毎秒生産の1%分のそばを追加で獲得。', req: { clicks: 1000 } },
+    { id: 'upg_clickcps_2', name: '職人の手首', icon: '🤲', cost: 5e7, type: 'clickCps', cpsPercent: 0.01, desc: 'クリックごとに、毎秒生産の1%分のそばをさらに追加で獲得。', req: { clicks: 5000 } },
+    { id: 'upg_clickcps_3', name: '千本打ちの修行', icon: '🏋️', cost: 5e10, type: 'clickCps', cpsPercent: 0.01, desc: 'クリックごとに、毎秒生産の1%分のそばをさらに追加で獲得。', req: { clicks: 15000 } },
+    { id: 'upg_clickcps_4', name: '無心の連打', icon: '🧘', cost: 5e14, type: 'clickCps', cpsPercent: 0.01, desc: 'クリックごとに、毎秒生産の1%分のそばをさらに追加で獲得。', req: { clicks: 30000 } },
+    { id: 'upg_clickcps_5', name: '越前流・神速打ち', icon: '⚡', cost: 5e19, type: 'clickCps', cpsPercent: 0.01, desc: 'クリックごとに、毎秒生産の1%分のそばをさらに追加で獲得。', req: { clicks: 75000 } }
 ];
+
+// Tiered per-building upgrades, generated for every building so each one keeps scaling:
+// 25 owned → x3 (only where no hand-made 25-tier exists), 50 owned → x2, 100 owned → x2.
+// Cost is a multiple of the building's base cost, roughly the price of a unit well past the requirement.
+const BUILDING_UPGRADE_TIERS = [
+    { req: 25, mult: 3, costMult: 400, suffix: '熟練の技', desc: 'さらに3倍' },
+    { req: 50, mult: 2, costMult: 20000, suffix: '極意', desc: 'さらに2倍' },
+    { req: 100, mult: 2, costMult: 1e8, suffix: '奥義', desc: 'さらに2倍' }
+];
+BUILDINGS.forEach(b => {
+    BUILDING_UPGRADE_TIERS.forEach(tier => {
+        const exists = UPGRADES.some(u => u.type === 'building' && u.target === b.id && u.req.buildings && u.req.buildings[b.id] === tier.req);
+        if (exists) return;
+        UPGRADES.push({
+            id: `upg_${b.id}_t${tier.req}`,
+            name: `${b.name}・${tier.suffix}`,
+            icon: b.icon,
+            cost: b.baseCost * tier.costMult,
+            type: 'building',
+            target: b.id,
+            mult: tier.mult,
+            desc: `${b.name}の効率${tier.desc}。(${tier.req}個所有で出現)`,
+            req: { buildings: { [b.id]: tier.req } }
+        });
+    });
+});
 
 const HEAVENLY_UPGRADES = [
     { id: 'heav_1', name: '越前の加護', icon: '🙏', cost: 5, desc: '施設のコスト上昇率が緩やかになる(1.15→1.13)。', effect: 'cheapBuild', requires: null },
@@ -603,8 +637,36 @@ const ACHIEVEMENTS = [
     { id: 'ach_challenge_1', name: '挑戦者', icon: '⚔️', desc: '挑戦モードを1つクリアする。', req: { challengesCompletedCount: 1 } },
     { id: 'ach_challenge_all', name: '挑戦の覇者', icon: '🏅', desc: '全ての挑戦モードをクリアする。', req: { challengesAll: 1 } },
     { id: 'ach_region_1', name: '地域開拓者', icon: '🗾', desc: '福井県内に支店を1つ設立する。', req: { regionsCount: 1 } },
-    { id: 'ach_region_all', name: '越前制覇', icon: '🏯', desc: '福井県内の全ての支店を設立する。', req: { regionsAll: 1 } }
+    { id: 'ach_region_all', name: '越前制覇', icon: '🏯', desc: '福井県内の全ての支店を設立する。', req: { regionsAll: 1 } },
+    { id: 'ach_14', name: '澗の彼方へ', icon: '🌊', desc: 'そばを1澗杯打つ。', req: { totalSoba: 1e36 } },
+    { id: 'ach_rich_mid', name: '銀河規模の経済', icon: '🪙', desc: '1秒間に100垓杯生産。', req: { cps: 1e22 } },
+    { id: 'ach_click_fast_2', name: '神速の麺棒', icon: '🌪️', desc: '1秒間に15回クリック。', req: { clickSpeed: 15 } },
+    { id: 'ach_click_7', name: '連打の化身', icon: '🦾', desc: '25万回クリック。', req: { clicks: 250000 } },
+    { id: 'ach_golden_5', name: '黄金郷の主', icon: '🏆', desc: 'ゴールデンそば250回。', req: { goldenClicks: 250 } },
+    { id: 'ach_build_7', name: 'そば文明の礎', icon: '🗿', desc: '施設合計10000個。', req: { totalBuildings: 10000 } },
+    { id: 'ach_upg_count_1', name: '改良の第一歩', icon: '🔧', desc: 'アップグレードを10個購入する。', req: { upgradesCount: 10 } },
+    { id: 'ach_upg_count_2', name: '改良マニア', icon: '🛠️', desc: 'アップグレードを50個購入する。', req: { upgradesCount: 50 } },
+    { id: 'ach_upg_count_3', name: '改良の鬼', icon: '⚙️', desc: 'アップグレードを100個購入する。', req: { upgradesCount: 100 } },
+    { id: 'ach_fever_3', name: '終わらない祭り', icon: '🎆', desc: 'フィーバータイム50回。', req: { feverCount: 50 } }
 ];
+
+// Per-building milestone achievements, generated for every building
+const BUILDING_ACHIEVEMENT_TIERS = [
+    { count: 50, title: 'の達人', icon: '🥉' },
+    { count: 100, title: 'の支配者', icon: '🥈' },
+    { count: 200, title: 'の頂点', icon: '🥇' }
+];
+BUILDINGS.forEach(b => {
+    BUILDING_ACHIEVEMENT_TIERS.forEach(tier => {
+        ACHIEVEMENTS.push({
+            id: `ach_b_${b.id}_${tier.count}`,
+            name: `${b.name}${tier.title}`,
+            icon: b.icon,
+            desc: `${b.name}を${tier.count}個所有する。${tier.icon}`,
+            req: { buildings: { [b.id]: tier.count } }
+        });
+    });
+});
 
 // Secret/shadow achievements - not counted in the normal achievement total, quirky unlock conditions
 const SHADOW_ACHIEVEMENTS = [
@@ -632,7 +694,7 @@ const GLOSSARY = [
     { category: '基本', term: '毎秒(CPS)', icon: '⏱️', desc: '1秒間に自動で生産されるそばの量。施設やアップグレードで伸ばせる。' },
     { category: '基本', term: 'クリックパワー', icon: '👆', desc: 'ボウルを1回クリック(またはスペースキー)した時に得られるそばの量。' },
     { category: '基本', term: '施設', icon: '🏠', desc: '購入すると自動でそばを生産し続けてくれる建物。買うたびに次の値段が上がっていく。ショップ上部の×1/×10/×100/MAXボタンで、一度に複数まとめて購入できる。' },
-    { category: '基本', term: 'アップグレード', icon: '⭐', desc: '施設やクリックの効率を倍増させる一度きりの購入。特定の条件を満たすと出現する。' },
+    { category: '基本', term: 'アップグレード', icon: '⭐', desc: '施設やクリックの効率を倍増させる一度きりの購入。特定の条件を満たすと出現する。各施設には所有数10・25・50・100個で段階的な強化が用意されている。' },
     { category: '基本', term: '実績', icon: '🏆', desc: '特定の条件を満たすと解除される。実績の数が「だし」レベルに影響する。' },
     { category: '特殊出現物', term: 'ゴールデンそば', icon: '✨', desc: '画面にランダムで出現。クリックするとフィーバー・ボーナス・クリックフィーバー・大量ボーナスのいずれかが発生する。' },
     { category: '特殊出現物', term: '呪われしそば', icon: '😈', desc: 'ゴールデンそばの代わりに稀に出現する黒いそば。クリックするとそばを失うか、逆に大量ボーナスを得るかの賭け。' },
@@ -672,7 +734,22 @@ const NEWS = [
     "謎の黒猫が厨房に住み着いた。だしの香りがそばを引き立てるらしい。",
     "夜な夜な現れる「呪われしそば」に注意――触れる者に幸運と災いを等しくもたらすという。",
     "そば粉の塊が発見された。これを使えば古い施設も生まれ変わるとの噂。",
-    "転生を経た者だけが辿り着ける「天界」。そこには更なる力が眠っているという。"
+    "転生を経た者だけが辿り着ける「天界」。そこには更なる力が眠っているという。",
+    "越前おろしそば、県外の高校生の間で「映える」と話題に。",
+    "専門家「大根おろしは辛いほど良い」、甘口派と激しい論争に。",
+    "製麺工場の見学ツアー、予約が3年先まで埋まる。",
+    "石臼を回し続けた見習い、ついに「石臼と会話できる」と主張。",
+    "そば祭りの行列、ついに県境を越える。",
+    "AI製麺ロボ、自らそば打ち段位の取得に挑戦。",
+    "宇宙そば農場の作業員「地球のそばが恋しい」とコメント。",
+    "時間跳躍製麺機の副作用で、昨日のそばが明日届く事案が発生。",
+    "異次元そば門から「つゆが薄い」とクレームが届く。",
+    "そばの神髄に触れた者、全員が無言でうなずくのみ。",
+    "銀河鉄道の車内販売、そば以外の商品がすべて廃止に。",
+    "量子そば、食べたかどうか観測するまで満腹にならないと判明。",
+    "「そばは飲み物」派と「そばは噛むもの」派、国会で討論へ。",
+    "越前そばの海外進出、現地語で「ECHIZEN SOBA」が流行語に。",
+    "天気予報「明日は晴れ時々そば、所によりおろし」。"
 ];
 
 // --- Game State ---
@@ -808,7 +885,10 @@ function calculateCps() {
             .forEach(h => clickBaseBonus += h.amount);
     let spiritClickMult = getSpiritEffectMult('clickMult') * getRegionEffectMult('clickMult');
     if (season && season.effect === 'clickMult') spiritClickMult *= season.value;
-    clickPower = (newClickPower + clickBaseBonus + (cps * 0.04)) * prestigeMult * clickBuffMult * spiritClickMult;
+    let clickCpsPercent = 0.04;
+    UPGRADES.filter(u => u.type === 'clickCps' && state.upgrades.includes(u.id))
+            .forEach(u => clickCpsPercent += u.cpsPercent);
+    clickPower = (newClickPower + clickBaseBonus + (cps * clickCpsPercent)) * prestigeMult * clickBuffMult * spiritClickMult;
     if (state.isChallengeRun === 'no_click') clickPower = 0;
 }
 
@@ -1861,6 +1941,7 @@ function checkAchievements() {
         }
         if (a.req.clickPower && clickPower < a.req.clickPower) met = false;
         if (a.req.allUpgrades && state.upgrades.length < UPGRADES.length) met = false;
+        if (a.req.upgradesCount && state.upgrades.length < a.req.upgradesCount) met = false;
         if (a.req.dashiLevel && getDashiLevel() < a.req.dashiLevel) met = false;
         if (a.req.wrathClicks && state.wrathClicks < a.req.wrathClicks) met = false;
         if (a.req.totalLumps && state.totalLumps < a.req.totalLumps) met = false;
