@@ -1761,6 +1761,8 @@ function startChallenge(id) {
     if (!challenge) return;
     if (!confirm(`「${challenge.name}」に挑戦しますか？\n現在の進行状況は安全に退避され、挑戦を終える（または中断する）といつでも戻せます。`)) return;
 
+    // An order in progress would sit in the backup past its deadline and count as a failure on return
+    if (state.activeOrder) { state.activeOrder = null; scheduleNextOrder(); }
     localStorage.setItem('echizenSobaChallengeBackup', JSON.stringify(state));
 
     state = createFreshState();
@@ -2424,6 +2426,7 @@ function prestige() {
         resetState();
         applyStarterKit();
         state.activeOrder = null;
+        scheduleNextOrder();
         calculateCps();
         closeAscensionScreen();
         switchTab('shop');
@@ -2979,11 +2982,20 @@ function getBaseCps() {
     return buffMult > 0 ? cps / buffMult : cps;
 }
 
+// Soba made since the order arrived. Measured on this life's total, not the all-time total: after
+// many prestiges the all-time total is so large that a new run's small gains vanish in floating
+// point when added to it, and the order could never progress.
+function getOrderProgress(order) {
+    return Math.max(0, state.totalSoba - order.startTotal);
+}
+
 function orderTick(now) {
     if (state.activeOrder) {
         const order = state.activeOrder;
-        if (state.allTimeSoba - order.startAll >= order.target) completeOrder();
-        else if (now >= order.deadline) failOrder();
+        // Deadline first: production credited in one lump after it (time away, a background tab)
+        // must not complete an order that had already expired
+        if (now >= order.deadline) failOrder();
+        else if (getOrderProgress(order) >= order.target) completeOrder();
         return;
     }
     if (!state.nextOrderTime) { state.nextOrderTime = now + ORDER_FIRST_DELAY; return; }
@@ -3010,7 +3022,7 @@ function startOrder(now) {
     // buildings or a golden soba closes the gap. Tuned with a simulation to succeed most of the time.
     const target = Math.max(200, baseCps * duration * (1 + Math.random() * 0.15) + baseClick * duration * 1.5);
     const reward = Math.max(500, baseCps * duration * 2) * (state.heavenlyUpgrades.includes('heav_23') ? 2 : 1);
-    state.activeOrder = { customer: customerIdx, target, reward, startAll: state.allTimeSoba, deadline: now + duration * 1000 };
+    state.activeOrder = { customer: customerIdx, target, reward, startTotal: state.totalSoba, deadline: now + duration * 1000 };
     notify(`${customer.name}から注文！${duration}秒以内に${fmt(target)}杯を作ろう。`, customer.icon, true);
     playSound('order');
 }
@@ -3053,7 +3065,7 @@ function renderOrderBanner() {
     const order = state.activeOrder;
     if (!order) { banner.style.display = 'none'; return; }
     const customer = ORDER_CUSTOMERS[order.customer];
-    const made = Math.max(0, state.allTimeSoba - order.startAll);
+    const made = getOrderProgress(order);
     const ratio = Math.min(1, made / order.target);
     const secLeft = Math.max(0, Math.ceil((order.deadline - Date.now()) / 1000));
     banner.style.display = 'block';
@@ -3573,6 +3585,10 @@ function normalizeState() {
     if (state.ordersCompleted === undefined) state.ordersCompleted = 0;
     if (state.ordersFailed === undefined) state.ordersFailed = 0;
     if (state.activeOrder === undefined) state.activeOrder = null;
+    if (state.activeOrder && state.activeOrder.startTotal === undefined) {
+        state.activeOrder.startTotal = state.totalSoba - Math.max(0, state.allTimeSoba - (state.activeOrder.startAll || state.allTimeSoba));
+        delete state.activeOrder.startAll;
+    }
     if (state.nextOrderTime === undefined) state.nextOrderTime = 0;
     if (state.loginStreak === undefined) state.loginStreak = 0;
     if (state.bestLoginStreak === undefined) state.bestLoginStreak = 0;
