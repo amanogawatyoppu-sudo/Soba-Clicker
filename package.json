@@ -1,0 +1,11 @@
+{
+  "name": "soba-clicker",
+  "private": true,
+  "description": "越前そばクリッカー",
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}
