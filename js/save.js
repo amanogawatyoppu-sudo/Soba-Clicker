@@ -143,4 +143,8 @@ applySettings();
 switchTab('shop');
 render();
 checkHints();
+// Offline support and home-screen install; service workers only run over http(s)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ });
+}
 checkLoginBonus();

@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>越前そばクリッカー Pro v2.3 - 究極版</title>
+<title>越前そばクリッカー Pro v2.4 - 究極版</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#1a0f00">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="そばクリッカー">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=2.4">
@@ -16,7 +23,7 @@
             ⚔️ 挑戦中: <span id="challenge-banner-name"></span>　進捗: <span id="challenge-banner-progress"></span>
             <button onclick="abandonChallenge()" style="margin-left:10px; padding:3px 10px; background:#600; border:1px solid #ff6b6b; color:#fff; border-radius:5px; cursor:pointer; font-size:11px">中断する</button>
         </div>
-        <div id="top-title">⚡ ECHIZEN SOBA CLICKER PRO v2.3 ⚡</div>
+        <div id="top-title">⚡ ECHIZEN SOBA CLICKER PRO v2.4 ⚡</div>
         <div id="stats-display">
             <div id="soba-count">0 杯</div>
             <div id="soba-rate">毎秒: 0 杯</div>
@@ -139,6 +146,11 @@
             <div class="setting-row">
                 <div><div class="setting-name">🔢 数字の表示</div><div class="setting-desc">大きな数の書き方を切り替える</div></div>
                 <button class="toggle-btn on" id="set-numfmt" onclick="cycleNumberFormat()"></button>
+            </div>
+
+            <div class="setting-row">
+                <div><div class="setting-name">📱 ホーム画面に追加</div><div class="setting-desc" id="install-desc">アプリのように全画面で起動でき、電波がなくても遊べます。</div></div>
+                <button class="toggle-btn on" id="install-btn" style="display:none" onclick="installApp()">追加する</button>
             </div>
 
             <h3 class="settings-section">💾 セーブデータの引き継ぎ</h3>

@@ -280,7 +280,36 @@ function cycleNumberFormat() {
     saveSettings();
 }
 
+// --- Home screen install (PWA) ---
+let installPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); // show our own button instead of the browser's banner
+    installPrompt = e;
+    renderSettings();
+});
+window.addEventListener('appinstalled', () => {
+    installPrompt = null;
+    notify("ホーム画面に追加しました！", "📱");
+    renderSettings();
+});
+
+function isStandalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+}
+
+function installApp() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    installPrompt.userChoice.finally(() => { installPrompt = null; renderSettings(); });
+}
+
 function renderSettings() {
+    const installBtn = document.getElementById('install-btn');
+    const installDesc = document.getElementById('install-desc');
+    installBtn.style.display = installPrompt ? '' : 'none';
+    if (isStandalone()) installDesc.textContent = 'ホーム画面から起動しています。';
+    else if (!installPrompt) installDesc.textContent = 'ブラウザのメニュー(iPhoneは共有ボタン)から「ホーム画面に追加」を選ぶと、アプリのように全画面で起動でき、電波がなくても遊べます。';
+
     const setToggle = (id, on) => {
         const btn = document.getElementById(id);
         btn.classList.toggle('on', on);
