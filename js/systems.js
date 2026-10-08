@@ -126,11 +126,16 @@ const SOUNDS = {
 };
 let audioCtx = null;
 
+function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+}
+
 function playSound(kind) {
     if (!settings.sound || !SOUNDS[kind]) return;
     try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        getAudioCtx();
         const t = audioCtx.currentTime;
         SOUNDS[kind].forEach(([freq, offset, dur, type, vol]) => {
             const osc = audioCtx.createOscillator();
@@ -147,6 +152,108 @@ function playSound(kind) {
 }
 
 // ===================================================================
+// BGM: generated live from Japanese pentatonic scales, changing with the shop's growth stage
+// ===================================================================
+// One style per SHOP_STAGES entry. scale = semitones of a five-note scale (yo: 0 2 5 7 9, in: 0 1 5 7 8)
+const BGM_STYLES = [
+    { tempo: 76, root: 220, scale: [0, 2, 5, 7, 9], wave: 'triangle', vol: 0.03, rest: 0.35 },              // 小さなそば屋
+    { tempo: 88, root: 220, scale: [0, 2, 5, 7, 9], wave: 'triangle', vol: 0.03, rest: 0.3 },               // 人気店
+    { tempo: 100, root: 247, scale: [0, 2, 4, 7, 9], wave: 'square', vol: 0.014, rest: 0.25 },              // そばの街
+    { tempo: 80, root: 196, scale: [0, 2, 4, 7, 9], wave: 'sine', vol: 0.035, rest: 0.4, pad: true },       // 世界
+    { tempo: 62, root: 175, scale: [0, 2, 4, 6, 9], wave: 'sine', vol: 0.035, rest: 0.5, pad: true },       // 宇宙
+    { tempo: 52, root: 165, scale: [0, 1, 5, 7, 8], wave: 'sine', vol: 0.035, rest: 0.55, pad: true }       // 概念
+];
+const bgm = { timer: null, gain: null, nextTime: 0, step: 0, degree: 5, waitingForGesture: false };
+
+function bgmNote(ctx, freq, start, dur, wave, vol) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = wave;
+    osc.frequency.setValueAtTime(freq, start);
+    gain.gain.setValueAtTime(0.0001, start);
+    gain.gain.exponentialRampToValueAtTime(vol, start + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+    osc.connect(gain).connect(bgm.gain);
+    osc.start(start);
+    osc.stop(start + dur + 0.05);
+}
+
+function bgmPitch(style, degree, octaveShift) {
+    const octave = Math.floor(degree / 5) + octaveShift;
+    return style.root * Math.pow(2, (style.scale[((degree % 5) + 5) % 5] + 12 * octave) / 12);
+}
+
+function scheduleBgmStep(ctx, style, time, stepLen) {
+    // Melody: a random walk over two octaves of the scale, with rests
+    if (Math.random() > style.rest) {
+        bgm.degree = Math.max(0, Math.min(9, bgm.degree + Math.floor(Math.random() * 5) - 2));
+        bgmNote(ctx, bgmPitch(style, bgm.degree, 1), time, stepLen * 1.8, style.wave, style.vol);
+    }
+    // Bass on the first and fifth eighth of each bar: root, sometimes the fifth
+    if (bgm.step % 8 === 0) bgmNote(ctx, style.root / 2, time, stepLen * 6, 'sine', style.vol * 1.3);
+    if (bgm.step % 8 === 4) bgmNote(ctx, (style.root / 2) * (Math.random() < 0.5 ? 1.5 : 1), time, stepLen * 3, 'sine', style.vol);
+    // Slow pads for the later, spacier stages
+    if (style.pad && bgm.step % 16 === 0) {
+        [1, 1.5, 2].forEach(m => bgmNote(ctx, style.root * m, time, stepLen * 15, 'sine', style.vol * 0.35));
+    }
+    bgm.step++;
+}
+
+function bgmTick() {
+    if (!audioCtx || document.hidden) return; // pause while the tab is hidden
+    const ctx = audioCtx;
+    const style = BGM_STYLES[Math.max(0, currentStageIdx)] || BGM_STYLES[0];
+    const stepLen = 60 / style.tempo / 2;
+    if (bgm.nextTime < ctx.currentTime) bgm.nextTime = ctx.currentTime + 0.05;
+    while (bgm.nextTime < ctx.currentTime + 0.25) {
+        scheduleBgmStep(ctx, style, bgm.nextTime, stepLen);
+        bgm.nextTime += stepLen;
+    }
+}
+
+function startBgm() {
+    if (bgm.timer) return;
+    try {
+        const ctx = getAudioCtx();
+        bgm.gain = ctx.createGain();
+        bgm.gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        bgm.gain.gain.exponentialRampToValueAtTime(1, ctx.currentTime + 1.5);
+        bgm.gain.connect(ctx.destination);
+        bgm.nextTime = 0;
+        bgm.timer = setInterval(bgmTick, 50);
+    } catch (e) { /* audio not available */ }
+}
+
+function stopBgm() {
+    if (!bgm.timer) return;
+    clearInterval(bgm.timer);
+    bgm.timer = null;
+    const gain = bgm.gain;
+    try {
+        gain.gain.cancelScheduledValues(audioCtx.currentTime);
+        gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.8);
+        setTimeout(() => gain.disconnect(), 1000);
+    } catch (e) { /* already gone */ }
+}
+
+// Browsers only allow audio after the player interacts, so a BGM left on starts at the first tap or key
+function updateBgm() {
+    if (!settings.bgm) { stopBgm(); return; }
+    if (audioCtx && audioCtx.state !== 'suspended') { startBgm(); return; }
+    if (bgm.waitingForGesture) return;
+    bgm.waitingForGesture = true;
+    const begin = () => {
+        bgm.waitingForGesture = false;
+        document.removeEventListener('pointerdown', begin, true);
+        document.removeEventListener('keydown', begin, true);
+        if (settings.bgm) startBgm();
+    };
+    document.addEventListener('pointerdown', begin, true);
+    document.addEventListener('keydown', begin, true);
+}
+
+// ===================================================================
 // Settings
 // ===================================================================
 const NUMBER_FORMATS = { jp: '日本式 (1.2億)', sci: '指数 (1.2e8)' };
@@ -160,6 +267,7 @@ function saveSettings() {
 
 function applySettings() {
     document.body.classList.toggle('reduced', settings.reduceEffects);
+    updateBgm();
 }
 
 function toggleSetting(key) {
@@ -179,6 +287,7 @@ function renderSettings() {
         btn.textContent = on ? 'ON' : 'OFF';
     };
     setToggle('set-sound', settings.sound);
+    setToggle('set-bgm', settings.bgm);
     setToggle('set-reduce', settings.reduceEffects);
     document.getElementById('set-numfmt').textContent = NUMBER_FORMATS[settings.numberFormat];
 }

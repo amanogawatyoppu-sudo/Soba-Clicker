@@ -83,7 +83,7 @@ let selectedSeed = 'common';
 
 // Per-device settings, stored apart from the save so challenges and save imports don't touch them
 const SETTINGS_KEY = 'echizenSobaSettings';
-const settings = { sound: true, reduceEffects: false, numberFormat: 'jp' };
+const settings = { sound: true, bgm: false, reduceEffects: false, numberFormat: 'jp' };
 try { Object.assign(settings, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}')); } catch (e) { /* keep defaults */ }
 
 function setBuyAmount(amt) {
