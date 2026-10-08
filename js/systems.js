@@ -532,6 +532,94 @@ function renderOrderBanner() {
 }
 
 // ===================================================================
+// Progress card: a 1200x630 image of the player's progress to save or share
+// ===================================================================
+const SHARE_BACKGROUNDS = [['#3d2206', '#120a02'], ['#4a2a08', '#140b02'], ['#243240', '#0b0f14'], ['#0f2b45', '#050c16'], ['#2a1450', '#07031a'], ['#4a0f3a', '#100310']];
+
+function buildShareCanvas() {
+    const W = 1200, H = 630;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const g = canvas.getContext('2d');
+    const [c1, c2] = SHARE_BACKGROUNDS[Math.max(0, currentStageIdx)] || SHARE_BACKGROUNDS[0];
+    const bg = g.createRadialGradient(W * 0.3, H * 0.45, 40, W * 0.5, H * 0.5, W * 0.75);
+    bg.addColorStop(0, c1); bg.addColorStop(1, c2);
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    g.strokeStyle = '#f5c842'; g.lineWidth = 6; g.strokeRect(18, 18, W - 36, H - 36);
+
+    const font = (size, weight = 700) => `${weight} ${size}px "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif`;
+    g.textBaseline = 'middle';
+    g.fillStyle = '#f5c842'; g.font = font(44, 900);
+    g.fillText('越前そばクリッカー', 60, 80);
+    g.fillStyle = '#c9a26b'; g.font = font(26);
+    const stage = SHOP_STAGES[Math.max(0, currentStageIdx)];
+    g.fillText(`${stage ? stage.name : ''}　転生 ${state.prestigeCount} 回目`, 60, 130);
+
+    g.font = font(180, 400); g.textAlign = 'center';
+    g.fillText('🍜', 210, 340);
+    g.textAlign = 'left';
+
+    const playSec = Math.floor((Date.now() - state.startTime) / 1000);
+    const rows = [
+        ['累計生産', `${fmt(state.allTimeSoba)} 杯`],
+        ['毎秒', `${fmt(getBaseCps())} 杯`],
+        ['越前魂', `${fmt(state.souls)} 個`],
+        ['実績', `${state.achievements.length} / ${ACHIEVEMENTS.length}`],
+        ['在来種図鑑', `${state.farm.discovered.length} / ${CROPS.length}`],
+        ['福井の支店', `${state.regions.length} / ${REGIONS.length}`],
+        ['プレイ時間', `${Math.floor(playSec / 3600)}時間${Math.floor((playSec % 3600) / 60)}分`]
+    ];
+    rows.forEach(([label, value], i) => {
+        const y = 200 + i * 52;
+        g.fillStyle = '#c9a26b'; g.font = font(26);
+        g.fillText(label, 420, y);
+        g.fillStyle = '#f5e6c8'; g.font = font(34, 900);
+        g.fillText(value, 640, y);
+    });
+    if (location.protocol.startsWith('http')) {
+        g.fillStyle = 'rgba(245,230,200,0.55)'; g.font = font(20, 400);
+        g.fillText(location.host + location.pathname, 60, H - 50);
+    }
+    return canvas;
+}
+
+function openShareDialog() {
+    let url;
+    try { url = buildShareCanvas().toDataURL('image/png'); } catch (e) { notify("画像を作れませんでした。", "⚠️"); return; }
+    const canShare = !!(navigator.canShare && navigator.share);
+    showModal(`
+        <div class="modal-title">📸 進み具合をシェア</div>
+        <img src="${url}" alt="進み具合の画像" style="width:100%; border-radius:8px; margin:12px 0; border:1px solid var(--border)">
+        <div class="btn-row" style="justify-content:center">
+            <button class="action-btn" onclick="downloadShareImage()">💾 画像を保存</button>
+            ${canShare ? '<button class="action-btn" onclick="shareProgressImage()">📤 シェア</button>' : ''}
+            <button class="action-btn" onclick="closeModal()">閉じる</button>
+        </div>
+    `);
+}
+
+function downloadShareImage() {
+    const a = document.createElement('a');
+    a.href = buildShareCanvas().toDataURL('image/png');
+    a.download = `echizen-soba-${localDateStr(new Date())}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+function shareProgressImage() {
+    buildShareCanvas().toBlob(blob => {
+        const file = new File([blob], 'echizen-soba.png', { type: 'image/png' });
+        const data = { files: [file], text: `越前そばクリッカーで累計${fmt(state.allTimeSoba)}杯のそばを打ちました！` };
+        if (navigator.canShare && navigator.canShare(data)) {
+            navigator.share(data).catch(() => { /* cancelled */ });
+        } else {
+            downloadShareImage();
+        }
+    }, 'image/png');
+}
+
+// ===================================================================
 // Limited-time events: announcement once per run of each event, falling decorations
 // ===================================================================
 function checkEventAnnounce() {
