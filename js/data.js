@@ -323,7 +323,8 @@ const ACHIEVEMENTS = [
     { id: 'ach_login_3', name: '三日坊主卒業', icon: '📅', desc: '3日連続で遊ぶ。', req: { loginStreak: 3 } },
     { id: 'ach_login_7', name: '皆勤賞', icon: '🗓️', desc: '7日連続で遊ぶ。', req: { loginStreak: 7 } },
     { id: 'ach_login_30', name: '越前の常連', icon: '🎖️', desc: '30日連続で遊ぶ。', req: { loginStreak: 30 } },
-    { id: 'ach_sell_1', name: '店じまい', icon: '💸', desc: '施設を売却する。', req: { buildingsSold: 1 } }
+    { id: 'ach_sell_1', name: '店じまい', icon: '💸', desc: '施設を売却する。', req: { buildingsSold: 1 } },
+    { id: 'ach_event_all', name: '越前の一年', icon: '🗓️', desc: '全ての期間限定イベントで限定のお客さんの注文を3回ずつ達成する。', req: { eventsAll: 1 } }
 ];
 
 // Per-building milestone achievements, generated for every building
@@ -394,6 +395,55 @@ const CROP_RECIPES = [
     { parents: ['common', 'common'], child: 'maruoka', chance: 0.006 }
 ];
 
+// --- Limited-time events, by real calendar date (start/end are [month, day], inclusive; may wrap the new year) ---
+const EVENTS = [
+    { id: 'golden_week', name: 'GW観光ラッシュ', icon: '🎏', start: [4, 29], end: [5, 6], prodBonus: 1.1, particle: '🎏',
+      customer: { icon: '🚗', name: 'GWの観光客の大行列' }, desc: '大型連休で県外からの観光客が押し寄せる！',
+      news: ['北陸自動車道、そばを目当てにした車で大渋滞。', 'GWの観光客「福井に来たら、まずおろしそば」。'] },
+    { id: 'obon', name: 'お盆の帰省ラッシュ', icon: '🏮', start: [8, 10], end: [8, 20], prodBonus: 1.1, particle: '🎐',
+      customer: { icon: '🧳', name: '帰省中の家族' }, desc: '故郷の味を求めて、帰省客がそば屋に集まる。',
+      news: ['帰省客「やっぱり地元のそばが一番」と涙ぐむ。', 'お盆の夜、そば屋の前に盆踊りの輪ができる。'] },
+    { id: 'koyo', name: '紅葉のそば街道', icon: '🍁', start: [10, 1], end: [10, 31], prodBonus: 1.1, particle: '🍁',
+      customer: { icon: '📸', name: '紅葉狩りの観光客' }, desc: '色づく山々を眺めながら、そば街道に人があふれる。',
+      news: ['紅葉の名所からそば屋まで、観光客の行列が続く。', '「紅葉を見ながら食べるおろしそばは格別」と評判。'] },
+    { id: 'shinsoba', name: '越前新そば祭り', icon: '🌾', start: [11, 1], end: [11, 30], prodBonus: 1.1, particle: '🌾',
+      customer: { icon: '🎪', name: '新そば祭りの来場者' }, desc: '今年の新そばが出回る季節。香り高い一杯を求めて祭りは大盛況。',
+      news: ['今年の新そば、香りは例年以上との声。', '新そば祭りの会場、のぼり旗がずらりと並ぶ。'] },
+    { id: 'toshikoshi', name: '年越しそば大作戦', icon: '🎍', start: [12, 25], end: [1, 3], prodBonus: 1.1, particle: '❄️',
+      customer: { icon: '🔔', name: '大晦日のお客さん' }, desc: '一年の締めくくりに、誰もが年越しそばを求めてやってくる。',
+      news: ['大晦日、そば屋の前に除夜の鐘まで続く行列。', '「来年も細く長く」年越しそばの注文が殺到。'] }
+];
+const EVENT_ORDER_GOAL = 3; // event orders needed for that event's achievement
+
+function dayOfYearKey(month, day) {
+    return month * 100 + day;
+}
+
+// The event running on the given date (local time), or null
+function getActiveEvent(date = new Date()) {
+    const today = dayOfYearKey(date.getMonth() + 1, date.getDate());
+    return EVENTS.find(e => {
+        const start = dayOfYearKey(...e.start), end = dayOfYearKey(...e.end);
+        return start <= end ? (today >= start && today <= end) : (today >= start || today <= end);
+    }) || null;
+}
+
+// Days left including today, and a key unique to this year's run of the event
+function getEventInfo(event, date = new Date()) {
+    const year = date.getFullYear();
+    const wraps = dayOfYearKey(...event.start) > dayOfYearKey(...event.end);
+    const inEndPart = wraps && dayOfYearKey(date.getMonth() + 1, date.getDate()) <= dayOfYearKey(...event.end);
+    const startYear = inEndPart ? year - 1 : year;
+    const endDate = new Date(wraps ? startYear + 1 : startYear, event.end[0] - 1, event.end[1]);
+    const today = new Date(year, date.getMonth(), date.getDate());
+    return { daysLeft: Math.round((endDate - today) / 86400000) + 1, key: `${event.id}-${startYear}` };
+}
+
+// One achievement per limited-time event
+EVENTS.forEach(e => {
+    ACHIEVEMENTS.push({ id: `ach_event_${e.id}`, name: `${e.name}を満喫`, icon: e.icon, desc: `「${e.name}」の期間中に、限定のお客さんの注文を${EVENT_ORDER_GOAL}回達成する。`, req: { eventOrders: e.id } });
+});
+
 // --- Customer orders ---
 const ORDER_CUSTOMERS = [
     { icon: '🧳', name: '県外からの観光客' },
@@ -437,6 +487,7 @@ const GLOSSARY = [
     { category: '育成要素', term: 'そば畑・在来種', icon: '🌾', desc: '累計10万杯で「育成 → そば畑」が解放。種をまくと現実の時間で育ち、実っている間は作物ごとの効果が続く。収穫するとそばが手に入る。実った作物の隣の空き地には、組み合わせ次第で丸岡在来・大野在来など福井の在来種が芽吹くことがある。新種を見つけるたびに全生産が永続+2%。' },
     { category: '育成要素', term: '評判', icon: '⭐', desc: 'お客さんの注文を達成するたびに1上がる(最大100)。評判1につき全生産+0.5%(天界の力で上限150)。転生してもなくならない。' },
     { category: 'ミニゲーム', term: 'お客さんの注文', icon: '📋', desc: '数分おきにお客さんから注文が届く。制限時間内に指定の杯数を作る(注文中に増えたそばの量で判定)と、報酬と「評判」がもらえる。失敗しても罰はないので気軽に挑戦しよう。' },
+    { category: '育成要素', term: '期間限定イベント', icon: '🎏', desc: '現実の暦に合わせて開催(GW・お盆・10月の紅葉・11月の新そば祭り・年末年始)。期間中は全生産+10%、限定のお客さんから報酬2倍の注文が届き、3回達成するとイベントごとの実績がもらえる。' },
     { category: '基本', term: '売却', icon: '💸', desc: 'ショップの「売却」モードで施設を売れる。購入額の25%が戻る。' },
     { category: '基本', term: 'ログインボーナス', icon: '🎁', desc: '1日1回、その日最初に遊んだときにそばがもらえる。連続で遊ぶほど増え、7日目にはそば粉の塊ももらえる。' },
     { category: '基本', term: '設定・引き継ぎ', icon: '⚙️', desc: '「設定」タブで効果音・演出・数字の表示を変えられる。セーブデータを文字列やファイルで書き出し、別の端末で読み込むこともできる。' },

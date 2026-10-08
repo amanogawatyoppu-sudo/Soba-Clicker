@@ -134,6 +134,12 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 .hint-icon{font-size:42px;margin-bottom:4px}
 .hint-text{font-size:13px;line-height:1.75;margin:10px 0 18px;text-align:left;color:var(--text)}
 
+/* Limited-time event decorations falling over the left panel */
+#event-particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:1}
+.event-particle{position:absolute;top:-40px;opacity:0.75;animation:event-fall linear forwards}
+@keyframes event-fall{0%{transform:translateY(0) rotate(0deg)}100%{transform:translateY(110vh) rotate(360deg)}}
+#season-bar{flex-wrap:wrap;gap:4px 0}
+
 /* Reduced effects setting */
 body.reduced .building-item.can-buy,
 body.reduced .skill-node.available,

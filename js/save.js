@@ -89,6 +89,8 @@ function normalizeState() {
     if (state.bestLoginStreak === undefined) state.bestLoginStreak = 0;
     if (state.lastLoginDay === undefined) state.lastLoginDay = '';
     if (state.buildingsSold === undefined) state.buildingsSold = 0;
+    if (!state.eventOrders) state.eventOrders = {};
+    if (!state.eventsSeen) state.eventsSeen = [];
     if (state.seenHints === undefined) {
         // Saves from before hints existed: only explain features the player hasn't reached yet
         state.seenHints = HINTS.filter(h => h.id !== 'welcome' && h.when()).map(h => h.id);

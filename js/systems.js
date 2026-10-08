@@ -347,24 +347,34 @@ function scheduleNextOrder() {
     state.nextOrderTime = Date.now() + (ORDER_MIN_GAP + Math.random() * (ORDER_MAX_GAP - ORDER_MIN_GAP)) * gapMult;
 }
 
+function getOrderCustomer(order) {
+    const event = order.event && EVENTS.find(e => e.id === order.event);
+    return event ? event.customer : ORDER_CUSTOMERS[order.customer];
+}
+
 function startOrder(now) {
     const customerIdx = Math.floor(Math.random() * ORDER_CUSTOMERS.length);
-    const customer = ORDER_CUSTOMERS[customerIdx];
+    // During an event, about half the customers are the event's own, with double rewards
+    const event = getActiveEvent();
+    const eventOrder = !!event && Math.random() < 0.5;
+    const customer = eventOrder ? event.customer : ORDER_CUSTOMERS[customerIdx];
     const baseCps = getBaseCps();
     const baseClick = clickPower / (clickBuffMult || 1);
     const duration = Math.round((60 + Math.random() * 60) * getRegionEffectMult('orderTime'));
     // Idle production alone falls a little short: steady clicking (about 3 per second), buying
     // buildings or a golden soba closes the gap. Tuned with a simulation to succeed most of the time.
     const target = Math.max(200, baseCps * duration * (1 + Math.random() * 0.15) + baseClick * duration * 1.5);
-    const reward = Math.max(500, baseCps * duration * 2) * (state.heavenlyUpgrades.includes('heav_23') ? 2 : 1);
+    const reward = Math.max(500, baseCps * duration * 2) * (state.heavenlyUpgrades.includes('heav_23') ? 2 : 1) * (eventOrder ? 2 : 1);
     state.activeOrder = { customer: customerIdx, target, reward, startTotal: state.totalSoba, deadline: now + duration * 1000 };
+    if (eventOrder) state.activeOrder.event = event.id;
     notify(`${customer.name}から注文！${duration}秒以内に${fmt(target)}杯を作ろう。`, customer.icon, true);
     playSound('order');
 }
 
 function completeOrder() {
     const order = state.activeOrder;
-    const customer = ORDER_CUSTOMERS[order.customer];
+    const customer = getOrderCustomer(order);
+    if (order.event) state.eventOrders[order.event] = (state.eventOrders[order.event] || 0) + 1;
     state.soba += order.reward;
     state.totalSoba += order.reward;
     state.allTimeSoba += order.reward;
@@ -379,7 +389,7 @@ function completeOrder() {
 }
 
 function failOrder() {
-    const customer = ORDER_CUSTOMERS[state.activeOrder.customer];
+    const customer = getOrderCustomer(state.activeOrder);
     state.ordersFailed++;
     state.activeOrder = null;
     scheduleNextOrder();
@@ -399,18 +409,53 @@ function renderOrderBanner() {
     const banner = document.getElementById('order-banner');
     const order = state.activeOrder;
     if (!order) { banner.style.display = 'none'; return; }
-    const customer = ORDER_CUSTOMERS[order.customer];
+    const customer = getOrderCustomer(order);
     const made = getOrderProgress(order);
     const ratio = Math.min(1, made / order.target);
     const secLeft = Math.max(0, Math.ceil((order.deadline - Date.now()) / 1000));
     banner.style.display = 'block';
-    document.getElementById('order-customer').textContent = `${customer.icon} ${customer.name}の注文`;
+    document.getElementById('order-customer').textContent = `${customer.icon} ${customer.name}の注文${order.event ? ' (限定・報酬2倍)' : ''}`;
     document.getElementById('order-bar-fill').style.width = (ratio * 100).toFixed(1) + '%';
     document.getElementById('order-progress').textContent = `${fmt(made)} / ${fmt(order.target)} 杯`;
     const timeEl = document.getElementById('order-time');
     timeEl.textContent = `残り ${secLeft} 秒`;
     timeEl.className = secLeft <= 15 ? 'urgent' : '';
 }
+
+// ===================================================================
+// Limited-time events: announcement once per run of each event, falling decorations
+// ===================================================================
+function checkEventAnnounce() {
+    if (state.isChallengeRun || isResetting) return;
+    const event = getActiveEvent();
+    if (!event) return;
+    const info = getEventInfo(event);
+    if (state.eventsSeen.includes(info.key)) return;
+    state.eventsSeen.push(info.key);
+    showModal(`
+        <div class="hint-icon">${event.icon}</div>
+        <div class="modal-title">${event.name} 開催中！</div>
+        <div class="hint-text">${event.desc}<br>期間中(あと${info.daysLeft}日)は全生産+10%。限定のお客さん「${event.customer.icon} ${event.customer.name}」から報酬2倍の注文が届きます。<br>限定の注文を${EVENT_ORDER_GOAL}回達成すると、イベントの実績がもらえます。</div>
+        <button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent); min-width:140px" onclick="closeModal()">楽しむ！</button>
+    `);
+    playSound('golden');
+}
+
+function spawnEventParticle() {
+    const event = getActiveEvent();
+    if (!event || settings.reduceEffects || document.hidden) return;
+    const layer = document.getElementById('event-particles');
+    const el = document.createElement('span');
+    el.className = 'event-particle';
+    el.textContent = event.particle;
+    el.style.left = (Math.random() * 96) + '%';
+    el.style.fontSize = (14 + Math.random() * 14) + 'px';
+    const duration = 7 + Math.random() * 5;
+    el.style.animationDuration = duration + 's';
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), duration * 1000);
+}
+setInterval(spawnEventParticle, 1400);
 
 // ===================================================================
 // Soba farm

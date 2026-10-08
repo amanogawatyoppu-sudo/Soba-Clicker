@@ -47,7 +47,9 @@ function createFreshState() {
         loginStreak: 0,
         bestLoginStreak: 0,
         lastLoginDay: '',
-        buildingsSold: 0
+        buildingsSold: 0,
+        eventOrders: {},
+        eventsSeen: []
     };
 }
 
@@ -146,6 +148,10 @@ function calculateCps() {
     // Reputation from customer orders, and the soba farm (mature crops + discovered strains)
     newCps *= (1 + state.reputation * REPUTATION_BONUS);
     newCps *= getFarmCpsMult();
+
+    // Limited-time event running today
+    const event = getActiveEvent();
+    if (event) newCps *= event.prodBonus;
     
     // Prestige Bonus: Each soul gives +1% bonus
     let prestigeMult = 1 + getEffectiveSouls() * getSoulBonusPerSoul();
@@ -280,6 +286,7 @@ function update() {
         calculateCps();
         checkLoginBonus();
         checkHints();
+        checkEventAnnounce();
     }
     checkChallengeProgress();
 
@@ -541,6 +548,7 @@ function renderStats() {
         <div class="stat-row"><span class="stat-label">そば畑</span><span>図鑑 ${state.farm.discovered.length}/${CROPS.length}・収穫 ${state.farm.harvests} 回</span></div>
         <div class="stat-row"><span class="stat-label">ログイン</span><span>連続 ${state.loginStreak} 日 (最高 ${state.bestLoginStreak} 日)</span></div>
         <div class="stat-row"><span class="stat-label">売却した施設</span><span>${state.buildingsSold} 個</span></div>
+        <div class="stat-row"><span class="stat-label">期間限定イベント</span><span>${EVENTS.filter(e => (state.eventOrders[e.id] || 0) >= EVENT_ORDER_GOAL).length}/${EVENTS.length} 満喫${getActiveEvent() ? ` (開催中: ${getActiveEvent().name})` : ''}</span></div>
     `;
     setHTMLIfChanged(container, html);
 }
@@ -662,6 +670,14 @@ function toggleSpirit(id) {
 function renderSeasonBar() {
     const season = getCurrentSeason();
     document.getElementById('season-label').textContent = `${season.icon} ${season.name}`;
+    const event = getActiveEvent();
+    const eventLabel = document.getElementById('event-label');
+    if (event) {
+        eventLabel.style.display = '';
+        eventLabel.textContent = `${event.icon} ${event.name} 開催中 (あと${getEventInfo(event).daysLeft}日)`;
+    } else {
+        eventLabel.style.display = 'none';
+    }
 }
 
 // --- 手打ちそば道場: this game's original minigame (not derived from any other clicker) ---
@@ -830,6 +846,7 @@ function completeChallenge() {
     backup.achievements = Array.from(new Set([...backup.achievements, ...state.achievements]));
     backup.shadowAchievements = Array.from(new Set([...backup.shadowAchievements, ...state.shadowAchievements]));
     backup.farm.discovered = Array.from(new Set([...backup.farm.discovered, ...state.farm.discovered]));
+    Object.entries(state.eventOrders).forEach(([id, n]) => { backup.eventOrders[id] = (backup.eventOrders[id] || 0) + n; });
 
     let rewardMsg = '';
     if (!backup.challengesCompleted.includes(challengeId)) {
@@ -865,6 +882,7 @@ function abandonChallenge() {
     backup.achievements = Array.from(new Set([...backup.achievements, ...state.achievements]));
     backup.shadowAchievements = Array.from(new Set([...backup.shadowAchievements, ...state.shadowAchievements]));
     backup.farm.discovered = Array.from(new Set([...backup.farm.discovered, ...state.farm.discovered]));
+    Object.entries(state.eventOrders).forEach(([id, n]) => { backup.eventOrders[id] = (backup.eventOrders[id] || 0) + n; });
     state = backup;
     state.isChallengeRun = null;
     state.challengeStartTime = 0;
@@ -1411,6 +1429,8 @@ function checkAchievements() {
         if (a.req.farmHarvests && state.farm.harvests < a.req.farmHarvests) met = false;
         if (a.req.loginStreak && state.bestLoginStreak < a.req.loginStreak) met = false;
         if (a.req.buildingsSold && state.buildingsSold < a.req.buildingsSold) met = false;
+        if (a.req.eventOrders && (state.eventOrders[a.req.eventOrders] || 0) < EVENT_ORDER_GOAL) met = false;
+        if (a.req.eventsAll && EVENTS.some(e => (state.eventOrders[e.id] || 0) < EVENT_ORDER_GOAL)) met = false;
         if (a.req.dashiLevel && getDashiLevel() < a.req.dashiLevel) met = false;
         if (a.req.wrathClicks && state.wrathClicks < a.req.wrathClicks) met = false;
         if (a.req.totalLumps && state.totalLumps < a.req.totalLumps) met = false;
@@ -1700,7 +1720,9 @@ function notify(msg, icon = "🔔", flash = false) {
 
 function updateTicker() {
     const text = document.getElementById('news-text');
-    text.textContent = NEWS[Math.floor(Math.random() * NEWS.length)];
+    const event = getActiveEvent();
+    const pool = event && Math.random() < 0.5 ? event.news : NEWS;
+    text.textContent = pool[Math.floor(Math.random() * pool.length)];
 }
 setInterval(updateTicker, 30000);
 updateTicker();
