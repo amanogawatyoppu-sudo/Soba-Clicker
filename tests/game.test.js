@@ -225,3 +225,87 @@ test('phone layout has no horizontal scroll', async () => {
     assert.deepEqual(errors, []);
     await close();
 });
+
+test('limited-time events follow the calendar and count event orders', async () => {
+    const { page, close } = await openGame();
+    const r = await page.evaluate(() => {
+        const on = (d) => { const e = getActiveEvent(new Date(d + 'T12:00')); return e && e.id; };
+        const left = (d) => getEventInfo(getActiveEvent(new Date(d + 'T12:00')), new Date(d + 'T12:00'));
+        const dates = { gw: on('2026-05-01'), obon: on('2026-08-15'), koyo: on('2026-10-08'), shinsoba: on('2026-11-30'),
+                        nye: on('2026-12-31'), newYear: on('2027-01-03'), none: on('2026-06-15'), dec24: on('2026-12-24') };
+        const nyeInfo = left('2026-12-31'), jan2Info = left('2027-01-02');
+        // three completed event orders earn the event's achievement
+        state.buildings.student = 20; calculateCps();
+        for (let i = 0; i < 3; i++) {
+            state.activeOrder = { customer: 0, target: 1, reward: 10, startTotal: state.totalSoba, deadline: Date.now() + 60000, event: 'koyo' };
+            state.totalSoba += 5; orderTick(Date.now());
+        }
+        checkAchievements();
+        return { dates, nyeInfo, jan2Info, count: state.eventOrders.koyo, ach: state.achievements.includes('ach_event_koyo') };
+    });
+    assert.deepEqual(r.dates, { gw: 'golden_week', obon: 'obon', koyo: 'koyo', shinsoba: 'shinsoba', nye: 'toshikoshi', newYear: 'toshikoshi', none: null, dec24: null });
+    assert.deepEqual(r.nyeInfo, { daysLeft: 4, key: 'toshikoshi-2026' });
+    assert.deepEqual(r.jan2Info, { daysLeft: 2, key: 'toshikoshi-2026' }, 'New Year days belong to the event that started in December');
+    assert.equal(r.count, 3);
+    assert.ok(r.ach);
+    await close();
+});
+
+test('workshop critical hit pays five minutes of base production', async () => {
+    const { page, close } = await openGame();
+    const r = await page.evaluate(() => {
+        state.buildings.student = 1000; calculateCps();
+        const base = cps;
+        buffMult = 7; calculateCps(); // a fever must not multiply the reward
+        artisanRunning = true; artisanMarkerAnim = setInterval(() => {}, 1000);
+        document.getElementById('workshop-marker').style.left = '50%';
+        const s0 = state.soba;
+        stopArtisanChallenge();
+        return { ratio: (state.soba - s0) / (base * 300), points: state.artisanPoints, crits: state.artisanCrits };
+    });
+    assert.ok(Math.abs(r.ratio - 1) < 0.01, `paid ${r.ratio}x of 5 minutes`);
+    assert.equal(r.points, 1.5);
+    assert.equal(r.crits, 1);
+    await close();
+});
+
+test('share image and BGM toggle work', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        const canvas = buildShareCanvas();
+        openShareDialog();
+        const preview = !!document.querySelector('#modal-box img');
+        closeModal();
+        toggleSetting('bgm');
+        const savedOn = JSON.parse(localStorage.getItem('echizenSobaSettings')).bgm;
+        toggleSetting('bgm');
+        return { w: canvas.width, h: canvas.height, png: canvas.toDataURL('image/png').length, preview, savedOn, running: !!bgm.timer };
+    });
+    assert.equal(r.w, 1200);
+    assert.equal(r.h, 630);
+    assert.ok(r.png > 10000);
+    assert.ok(r.preview);
+    assert.equal(r.savedOn, true);
+    assert.equal(r.running, false);
+    assert.deepEqual(errors, []);
+    await close();
+});
+
+test('home-screen files are present and consistent', () => {
+    const fs = require('node:fs');
+    const root = path.resolve(__dirname, '..');
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.webmanifest'), 'utf8'));
+    manifest.icons.forEach(icon => assert.ok(fs.existsSync(path.join(root, icon.src)), `missing ${icon.src}`));
+    assert.ok(fs.existsSync(path.join(root, manifest.start_url)));
+    // every file the page loads must be precached under the same ?v= the page uses
+    const html = fs.readFileSync(path.join(root, 'soba_clicker.html'), 'utf8');
+    const sw = fs.readFileSync(path.join(root, 'sw.js'), 'utf8');
+    const swVersion = sw.match(/const V = '([^']+)'/)[1];
+    const assets = [...html.matchAll(/(?:src|href)="((?:js|css)\/[^"?]+)\?v=([^"]+)"/g)];
+    assert.ok(assets.length >= 5);
+    assets.forEach(([, file, v]) => {
+        assert.equal(v, swVersion, `${file} uses ?v=${v} but sw.js caches ?v=${swVersion}`);
+        assert.ok(fs.existsSync(path.join(root, file)), `missing ${file}`);
+        assert.ok(sw.includes(`./${file}?v=`), `${file} not precached`);
+    });
+});
