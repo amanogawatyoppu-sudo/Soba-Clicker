@@ -731,26 +731,32 @@ function stopArtisanChallenge() {
     state.lastArtisanTime = Date.now();
     state.artisanAttempts++;
 
+    // Rewards are minutes of base production (a running fever doesn't multiply them). A critical hit
+    // used to pay 20 minutes every 5-minute cooldown, which outpaced all other production; the
+    // lasting reward is now weighted toward artisan points instead.
+    const base = getBaseCps();
+    const artisanMaster = state.heavenlyUpgrades.includes('heav_29');
+    const pointsMult = artisanMaster ? 1.5 : 1;
+    const pts = (n) => `職人ポイント+${Math.round(n * pointsMult * 100) / 100}%`;
     let bonus, pointsGain;
     if (pos >= 45 && pos <= 55) {
         state.artisanCrits++;
-        bonus = Math.max(1000, cps * 1200);
-        pointsGain = 1.0;
-        notify(`会心の一撃！極上の一杯が打てた！${fmt(bonus)}杯獲得。(職人ポイント+1.0%)`, "🥢✨");
+        bonus = Math.max(1000, base * 300);
+        pointsGain = 1.5;
+        notify(`会心の一撃！極上の一杯が打てた！${fmt(bonus)}杯獲得。(${pts(1.5)})`, "🥢✨");
     } else if (pos >= 25 && pos <= 75) {
-        bonus = Math.max(400, cps * 400);
-        pointsGain = 0.4;
-        notify(`上手に打てた！${fmt(bonus)}杯獲得。(職人ポイント+0.4%)`, "🥢");
+        bonus = Math.max(400, base * 100);
+        pointsGain = 0.5;
+        notify(`上手に打てた！${fmt(bonus)}杯獲得。(${pts(0.5)})`, "🥢");
     } else {
-        bonus = Math.max(50, cps * 50);
+        bonus = Math.max(50, base * 20);
         pointsGain = 0.1;
-        notify(`ちょっと不揃いになったが、${fmt(bonus)}杯は打てた。(職人ポイント+0.1%)`, "🥢💦");
+        notify(`ちょっと不揃いになったが、${fmt(bonus)}杯は打てた。(${pts(0.1)})`, "🥢💦");
     }
     state.soba += bonus;
     state.totalSoba += bonus;
     state.allTimeSoba += bonus;
-    const artisanMaster = state.heavenlyUpgrades.includes('heav_29');
-    state.artisanPoints = Math.min(artisanMaster ? 100 : 50, state.artisanPoints + pointsGain * (artisanMaster ? 1.5 : 1));
+    state.artisanPoints = Math.min(artisanMaster ? 100 : 50, state.artisanPoints + pointsGain * pointsMult);
 
     calculateCps();
     artisanRunning = false;
