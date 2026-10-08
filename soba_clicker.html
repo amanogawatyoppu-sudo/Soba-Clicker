@@ -1058,7 +1058,11 @@ function createFreshState() {
 let state = createFreshState();
 
 function resetState() {
-    BUILDINGS.forEach(b => { state.buildings[b.id] = 0; state.buildingLevels[b.id] = 0; });
+    BUILDINGS.forEach(b => {
+        state.buildings[b.id] = 0;
+        // Aging levels are paid for with lumps and are permanent: keep them through prestige
+        if (state.buildingLevels[b.id] === undefined) state.buildingLevels[b.id] = 0;
+    });
     state.soba = 0;
     state.totalSoba = 0;
     state.upgrades = [];
@@ -1198,10 +1202,40 @@ function getWrathShieldMult() {
     return mult;
 }
 
+// A gap this long between ticks means the loop was frozen (phone in the background, computer asleep)
+// rather than just throttled, so it counts as time away instead of normal play.
+const AWAY_THRESHOLD_SEC = 120;
+
+// Production for time spent away from the game: only with まどろみの生産 (heav_11), capped, and at
+// base production (a fever running when you left doesn't last the whole time away).
+function creditTimeAway(sec) {
+    if (sec <= 0 || !state.heavenlyUpgrades.includes('heav_11')) return 0;
+    const base = getBaseCps();
+    if (base <= 0) return 0;
+    const gained = base * Math.min(sec, getMaxOfflineSec()) * getOfflineMult();
+    state.soba += gained;
+    state.totalSoba += gained;
+    state.allTimeSoba += gained;
+    return gained;
+}
+
+function formatAwayTime(sec) {
+    sec = Math.min(sec, getMaxOfflineSec());
+    const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
+    return h > 0 ? `${h}時間${m}分` : m > 0 ? `${m}分${s}秒` : `${s}秒`;
+}
+
 function update() {
     let now = Date.now();
     let dt = (now - lastUpdate) / 1000;
     lastUpdate = now;
+    if (dt < 0) dt = 0; // the system clock moved backwards: never take soba away
+    let productionDt = dt;
+    if (dt > AWAY_THRESHOLD_SEC) {
+        productionDt = 0;
+        const gained = creditTimeAway(dt);
+        if (gained > 0) notify(`留守中 (${formatAwayTime(dt)}) の生産: +${fmt(gained)} 杯`, "😴");
+    }
 
     const liveSeason = getCurrentSeason().id;
     if (!state.seasonsExperienced.includes(liveSeason)) state.seasonsExperienced.push(liveSeason);
@@ -1214,7 +1248,7 @@ function update() {
     }
 
     if (cps > 0) {
-        const gained = cps * dt;
+        const gained = cps * productionDt;
         state.soba += gained;
         state.totalSoba += gained;
         state.allTimeSoba += gained;
@@ -2253,6 +2287,9 @@ document.getElementById('bowl').onpointerdown = (e) => { e.preventDefault(); cli
 
 document.addEventListener('keydown', (e) => {
     if (e.code !== 'Space' || e.repeat) return;
+    // Let Space type into text fields and press focused buttons as usual
+    const t = e.target;
+    if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(t.tagName))) return;
     e.preventDefault();
     const bowl = document.getElementById('bowl');
     const rect = bowl.getBoundingClientRect();
@@ -3523,24 +3560,11 @@ function loadGame() {
         normalizeState();
         calculateCps();
 
-        // --- オフライン進行(初回転生後にのみ解放) ---
-        if (state.heavenlyUpgrades.includes('heav_11')) {
-            const now = Date.now();
-            const offlineSec = (now - (state.lastSave || now)) / 1000;
-            const elapsed = Math.min(offlineSec, getMaxOfflineSec());
-            if (elapsed > 10 && cps > 0) {
-                const gained = cps * elapsed * getOfflineMult();
-                state.soba += gained;
-                state.totalSoba += gained;
-                state.allTimeSoba += gained;
-                const h = Math.floor(elapsed / 3600);
-                const m = Math.floor((elapsed % 3600) / 60);
-                const s = Math.floor(elapsed % 60);
-                const timeStr = h > 0 ? `${h}時間${m}分` : m > 0 ? `${m}分${s}秒` : `${s}秒`;
-                setTimeout(() => {
-                    notify(`留守中 (${timeStr}) の生産！ +${fmt(gained)} 杯`, "⏰");
-                }, 1000);
-            }
+        // --- オフライン進行(天界の力「まどろみの生産」で解放) ---
+        const offlineSec = (Date.now() - (state.lastSave || Date.now())) / 1000;
+        if (offlineSec > 10) {
+            const gained = creditTimeAway(offlineSec);
+            if (gained > 0) setTimeout(() => notify(`留守中 (${formatAwayTime(offlineSec)}) の生産！ +${fmt(gained)} 杯`, "⏰"), 1000);
         }
         state.lastSave = Date.now();
         lastUpdate = state.lastSave;
@@ -3618,16 +3642,10 @@ document.addEventListener('visibilitychange', () => {
         // Only the time the game loop hasn't already credited: desktop browsers keep running the loop
         // (throttled) in background tabs, so counting from the last save paid that time twice.
         const now = Date.now();
-        const offlineSec = Math.min((now - lastUpdate) / 1000, getMaxOfflineSec());
-        if (state.heavenlyUpgrades.includes('heav_11') && offlineSec > 5 && cps > 0) {
-            const gained = cps * offlineSec * getOfflineMult();
-            state.soba += gained;
-            state.totalSoba += gained;
-            state.allTimeSoba += gained;
-            const m = Math.floor(offlineSec / 60);
-            const s = Math.floor(offlineSec % 60);
-            const timeStr = m > 0 ? `${m}分${s}秒` : `${s}秒`;
-            notify(`タブ離席中 (${timeStr}) の生産: +${fmt(gained)} 杯`, "😴");
+        const awaySec = (now - lastUpdate) / 1000;
+        if (awaySec > 5) {
+            const gained = creditTimeAway(awaySec);
+            if (gained > 0) notify(`タブ離席中 (${formatAwayTime(awaySec)}) の生産: +${fmt(gained)} 杯`, "😴");
         }
         lastUpdate = now;
         state.lastSave = now;
