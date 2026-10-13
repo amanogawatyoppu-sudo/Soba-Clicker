@@ -954,7 +954,8 @@ function renderMap() {
     REGIONS.forEach(r => {
         const established = state.regions.includes(r.id);
         const prereqMet = !r.requires || state.regions.includes(r.requires);
-        const unlocked = totalBuildingsOwned >= r.unlockBuildings && prereqMet;
+        // A branch already opened stays known even when buildings drop below its threshold (e.g. after prestige)
+        const unlocked = established || (totalBuildingsOwned >= r.unlockBuildings && prereqMet);
 
         const marker = document.createElement('div');
         marker.className = `region-marker ${established ? 'established' : (unlocked ? 'available' : 'locked')}`;
@@ -982,7 +983,8 @@ function renderMap() {
     REGIONS.forEach(r => {
         const established = state.regions.includes(r.id);
         const prereqMet = !r.requires || state.regions.includes(r.requires);
-        const unlocked = totalBuildingsOwned >= r.unlockBuildings && prereqMet;
+        // A branch already opened stays known even when buildings drop below its threshold (e.g. after prestige)
+        const unlocked = established || (totalBuildingsOwned >= r.unlockBuildings && prereqMet);
         const canBuy = unlocked && !established && state.soba >= r.cost;
 
         const div = document.createElement('div');

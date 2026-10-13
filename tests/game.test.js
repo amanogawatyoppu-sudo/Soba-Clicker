@@ -309,3 +309,23 @@ test('home-screen files are present and consistent', () => {
         assert.ok(sw.includes(`./${file}?v=`), `${file} not precached`);
     });
 });
+
+test('map: branch names are visible and opened branches stay known', async () => {
+    const { page, close } = await openGame({ width: 390, height: 844 });
+    const r = await page.evaluate(() => {
+        state.regions = REGIONS.map(x => x.id); // all opened, but only a few buildings (as after a prestige)
+        state.buildings.student = 400; calculateCps(); switchTab('map'); render();
+        const labels = [...document.querySelectorAll('#fukui-map .region-marker-label')];
+        document.getElementById('fukui-map').scrollIntoView();
+        const covered = labels.filter(l => {
+            const b = l.getBoundingClientRect();
+            // labels ignore pointer events, so look for a marker drawn over the label's center
+            const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+            return !!(hit && hit.closest('.region-marker'));
+        }).map(l => l.textContent);
+        return { names: labels.map(l => l.textContent), covered };
+    });
+    assert.deepEqual(r.names.filter(n => n === '？？？'), [], 'opened branches must not show as ？？？');
+    assert.deepEqual(r.covered, [], 'labels must not be hidden behind markers');
+    await close();
+});
