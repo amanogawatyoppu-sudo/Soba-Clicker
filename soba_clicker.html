@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>越前そばクリッカー Pro v2.4 - 究極版</title>
+<title>越前そばクリッカー Pro v2.5 - 究極版</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1a0f00">
 <link rel="icon" href="icons/icon-192.png">
@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="そばクリッカー">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=2.4.1">
+<link rel="stylesheet" href="css/style.css?v=2.5">
 </head>
 <body>
 
@@ -23,7 +23,7 @@
             ⚔️ 挑戦中: <span id="challenge-banner-name"></span>　進捗: <span id="challenge-banner-progress"></span>
             <button onclick="abandonChallenge()" style="margin-left:10px; padding:3px 10px; background:#600; border:1px solid #ff6b6b; color:#fff; border-radius:5px; cursor:pointer; font-size:11px">中断する</button>
         </div>
-        <div id="top-title">⚡ ECHIZEN SOBA CLICKER PRO v2.4 ⚡</div>
+        <div id="top-title">⚡ ECHIZEN SOBA CLICKER PRO v2.5 ⚡</div>
         <div id="stats-display">
             <div id="soba-count">0 杯</div>
             <div id="soba-rate">毎秒: 0 杯</div>
@@ -132,6 +132,10 @@
             <h3 class="view-title" style="color:var(--accent)">⚙️ 設定</h3>
             <p class="view-desc">設定はこの端末(ブラウザ)ごとに保存されます。</p>
             <div class="setting-row">
+                <div><div class="setting-name">🌐 言語 / Language</div><div class="setting-desc">表示する言語を切り替える(切り替えると再読み込みします)</div></div>
+                <button class="toggle-btn on" id="set-lang" onclick="toggleLanguage()"></button>
+            </div>
+            <div class="setting-row">
                 <div><div class="setting-name">🔊 効果音</div><div class="setting-desc">クリック・購入・ゴールデンそばなどで音を鳴らす</div></div>
                 <button class="toggle-btn" id="set-sound" onclick="toggleSetting('sound')"></button>
             </div>
@@ -236,9 +240,11 @@
 <div id="tooltip"></div>
 <div id="wrath-flash"></div>
 
-<script src="js/data.js?v=2.4.1"></script>
-<script src="js/core.js?v=2.4.1"></script>
-<script src="js/systems.js?v=2.4.1"></script>
-<script src="js/save.js?v=2.4.1"></script>
+<script src="js/i18n.js?v=2.5"></script>
+<script src="js/lang-en.js?v=2.5"></script>
+<script src="js/data.js?v=2.5"></script>
+<script src="js/core.js?v=2.5"></script>
+<script src="js/systems.js?v=2.5"></script>
+<script src="js/save.js?v=2.5"></script>
 </body>
 </html>
