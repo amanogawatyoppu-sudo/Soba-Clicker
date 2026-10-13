@@ -360,15 +360,15 @@ const CHALLENGES = [
 ];
 
 const REGIONS = [
-    { id: 'katsuyama', name: '勝山', icon: '🦕', x: 45, y: 20, unlockBuildings: 500, cost: 5e9, bonusName: '恐竜ボーナス', bonusDesc: '太古の地層から呼び覚まされた力で、全生産が+10%される。', effect: 'globalMult', value: 1.10, requires: null, flavor: '恐竜博物館で知られる勝山に支店を開いた。地元の子供たちがそば打ちを恐竜の骨掘りのように楽しんでいる。' },
-    { id: 'tsuruga', name: '敦賀', icon: '⚓', x: 55, y: 62, unlockBuildings: 1200, cost: 5e14, bonusName: '港町ボーナス', bonusDesc: '港からそば粉を安く仕入れられるようになり、施設のコストが-5%される。', effect: 'cheaperBuild', value: 0.95, requires: 'katsuyama', flavor: '古くから港町として栄えた敦賀に支店を開いた。海を渡ってきた上質なそば粉が手に入るようになった。' },
-    { id: 'obama', name: '小浜', icon: '🐟', x: 25, y: 78, unlockBuildings: 2500, cost: 5e19, bonusName: '御食国ボーナス', bonusDesc: 'かつて都に食を献上した御食国の技が、だしの実効レベルを+3する。', effect: 'dashiBonusFlat', value: 3, requires: 'tsuruga', flavor: '御食国として知られた小浜に支店を開いた。鯖街道の記憶が、極上のだしを生み出す。' },
-    { id: 'takefu', name: '武生(越前市)', icon: '⚔️', x: 40, y: 48, unlockBuildings: 4500, cost: 5e24, bonusName: '打刃物ボーナス', bonusDesc: '越前打刃物の伝統的な切れ味で、クリックパワーが+15%される。', effect: 'clickMult', value: 1.15, requires: 'obama', flavor: '越前打刃物と越前和紙の町、武生に支店を開いた。鍛え抜かれた刃物が、そば切りの一撃を鋭くする。' },
-    { id: 'ono', name: '大野', icon: '💧', x: 64, y: 36, unlockBuildings: 800, cost: 5e11, bonusName: '名水ボーナス', bonusDesc: '御清水(おしょうず)の名水で、そば畑の作物が25%早く育つ。', effect: 'farmSpeed', value: 1.25, requires: 'katsuyama', flavor: '名水の城下町・大野に支店を開いた。' },
-    { id: 'eiheiji', name: '永平寺', icon: '🧘', x: 34, y: 28, unlockBuildings: 1600, cost: 5e16, bonusName: '精進ボーナス', bonusDesc: '禅の修行で鍛えた集中力で、お客さんの注文の制限時間が30%延びる。', effect: 'orderTime', value: 1.3, requires: 'ono', flavor: '禅の里・永平寺の門前に支店を開いた。' },
-    { id: 'sabae', name: '鯖江', icon: '👓', x: 27, y: 40, unlockBuildings: 2000, cost: 5e18, bonusName: 'メガネボーナス', bonusDesc: 'よく見えるメガネのおかげで、ゴールデンそば等の出現率が+20%。', effect: 'goldenFreqMult', value: 1.2, requires: 'tsuruga', flavor: 'メガネの聖地・鯖江に支店を開いた。' },
-    { id: 'tojinbo', name: '東尋坊', icon: '🌊', x: 20, y: 12, unlockBuildings: 3200, cost: 5e22, bonusName: '度胸ボーナス', bonusDesc: '断崖絶壁で鍛えた度胸で、呪われしそばで失うそばが40%減る。', effect: 'wrathShield', value: 0.6, requires: 'obama', flavor: '断崖の名所・東尋坊のそばに支店を開いた。' },
-    { id: 'echizen_coast', name: '越前海岸', icon: '🦀', x: 16, y: 58, unlockBuildings: 6000, cost: 5e28, bonusName: '越前ガニボーナス', bonusDesc: '冬の味覚・越前ガニとの合わせ技で、全生産が+25%。', effect: 'globalMult', value: 1.25, requires: 'takefu', flavor: '越前ガニの本場・越前海岸に支店を開いた。' }
+    { id: 'katsuyama', name: '勝山', icon: '🦕', x: 60, y: 16, unlockBuildings: 500, cost: 5e9, bonusName: '恐竜ボーナス', bonusDesc: '太古の地層から呼び覚まされた力で、全生産が+10%される。', effect: 'globalMult', value: 1.10, requires: null, flavor: '恐竜博物館で知られる勝山に支店を開いた。地元の子供たちがそば打ちを恐竜の骨掘りのように楽しんでいる。' },
+    { id: 'tsuruga', name: '敦賀', icon: '⚓', x: 52, y: 70, unlockBuildings: 1200, cost: 5e14, bonusName: '港町ボーナス', bonusDesc: '港からそば粉を安く仕入れられるようになり、施設のコストが-5%される。', effect: 'cheaperBuild', value: 0.95, requires: 'katsuyama', flavor: '古くから港町として栄えた敦賀に支店を開いた。海を渡ってきた上質なそば粉が手に入るようになった。' },
+    { id: 'obama', name: '小浜', icon: '🐟', x: 26, y: 82, unlockBuildings: 2500, cost: 5e19, bonusName: '御食国ボーナス', bonusDesc: 'かつて都に食を献上した御食国の技が、だしの実効レベルを+3する。', effect: 'dashiBonusFlat', value: 3, requires: 'tsuruga', flavor: '御食国として知られた小浜に支店を開いた。鯖街道の記憶が、極上のだしを生み出す。' },
+    { id: 'takefu', name: '武生(越前市)', icon: '⚔️', x: 46, y: 50, unlockBuildings: 4500, cost: 5e24, bonusName: '打刃物ボーナス', bonusDesc: '越前打刃物の伝統的な切れ味で、クリックパワーが+15%される。', effect: 'clickMult', value: 1.15, requires: 'obama', flavor: '越前打刃物と越前和紙の町、武生に支店を開いた。鍛え抜かれた刃物が、そば切りの一撃を鋭くする。' },
+    { id: 'ono', name: '大野', icon: '💧', x: 64, y: 38, unlockBuildings: 800, cost: 5e11, bonusName: '名水ボーナス', bonusDesc: '御清水(おしょうず)の名水で、そば畑の作物が25%早く育つ。', effect: 'farmSpeed', value: 1.25, requires: 'katsuyama', flavor: '名水の城下町・大野に支店を開いた。' },
+    { id: 'eiheiji', name: '永平寺', icon: '🧘', x: 40, y: 22, unlockBuildings: 1600, cost: 5e16, bonusName: '精進ボーナス', bonusDesc: '禅の修行で鍛えた集中力で、お客さんの注文の制限時間が30%延びる。', effect: 'orderTime', value: 1.3, requires: 'ono', flavor: '禅の里・永平寺の門前に支店を開いた。' },
+    { id: 'sabae', name: '鯖江', icon: '👓', x: 30, y: 40, unlockBuildings: 2000, cost: 5e18, bonusName: 'メガネボーナス', bonusDesc: 'よく見えるメガネのおかげで、ゴールデンそば等の出現率が+20%。', effect: 'goldenFreqMult', value: 1.2, requires: 'tsuruga', flavor: 'メガネの聖地・鯖江に支店を開いた。' },
+    { id: 'tojinbo', name: '東尋坊', icon: '🌊', x: 22, y: 12, unlockBuildings: 3200, cost: 5e22, bonusName: '度胸ボーナス', bonusDesc: '断崖絶壁で鍛えた度胸で、呪われしそばで失うそばが40%減る。', effect: 'wrathShield', value: 0.6, requires: 'obama', flavor: '断崖の名所・東尋坊のそばに支店を開いた。' },
+    { id: 'echizen_coast', name: '越前海岸', icon: '🦀', x: 18, y: 58, unlockBuildings: 6000, cost: 5e28, bonusName: '越前ガニボーナス', bonusDesc: '冬の味覚・越前ガニとの合わせ技で、全生産が+25%。', effect: 'globalMult', value: 1.25, requires: 'takefu', flavor: '越前ガニの本場・越前海岸に支店を開いた。' }
 ];
 
 // --- Soba farm crops: Fukui's native buckwheat strains, discovered by cross-breeding ---

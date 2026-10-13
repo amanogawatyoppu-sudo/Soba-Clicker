@@ -223,7 +223,8 @@ body.reduced #fever-overlay.on{animation:none}
 .region-marker.established{border-color:#7ed957;box-shadow:0 0 14px rgba(126,217,87,0.6)}
 .region-marker.available{border-color:var(--accent);animation:skill-pulse 1.8s ease-in-out infinite}
 .region-marker.locked{border-color:#333;opacity:0.35;cursor:not-allowed;filter:grayscale(1)}
-.region-marker-label{position:absolute;top:100%;left:50%;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:var(--text);margin-top:4px;font-weight:bold}
+/* Placed at the marker's center by JS (left/top), then shifted below it; drawn above the markers */
+.region-marker-label{position:absolute;transform:translate(-50%, 32px);font-size:11px;white-space:nowrap;color:var(--text);font-weight:bold;z-index:3;pointer-events:none;padding:1px 6px;border-radius:8px;background:rgba(0,0,0,0.55);text-shadow:0 1px 2px rgba(0,0,0,0.9)}
 
 /* Skill Tree */
 .skill-hub{position:absolute;width:90px;height:90px;border-radius:50%;background:radial-gradient(circle, #3a1a5c 0%, #1a0a2e 100%);border:3px solid var(--prestige);display:flex;align-items:center;justify-content:center;font-size:32px;transform:translate(-50%,-50%);box-shadow:0 0 20px rgba(0,212,255,0.4);z-index:2}
@@ -303,6 +304,8 @@ button{touch-action:manipulation}
     .upgrade-item{width:48px;height:48px;font-size:22px}
     #upgrades-grid{grid-template-columns:repeat(auto-fill, minmax(48px, 1fr))}
 
+    .region-marker{width:46px;height:46px;font-size:20px}
+    .region-marker-label{transform:translate(-50%, 27px)}
     #ascension-header-box{padding:12px 20px}
     #ascension-bonus{font-size:20px}
 }
