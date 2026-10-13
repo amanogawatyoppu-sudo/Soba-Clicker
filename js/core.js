@@ -224,7 +224,7 @@ function creditTimeAway(sec) {
 function formatAwayTime(sec) {
     sec = Math.min(sec, getMaxOfflineSec());
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = Math.floor(sec % 60);
-    return h > 0 ? `${h}時間${m}分` : m > 0 ? `${m}分${s}秒` : `${s}秒`;
+    return h > 0 ? t('{0}時間{1}分', h, m) : m > 0 ? t('{0}分{1}秒', m, s) : t('{0}秒', s);
 }
 
 function update() {
@@ -236,7 +236,7 @@ function update() {
     if (dt > AWAY_THRESHOLD_SEC) {
         productionDt = 0;
         const gained = creditTimeAway(dt);
-        if (gained > 0) notify(`留守中 (${formatAwayTime(dt)}) の生産: +${fmt(gained)} 杯`, "😴");
+        if (gained > 0) notify(t('留守中 ({0}) の生産: +{1} 杯', formatAwayTime(dt), fmt(gained)), "😴");
     }
 
     const liveSeason = getCurrentSeason().id;
@@ -246,7 +246,7 @@ function update() {
     if (newMasteryTier > state.lastMasteryTier) {
         state.lastMasteryTier = newMasteryTier;
         const perTierPct = state.heavenlyUpgrades.includes('heav_13') ? 3 : 2;
-        notify(`隠された熟練の力が目覚めた！(全生産+${newMasteryTier * perTierPct}%)`, "🧠", true);
+        notify(t('隠された熟練の力が目覚めた！(全生産+{0}%)', newMasteryTier * perTierPct), "🧠", true);
     }
 
     if (cps > 0) {
@@ -263,7 +263,7 @@ function update() {
             buffMult = 1;
             document.getElementById('app').classList.remove('fever');
             calculateCps();
-            notify("フィーバータイム終了！");
+            notify(t('フィーバータイム終了！'));
         }
     }
 
@@ -273,7 +273,7 @@ function update() {
             clickBuffTimer = 0;
             clickBuffMult = 1;
             calculateCps();
-            notify("クリックフィーバー終了！");
+            notify(t('クリックフィーバー終了！'));
         }
     }
 
@@ -321,9 +321,18 @@ setInterval(update, 100);
 
 // --- UI Rendering ---
 
+// English numbers: groups of three digits (1.23K, 4.5M, 6B…), like most English idle games
+const SHORT_SCALE = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'UDc', 'DDc', 'TDc', 'QaDc', 'QiDc', 'SxDc', 'SpDc', 'OcDc', 'NoDc', 'Vg'];
+function fmtShortScale(n) {
+    let idx = 0, val = n;
+    while (val >= 1000 && idx < SHORT_SCALE.length - 1) { val /= 1000; idx++; }
+    return val.toFixed(2).replace(/\.?0+$/, '') + SHORT_SCALE[idx];
+}
+
 function fmt(n) {
     if (n < 1000) return Math.floor(n).toLocaleString();
     if (settings.numberFormat === 'sci' && n >= 1e6) return n.toExponential(2).replace('e+', 'e');
+    if (LANG !== 'ja') return fmtShortScale(n);
     const units = ["", "万", "億", "兆", "京", "垓", "𥝱", "穣", "溝", "澗", "正", "載", "極", "恒河沙", "阿僧祇", "那由他", "不可思議", "無量大数"];
     let unitIdx = 0;
     let val = n;
@@ -335,8 +344,8 @@ function fmt(n) {
 }
 
 function render() {
-    document.getElementById('soba-count').textContent = fmt(state.soba) + " 杯";
-    document.getElementById('soba-rate').textContent = `毎秒: ${fmt(cps)} 杯` + (buffMult > 1 ? ` (FEVER x${buffMult}!)` : "");
+    document.getElementById('soba-count').textContent = t('{0} 杯', fmt(state.soba));
+    document.getElementById('soba-rate').textContent = t('毎秒: {0} 杯', fmt(cps)) + (buffMult > 1 ? ` (FEVER x${buffMult}!)` : "");
     document.getElementById('ach-count').textContent = `${state.achievements.length}/${ACHIEVEMENTS.length}`;
     document.getElementById('upg-count').textContent = `${state.upgrades.length}/${UPGRADES.length}`;
     document.getElementById('dashi-level').textContent = getDashiLevel();
@@ -381,11 +390,11 @@ function renderBuyAmountToggle() {
     if (!hasChanged('buyToggle', shopMode + '|' + buyAmount)) return;
     const toggle = document.getElementById('buy-amount-toggle');
     const options = [1, 10, 100, 'max'];
-    const modes = `<button class="buy-amt-btn ${shopMode === 'buy' ? 'active' : ''}" onclick="setShopMode('buy')">購入</button>` +
-        `<button class="buy-amt-btn ${shopMode === 'sell' ? 'active' : ''}" onclick="setShopMode('sell')" style="${shopMode === 'sell' ? 'background:#c44;border-color:#c44;color:#fff' : ''}">売却</button>` +
+    const modes = `<button class="buy-amt-btn ${shopMode === 'buy' ? 'active' : ''}" onclick="setShopMode('buy')">${t('購入')}</button>` +
+        `<button class="buy-amt-btn ${shopMode === 'sell' ? 'active' : ''}" onclick="setShopMode('sell')" style="${shopMode === 'sell' ? 'background:#c44;border-color:#c44;color:#fff' : ''}">${t('売却')}</button>` +
         `<span class="shop-mode-sep"></span>`;
     toggle.innerHTML = modes + options.map(opt =>
-        `<button class="buy-amt-btn ${buyAmount === opt ? 'active' : ''}" onclick="setBuyAmount('${opt}')">${opt === 'max' ? (shopMode === 'sell' ? '全部' : 'MAX') : '×' + opt}</button>`
+        `<button class="buy-amt-btn ${buyAmount === opt ? 'active' : ''}" onclick="setBuyAmount('${opt}')">${opt === 'max' ? (shopMode === 'sell' ? t('全部') : 'MAX') : '×' + opt}</button>`
     ).join('');
 }
 
@@ -423,7 +432,7 @@ function getBuyItemView(b) {
             </div>
             <div class="b-count">${owned}</div>`,
         action: () => buyBuilding(b.id),
-        tooltip: [b.name, `${b.desc}<br>生産: ${fmt(b.baseCps)}/秒${level > 0 ? ` (熟成Lv.${level}: +${level}%)` : ''}`, cost]
+        tooltip: [b.name, `${b.desc}<br>${t('生産: {0}/秒', fmt(b.baseCps))}${level > 0 ? t(' (熟成Lv.{0}: +{0}%)', level) : ''}`, cost]
     };
 }
 
@@ -437,11 +446,11 @@ function getSellItemView(b) {
         html: `<div class="b-icon">${b.icon}</div>
             <div class="b-info">
                 <div class="b-name">${b.name}</div>
-                <div class="b-cost" style="color:${quantity > 0 ? '#ff8a8a' : 'var(--muted)'}">${quantity > 0 ? `💸 +${fmt(refund)} (${quantity}個売却)` : '所有していません'}</div>
+                <div class="b-cost" style="color:${quantity > 0 ? '#ff8a8a' : 'var(--muted)'}">${quantity > 0 ? t('💸 +{0} ({1}個売却)', fmt(refund), quantity) : t('所有していません')}</div>
             </div>
             <div class="b-count">${owned}</div>`,
         action: quantity > 0 ? () => sellBuilding(b.id) : null,
-        tooltip: [`${b.name}を売却`, `購入額の${SELL_REFUND_RATE * 100}%が戻ります。<br>所有: ${owned}個`, 0]
+        tooltip: [t('{0}を売却', b.name), t('購入額の{0}%が戻ります。<br>所有: {1}個', SELL_REFUND_RATE * 100, owned), 0]
     };
 }
 
@@ -523,32 +532,32 @@ function renderStats() {
     const m = Math.floor((playTime % 3600) / 60);
     const s = playTime % 60;
     const html = `
-        <div class="stat-row"><span class="stat-label">現在のそば</span><span>${fmt(state.soba)} 杯</span></div>
-        <div class="stat-row"><span class="stat-label">今世の生産量</span><span>${fmt(state.totalSoba)} 杯</span></div>
-        <div class="stat-row"><span class="stat-label">全世の生産量</span><span>${fmt(state.allTimeSoba)} 杯</span></div>
-        <div class="stat-row"><span class="stat-label">総クリック数</span><span>${state.clicks} 回</span></div>
-        <div class="stat-row"><span class="stat-label">ゴールデンそば</span><span>${state.goldenClicks} 回</span></div>
-        <div class="stat-row"><span class="stat-label">転生回数</span><span>${state.prestigeCount} 回</span></div>
-        <div class="stat-row"><span class="stat-label">獲得済みの越前魂</span><span>${state.souls} 個</span></div>
-        <div class="stat-row"><span class="stat-label">プレイ時間</span><span>${h}時間${m}分${s}秒</span></div>
-        <div class="stat-row"><span class="stat-label">現在のCPS</span><span>${fmt(cps)}</span></div>
-        <div class="stat-row"><span class="stat-label">クリックパワー</span><span>${fmt(clickPower)}</span></div>
-        <div class="stat-row"><span class="stat-label">だしレベル</span><span>🍲 Lv.${getDashiLevel()}</span></div>
-        <div class="stat-row"><span class="stat-label">そば粉の塊 (総獲得)</span><span>${state.lumps} 個 (累計 ${state.totalLumps} 個)</span></div>
-        <div class="stat-row"><span class="stat-label">呪われしそば遭遇</span><span>${state.wrathClicks} 回</span></div>
-        <div class="stat-row"><span class="stat-label">天界の力</span><span>${state.heavenlyUpgrades.length}/${HEAVENLY_UPGRADES.length}</span></div>
-        <div class="stat-row"><span class="stat-label">祀っている精霊</span><span>${state.spirits.length > 0 ? state.spirits.map(id => SPIRITS.find(s => s.id === id).icon).join(' ') : 'なし'}</span></div>
-        <div class="stat-row"><span class="stat-label">季節限定そば発見数</span><span>${state.seasonSobaClicks} 回 (制覇: ${state.seasonsExperienced.length}/${SEASONS.length})</span></div>
-        <div class="stat-row"><span class="stat-label">裏実績</span><span>🌑 ${state.shadowAchievements.length}/${SHADOW_ACHIEVEMENTS.length}</span></div>
-        <div class="stat-row"><span class="stat-label">手打ちそば道場</span><span>${state.artisanAttempts}回挑戦 (会心${state.artisanCrits}回・職人ポイント+${state.artisanPoints.toFixed(1)}%)</span></div>
-        <div class="stat-row"><span class="stat-label">挑戦モード</span><span>${(state.challengesCompleted || []).length}/${CHALLENGES.length} クリア (恒久ボーナス+${Math.round((state.challengeBonusPoints || 0) * getChallengeBonusPerClear() * 100)}%)</span></div>
-        <div class="stat-row"><span class="stat-label">福井支店展開</span><span>${(state.regions || []).length}/${REGIONS.length} 箇所</span></div>
-        <div class="stat-row"><span class="stat-label">お客さんの注文</span><span>達成 ${state.ordersCompleted} 回 / 失敗 ${state.ordersFailed} 回</span></div>
-        <div class="stat-row"><span class="stat-label">評判</span><span>⭐ ${state.reputation} (全生産+${(state.reputation * REPUTATION_BONUS * 100).toFixed(1)}%)</span></div>
-        <div class="stat-row"><span class="stat-label">そば畑</span><span>図鑑 ${state.farm.discovered.length}/${CROPS.length}・収穫 ${state.farm.harvests} 回</span></div>
-        <div class="stat-row"><span class="stat-label">ログイン</span><span>連続 ${state.loginStreak} 日 (最高 ${state.bestLoginStreak} 日)</span></div>
-        <div class="stat-row"><span class="stat-label">売却した施設</span><span>${state.buildingsSold} 個</span></div>
-        <div class="stat-row"><span class="stat-label">期間限定イベント</span><span>${EVENTS.filter(e => (state.eventOrders[e.id] || 0) >= EVENT_ORDER_GOAL).length}/${EVENTS.length} 満喫${getActiveEvent() ? ` (開催中: ${getActiveEvent().name})` : ''}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('現在のそば')}</span><span>${t('{0} 杯', fmt(state.soba))}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('今世の生産量')}</span><span>${t('{0} 杯', fmt(state.totalSoba))}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('全世の生産量')}</span><span>${t('{0} 杯', fmt(state.allTimeSoba))}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('総クリック数')}</span><span>${t('{0} 回', state.clicks)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('ゴールデンそば')}</span><span>${t('{0} 回', state.goldenClicks)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('転生回数')}</span><span>${t('{0} 回', state.prestigeCount)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('獲得済みの越前魂')}</span><span>${t('{0} 個', fmt(state.souls))}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('プレイ時間')}</span><span>${t('{0}時間{1}分{2}秒', h, m, s)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('現在のCPS')}</span><span>${fmt(cps)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('クリックパワー')}</span><span>${fmt(clickPower)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('だしレベル')}</span><span>🍲 Lv.${getDashiLevel()}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('そば粉の塊 (総獲得)')}</span><span>${t('{0} 個 (累計 {1} 個)', state.lumps, state.totalLumps)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('呪われしそば遭遇')}</span><span>${t('{0} 回', state.wrathClicks)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('天界の力')}</span><span>${state.heavenlyUpgrades.length}/${HEAVENLY_UPGRADES.length}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('祀っている精霊')}</span><span>${state.spirits.length > 0 ? state.spirits.map(id => SPIRITS.find(s => s.id === id).icon).join(' ') : t('なし')}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('季節限定そば発見数')}</span><span>${t('{0} 回 (制覇: {1}/{2})', state.seasonSobaClicks, state.seasonsExperienced.length, SEASONS.length)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('裏実績')}</span><span>🌑 ${state.shadowAchievements.length}/${SHADOW_ACHIEVEMENTS.length}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('手打ちそば道場')}</span><span>${t('{0}回挑戦 (会心{1}回・職人ポイント+{2}%)', state.artisanAttempts, state.artisanCrits, state.artisanPoints.toFixed(1))}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('挑戦モード')}</span><span>${t('{0}/{1} クリア (恒久ボーナス+{2}%)', (state.challengesCompleted || []).length, CHALLENGES.length, Math.round((state.challengeBonusPoints || 0) * getChallengeBonusPerClear() * 100))}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('福井支店展開')}</span><span>${t('{0}/{1} 箇所', (state.regions || []).length, REGIONS.length)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('お客さんの注文')}</span><span>${t('達成 {0} 回 / 失敗 {1} 回', state.ordersCompleted, state.ordersFailed)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('評判')}</span><span>${t('⭐ {0} (全生産+{1}%)', state.reputation, (state.reputation * REPUTATION_BONUS * 100).toFixed(1))}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('そば畑')}</span><span>${t('図鑑 {0}/{1}・収穫 {2} 回', state.farm.discovered.length, CROPS.length, state.farm.harvests)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('ログイン')}</span><span>${t('連続 {0} 日 (最高 {1} 日)', state.loginStreak, state.bestLoginStreak)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('売却した施設')}</span><span>${t('{0} 個', state.buildingsSold)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('期間限定イベント')}</span><span>${t('{0}/{1} 満喫', EVENTS.filter(e => (state.eventOrders[e.id] || 0) >= EVENT_ORDER_GOAL).length, EVENTS.length)}${getActiveEvent() ? t(' (開催中: {0})', getActiveEvent().name) : ''}</span></div>
     `;
     setHTMLIfChanged(container, html);
 }
@@ -569,10 +578,10 @@ function renderShrine() {
         div.className = `shrine-slot ${spirit ? 'filled' : ''}`;
         div.innerHTML = spirit
             ? `<div class="slot-icon">${spirit.icon}</div><div>${spirit.name}</div>`
-            : `<div class="slot-icon">➕</div><div>空きの祭壇</div>`;
+            : `<div class="slot-icon">➕</div><div>${t('空きの祭壇')}</div>`;
         if (spirit) {
             div.onpointerdown = (e) => { e.preventDefault(); toggleSpirit(spirit.id); };
-            div.onmouseenter = (e) => showTooltip(e, spirit.name, spirit.desc + '<br><span style="color:var(--muted)">クリックで解任</span>', 0);
+            div.onmouseenter = (e) => showTooltip(e, spirit.name, spirit.desc + `<br><span style="color:var(--muted)">${t('クリックで解任')}</span>`, 0);
             div.onmouseleave = hideTooltip;
         }
         slots.appendChild(div);
@@ -589,7 +598,7 @@ function renderShrine() {
             <div class="b-icon">${s.icon}</div>
             <div class="b-info">
                 <div class="b-name">${s.name}</div>
-                <div class="b-cost" style="color:${active ? '#c77dff' : 'var(--muted)'}">${active ? '祀られています' : s.desc}</div>
+                <div class="b-cost" style="color:${active ? '#c77dff' : 'var(--muted)'}">${active ? t('祀られています') : s.desc}</div>
             </div>
         `;
         if (!full) {
@@ -656,12 +665,12 @@ function toggleSpirit(id) {
     } else {
         const maxSlots = getMaxSpiritSlots();
         if (state.spirits.length >= maxSlots) {
-            notify(`祭壇は${maxSlots}柱までしか祀れません。`, "⛩️");
+            notify(t('祭壇は{0}柱までしか祀れません。', maxSlots), "⛩️");
             return;
         }
         state.spirits.push(id);
         const spirit = SPIRITS.find(s => s.id === id);
-        notify(`${spirit.name}を祀りました。`, spirit.icon);
+        notify(t('{0}を祀りました。', spirit.name), spirit.icon);
     }
     calculateCps();
     render();
@@ -674,14 +683,14 @@ function renderSeasonBar() {
     const eventLabel = document.getElementById('event-label');
     if (event) {
         eventLabel.style.display = '';
-        eventLabel.textContent = `${event.icon} ${event.name} 開催中 (あと${getEventInfo(event).daysLeft}日)`;
+        eventLabel.textContent = `${event.icon} ` + t('{0} 開催中 (あと{1}日)', event.name, getEventInfo(event).daysLeft);
     } else {
         eventLabel.style.display = 'none';
     }
 }
 
 // --- 手打ちそば道場: this game's original minigame (not derived from any other clicker) ---
-const ARTISAN_STAGES = ['💧 水回し中...', '👐 こね中...', '🪵 延し中...', '📖 たたみ中...', '🔪 切りどき！今だ！'];
+const ARTISAN_STAGES = ['💧 水回し中...', '👐 こね中...', '🪵 延し中...', '📖 たたみ中...', '🔪 切りどき！今だ！'].map(s => t(s));
 const ARTISAN_BASE_COOLDOWN = 5 * 60 * 1000; // 5 minutes
 let artisanRunning = false;
 let artisanMarkerAnim = null;
@@ -699,7 +708,7 @@ function startArtisanChallenge() {
     if (artisanRunning) return;
     const cooldownLeft = getArtisanCooldownLeft();
     if (cooldownLeft > 0) {
-        notify(`職人はまだ休憩中です。(あと${Math.ceil(cooldownLeft / 1000)}秒)`, "🥢");
+        notify(t('職人はまだ休憩中です。(あと{0}秒)', Math.ceil(cooldownLeft / 1000)), "🥢");
         return;
     }
     artisanRunning = true;
@@ -753,21 +762,21 @@ function stopArtisanChallenge() {
     const base = getBaseCps();
     const artisanMaster = state.heavenlyUpgrades.includes('heav_29');
     const pointsMult = artisanMaster ? 1.5 : 1;
-    const pts = (n) => `職人ポイント+${Math.round(n * pointsMult * 100) / 100}%`;
+    const pts = (n) => t('職人ポイント+{0}%', Math.round(n * pointsMult * 100) / 100);
     let bonus, pointsGain;
     if (pos >= 45 && pos <= 55) {
         state.artisanCrits++;
         bonus = Math.max(1000, base * 300);
         pointsGain = 1.5;
-        notify(`会心の一撃！極上の一杯が打てた！${fmt(bonus)}杯獲得。(${pts(1.5)})`, "🥢✨");
+        notify(t('会心の一撃！極上の一杯が打てた！{0}杯獲得。({1})', fmt(bonus), pts(1.5)), "🥢✨");
     } else if (pos >= 25 && pos <= 75) {
         bonus = Math.max(400, base * 100);
         pointsGain = 0.5;
-        notify(`上手に打てた！${fmt(bonus)}杯獲得。(${pts(0.5)})`, "🥢");
+        notify(t('上手に打てた！{0}杯獲得。({1})', fmt(bonus), pts(0.5)), "🥢");
     } else {
         bonus = Math.max(50, base * 20);
         pointsGain = 0.1;
-        notify(`ちょっと不揃いになったが、${fmt(bonus)}杯は打てた。(${pts(0.1)})`, "🥢💦");
+        notify(t('ちょっと不揃いになったが、{0}杯は打てた。({1})', fmt(bonus), pts(0.1)), "🥢💦");
     }
     state.soba += bonus;
     state.totalSoba += bonus;
@@ -788,11 +797,11 @@ function renderWorkshopBar() {
     const cooldownLeft = getArtisanCooldownLeft();
     if (cooldownLeft > 0) {
         btn.disabled = true;
-        btn.textContent = `休憩中 (${Math.ceil(cooldownLeft / 1000)}s)`;
+        btn.textContent = t('休憩中 ({0}s)', Math.ceil(cooldownLeft / 1000));
         btn.style.opacity = '0.5';
     } else {
         btn.disabled = false;
-        btn.textContent = '挑戦する';
+        btn.textContent = t('挑戦する');
         btn.style.opacity = '1';
     }
 }
@@ -806,12 +815,12 @@ function getAvailableSouls() {
 // --- Challenge Mode: a temporary alternate save with special rules, backed up and restored via localStorage ---
 function startChallenge(id) {
     if (state.isChallengeRun) {
-        notify("既に挑戦中です。先に完了か中断をしてください。", "⚔️");
+        notify(t('既に挑戦中です。先に完了か中断をしてください。'), "⚔️");
         return;
     }
     const challenge = CHALLENGES.find(c => c.id === id);
     if (!challenge) return;
-    if (!confirm(`「${challenge.name}」に挑戦しますか？\n現在の進行状況は安全に退避され、挑戦を終える（または中断する）といつでも戻せます。`)) return;
+    if (!confirm(t('「{0}」に挑戦しますか？\n現在の進行状況は安全に退避され、挑戦を終える（または中断する）といつでも戻せます。', challenge.name))) return;
 
     // An order in progress would sit in the backup past its deadline and count as a failure on return
     if (state.activeOrder) { state.activeOrder = null; scheduleNextOrder(); }
@@ -825,7 +834,7 @@ function startChallenge(id) {
     calculateCps();
     saveGame(true);
     switchTab('shop');
-    notify(`挑戦開始: ${challenge.name}`, challenge.icon);
+    notify(t('挑戦開始: {0}', challenge.name), challenge.icon);
     render();
 }
 
@@ -852,9 +861,9 @@ function completeChallenge() {
     if (!backup.challengesCompleted.includes(challengeId)) {
         backup.challengesCompleted.push(challengeId);
         backup.challengeBonusPoints = (backup.challengeBonusPoints || 0) + 1;
-        rewardMsg = ` 恒久ボーナス+${Math.round(getChallengeBonusPerClear() * 100)}%を獲得！`;
+        rewardMsg = t(' 恒久ボーナス+{0}%を獲得！', Math.round(getChallengeBonusPerClear() * 100));
     } else {
-        rewardMsg = '(再挑戦のため追加ボーナスなし)';
+        rewardMsg = t('(再挑戦のため追加ボーナスなし)');
     }
 
     state = backup;
@@ -865,16 +874,16 @@ function completeChallenge() {
     calculateCps();
     saveGame(true);
     switchTab('challenge');
-    notify(`挑戦クリア: ${challenge.name}！${rewardMsg}`, "🏆");
+    notify(t('挑戦クリア: {0}！', challenge.name) + rewardMsg, "🏆");
     render();
 }
 
 function abandonChallenge() {
     if (!state.isChallengeRun) return;
-    if (!confirm("挑戦を中断しますか？(挑戦中の進行は失われますが、元のセーブデータは無事です)")) return;
+    if (!confirm(t('挑戦を中断しますか？(挑戦中の進行は失われますが、元のセーブデータは無事です)'))) return;
     const backupRaw = localStorage.getItem('echizenSobaChallengeBackup');
     if (!backupRaw) {
-        notify("元のセーブデータが見つかりません。念のため中断を取り消しました。ページを再読み込みしてから再度お試しください。", "⚠️", true);
+        notify(t('元のセーブデータが見つかりません。念のため中断を取り消しました。ページを再読み込みしてから再度お試しください。'), "⚠️", true);
         return;
     }
     const backup = JSON.parse(backupRaw);
@@ -891,7 +900,7 @@ function abandonChallenge() {
     calculateCps();
     saveGame(true);
     switchTab('shop');
-    notify("挑戦を中断し、元の進行状況に戻りました。", "↩️");
+    notify(t('挑戦を中断し、元の進行状況に戻りました。'), "↩️");
     render();
 }
 
@@ -912,7 +921,7 @@ function renderChallengeBanner() {
     if (!challenge) { banner.style.display = 'none'; return; }
     banner.style.display = 'block';
     document.getElementById('challenge-banner-name').textContent = `${challenge.icon} ${challenge.name}`;
-    document.getElementById('challenge-banner-progress').textContent = `${fmt(state.allTimeSoba)} / ${fmt(challenge.goal)} 杯`;
+    document.getElementById('challenge-banner-progress').textContent = t('{0} / {1} 杯', fmt(state.allTimeSoba), fmt(challenge.goal));
 }
 
 function renderChallengeList() {
@@ -927,7 +936,7 @@ function renderChallengeList() {
         div.innerHTML = `
             <div class="b-icon">${c.icon}</div>
             <div class="b-info">
-                <div class="b-name">${c.name} ${completed ? '<span style="color:gold">✓クリア済</span>' : ''}</div>
+                <div class="b-name">${c.name} ${completed ? `<span style="color:gold">${t('✓クリア済')}</span>` : ''}</div>
                 <div class="b-cost">${c.desc}</div>
             </div>
         `;
@@ -965,7 +974,7 @@ function renderMap() {
         if (unlocked && !established) {
             marker.onpointerdown = (e) => { e.preventDefault(); establishBranch(r.id); };
         }
-        let tipDesc = established ? `✅ 支店設立済み<br>${r.bonusName}: ${r.bonusDesc}` : (unlocked ? `${r.bonusName}: ${r.bonusDesc}<br>費用: 🍜 ${fmt(r.cost)}杯` : `施設合計${r.unlockBuildings}個で解禁`);
+        let tipDesc = established ? `${t('✅ 支店設立済み')}<br>${r.bonusName}: ${r.bonusDesc}` : (unlocked ? `${r.bonusName}: ${r.bonusDesc}<br>${t('費用: 🍜 {0}杯', fmt(r.cost))}` : t('施設合計{0}個で解禁', r.unlockBuildings));
         marker.onmouseenter = (e) => showTooltip(e, unlocked ? r.name : '？？？', tipDesc, 0);
         marker.onmouseleave = hideTooltip;
         mapEl.appendChild(marker);
@@ -994,7 +1003,7 @@ function renderMap() {
             <div class="b-icon">${unlocked ? r.icon : '❓'}</div>
             <div class="b-info">
                 <div class="b-name">${unlocked ? r.name : '？？？'}</div>
-                <div class="b-cost">${established ? `✅ ${r.bonusName} 取得済み` : (unlocked ? `🍜 ${fmt(r.cost)} で設立 (${r.bonusName})` : `施設合計${r.unlockBuildings}個で解禁`)}</div>
+                <div class="b-cost">${established ? t('✅ {0} 取得済み', r.bonusName) : (unlocked ? t('🍜 {0} で設立 ({1})', fmt(r.cost), r.bonusName) : t('施設合計{0}個で解禁', r.unlockBuildings))}</div>
             </div>
         `;
         if (unlocked && !established) {
@@ -1107,7 +1116,7 @@ function renderSkillTree(available) {
     hub.style.left = centerX + 'px';
     hub.style.top = centerY + 'px';
     hub.textContent = '🍜';
-    hub.onmouseenter = (e) => showTooltip(e, '転生の中枢', `現在のプレステージボーナス: +${getSoulBonusPercent()}%<br>使用可能な越前魂: ${available} 個`, 0);
+    hub.onmouseenter = (e) => showTooltip(e, t('転生の中枢'), t('現在のプレステージボーナス: +{0}%<br>使用可能な越前魂: {1} 個', getSoulBonusPercent(), available), 0);
     hub.onmouseleave = hideTooltip;
     canvas.appendChild(hub);
 
@@ -1155,9 +1164,9 @@ function renderSkillTree(available) {
         let tipDesc = h.desc;
         if (!prereqMet) {
             const prereq = HEAVENLY_UPGRADES.find(x => x.id === h.requires);
-            tipDesc = `🔒 先に「${prereq.name}」が必要<br>${h.desc}`;
+            tipDesc = `${t('🔒 先に「{0}」が必要', prereq.name)}<br>${h.desc}`;
         } else if (owned) {
-            tipDesc = `✅ 取得済み<br>${h.desc}`;
+            tipDesc = `${t('✅ 取得済み')}<br>${h.desc}`;
         }
         div.onmouseenter = (e) => showTooltip(e, prereqMet ? h.name : '？？？', tipDesc, owned || !prereqMet ? 0 : h.cost);
         div.onmouseleave = hideTooltip;
@@ -1186,7 +1195,7 @@ function renderAscensionScreen() {
     const canPrestige = soulsToGet > 0;
     
     btn.disabled = !canPrestige;
-    btn.innerHTML = `転生して ${Math.max(0, soulsToGet)} 個の「越前魂」を獲得`;
+    btn.innerHTML = t('転生して {0} 個の「越前魂」を獲得', fmt(Math.max(0, soulsToGet)));
     document.getElementById('ascension-souls').textContent = state.souls;
     document.getElementById('ascension-bonus').textContent = `+${getSoulBonusPercent()}%`;
     const available = getAvailableSouls();
@@ -1203,7 +1212,7 @@ function renderLumpList() {
     lList.innerHTML = '';
     const ownedBuildings = BUILDINGS.filter(b => (state.buildings[b.id] || 0) > 0);
     if (ownedBuildings.length === 0) {
-        lList.innerHTML = '<p style="font-size:12px; color:var(--muted)">まだ施設を所有していません。</p>';
+        lList.innerHTML = `<p style="font-size:12px; color:var(--muted)">${t('まだ施設を所有していません。')}</p>`;
     } else {
         ownedBuildings.forEach(b => {
             const level = state.buildingLevels[b.id] || 0;
@@ -1214,7 +1223,7 @@ function renderLumpList() {
                 <div class="b-icon">${b.icon}</div>
                 <div class="b-info">
                     <div class="b-name">${b.name} <span style="color:var(--accent)">Lv.${level}</span></div>
-                    <div class="b-cost">${canAge ? '🍡 塊1個で熟成 (+1%)' : '塊が足りません'}</div>
+                    <div class="b-cost">${canAge ? t('🍡 塊1個で熟成 (+1%)') : t('塊が足りません')}</div>
                 </div>
             `;
             if (canAge) {
@@ -1230,14 +1239,14 @@ function buyHeavenly(id) {
     if (!h || state.heavenlyUpgrades.includes(id)) return;
     if (h.requires && !state.heavenlyUpgrades.includes(h.requires)) {
         const prereq = HEAVENLY_UPGRADES.find(x => x.id === h.requires);
-        notify(`先に「${prereq.name}」を取得する必要があります。`, "🔒");
+        notify(t('先に「{0}」を取得する必要があります。', prereq.name), "🔒");
         return;
     }
     if (getAvailableSouls() >= h.cost) {
         state.heavenlyUpgrades.push(id);
         calculateCps();
         render();
-        notify(`天界の力を獲得: ${h.name}`, "☁️");
+        notify(t('天界の力を獲得: {0}', h.name), "☁️");
     }
 }
 
@@ -1246,21 +1255,21 @@ function establishBranch(id) {
     if (!r || state.regions.includes(id)) return;
     const totalBuildingsOwned = Object.values(state.buildings).reduce((a, b) => a + b, 0);
     if (totalBuildingsOwned < r.unlockBuildings) {
-        notify(`施設合計${r.unlockBuildings}個が必要です。`, "🗾");
+        notify(t('施設合計{0}個が必要です。', r.unlockBuildings), "🗾");
         return;
     }
     if (r.requires && !state.regions.includes(r.requires)) {
         const prereq = REGIONS.find(x => x.id === r.requires);
-        notify(`先に「${prereq.name}」に支店を設立する必要があります。`, "🔒");
+        notify(t('先に「{0}」に支店を設立する必要があります。', prereq.name), "🔒");
         return;
     }
     if (state.soba < r.cost) return;
-    if (!confirm(`${r.name}に支店を設立しますか？\n費用: 🍜 ${fmt(r.cost)}杯\n効果: ${r.bonusName}(${r.bonusDesc})`)) return;
+    if (!confirm(t('{0}に支店を設立しますか？\n費用: 🍜 {1}杯\n効果: {2}({3})', r.name, fmt(r.cost), r.bonusName, r.bonusDesc))) return;
     state.soba -= r.cost;
     state.regions.push(id);
     calculateCps();
     render();
-    notify(`${r.name}に支店を設立！${r.bonusName}を獲得。`, r.icon);
+    notify(t('{0}に支店を設立！{1}を獲得。', r.name, r.bonusName), r.icon);
 }
 
 function ageBuilding(id) {
@@ -1389,7 +1398,7 @@ function buyUpgrade(id) {
         playSound('buy');
         calculateCps();
         render();
-        notify(`アップグレード購入: ${u.name}`);
+        notify(t('アップグレード購入: {0}', u.name));
     }
 }
 
@@ -1455,7 +1464,7 @@ function checkAchievements() {
 
         if (met) {
             state.achievements.push(a.id);
-            notify(`実績解除: ${a.name}`, "🏆", true);
+            notify(t('実績解除: {0}', a.name), "🏆", true);
             playSound('achieve');
         }
     });
@@ -1466,7 +1475,7 @@ function unlockShadowAchievement(id) {
     const a = SHADOW_ACHIEVEMENTS.find(x => x.id === id);
     if (!a) return;
     state.shadowAchievements.push(id);
-    notify(`裏実績解除: ${a.name}`, "🌑", true);
+    notify(t('裏実績解除: {0}', a.name), "🌑", true);
 }
 
 function checkShadowAchievements() {
@@ -1481,7 +1490,7 @@ function prestige() {
     const soulsToGet = getSoulsToGet();
     if (soulsToGet <= 0) return;
     
-    if (confirm(`本当に転生しますか？\n獲得する越前魂: ${soulsToGet} 個\n(施設やアップグレードはリセットされますが、生産ボーナスが得られます)`)) {
+    if (confirm(t('本当に転生しますか？\n獲得する越前魂: {0} 個\n(施設やアップグレードはリセットされますが、生産ボーナスが得られます)', fmt(soulsToGet)))) {
         state.souls += soulsToGet;
         state.prestigeCount++;
         resetState();
@@ -1491,7 +1500,7 @@ function prestige() {
         calculateCps();
         closeAscensionScreen();
         switchTab('shop');
-        notify("輪廻転生しました。新たな人生の始まりです。", "♻️");
+        notify(t('輪廻転生しました。新たな人生の始まりです。'), "♻️");
     }
 }
 
@@ -1545,14 +1554,14 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
             const lost = state.soba * 0.15 * getWrathShieldMult();
             playSound('wrath');
             state.soba = Math.max(0, state.soba - lost);
-            notify(`呪われしそば...そばを${fmt(lost)}杯失った。`, "😈");
+            notify(t('呪われしそば...そばを{0}杯失った。', fmt(lost)), "😈");
             flashWrath();
         } else {
             const bonus = Math.max(500, cps * 666) * getGoldenBonusMult();
             state.soba += bonus;
             state.totalSoba += bonus;
             state.allTimeSoba += bonus;
-            notify(`怨念の一撃！リスクを乗り越え${fmt(bonus)}杯を獲得！`, "🩸");
+            notify(t('怨念の一撃！リスクを乗り越え{0}杯を獲得！', fmt(bonus)), "🩸");
         }
         calculateCps();
         return;
@@ -1567,7 +1576,7 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
         state.soba += bonus;
         state.totalSoba += bonus;
         state.allTimeSoba += bonus;
-        notify(`${season.specialName}を発見！${fmt(bonus)}杯の特別ボーナス！`, season.icon);
+        notify(t('{0}を発見！{1}杯の特別ボーナス！', season.specialName, fmt(bonus)), season.icon);
         calculateCps();
         return;
     }
@@ -1581,23 +1590,23 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
         buffTimer = 77 * getFeverTimeMult();
         state.feverCount++;
         document.getElementById('app').classList.add('fever');
-        notify(`フィーバータイム！${Math.round(buffTimer)}秒間、生産力が7倍！`, "🔥");
+        notify(t('フィーバータイム！{0}秒間、生産力が7倍！', Math.round(buffTimer)), "🔥");
     } else if (rand < 0.60) {
         const bonus = Math.max(777, cps * 900) * goldenBonusMult;
         state.soba += bonus;
         state.totalSoba += bonus;
         state.allTimeSoba += bonus;
-        notify(`ゴールデンそば！${fmt(bonus)}杯のそばを獲得！`, "✨");
+        notify(t('ゴールデンそば！{0}杯のそばを獲得！', fmt(bonus)), "✨");
     } else if (rand < 0.85) {
         clickBuffMult = 777;
         clickBuffTimer = 13 * getFeverTimeMult();
-        notify(`クリックフィーバー！${Math.round(clickBuffTimer)}秒間、クリックパワーが777倍！`, "👆");
+        notify(t('クリックフィーバー！{0}秒間、クリックパワーが777倍！', Math.round(clickBuffTimer)), "👆");
     } else {
         const bonus = Math.max(1000, cps * 7200) * goldenBonusMult;
         state.soba += bonus;
         state.totalSoba += bonus;
         state.allTimeSoba += bonus;
-        notify(`黄金の豊作！大量の${fmt(bonus)}杯を獲得！`, "🌾");
+        notify(t('黄金の豊作！大量の{0}杯を獲得！', fmt(bonus)), "🌾");
     }
     calculateCps();
 };

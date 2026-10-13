@@ -6,11 +6,11 @@ function saveGame(silent = false) {
     state.lastSave = Date.now();
     if (state.isChallengeRun) {
         localStorage.setItem('echizenSobaChallengeState', JSON.stringify(state));
-        if (!silent) notify("挑戦の進行状況を保存しました。");
+        if (!silent) notify(t('挑戦の進行状況を保存しました。'));
         return;
     }
     localStorage.setItem('echizenSobaSaveV2_2', JSON.stringify(state));
-    if (!silent) notify("ゲームを保存しました。");
+    if (!silent) notify(t('ゲームを保存しました。'));
 }
 
 function loadGame() {
@@ -35,7 +35,7 @@ function loadGame() {
         const offlineSec = (Date.now() - (state.lastSave || Date.now())) / 1000;
         if (offlineSec > 10) {
             const gained = creditTimeAway(offlineSec);
-            if (gained > 0) setTimeout(() => notify(`留守中 (${formatAwayTime(offlineSec)}) の生産！ +${fmt(gained)} 杯`, "⏰"), 1000);
+            if (gained > 0) setTimeout(() => notify(t('留守中 ({0}) の生産！ +{1} 杯', formatAwayTime(offlineSec), fmt(gained)), "⏰"), 1000);
         }
         state.lastSave = Date.now();
         lastUpdate = state.lastSave;
@@ -118,7 +118,7 @@ document.addEventListener('visibilitychange', () => {
         const awaySec = (now - lastUpdate) / 1000;
         if (awaySec > 5) {
             const gained = creditTimeAway(awaySec);
-            if (gained > 0) notify(`タブ離席中 (${formatAwayTime(awaySec)}) の生産: +${fmt(gained)} 杯`, "😴");
+            if (gained > 0) notify(t('タブ離席中 ({0}) の生産: +{1} 杯', formatAwayTime(awaySec), fmt(gained)), "😴");
         }
         lastUpdate = now;
         state.lastSave = now;
@@ -127,7 +127,7 @@ document.addEventListener('visibilitychange', () => {
 
 function resetGame() {
     state.secretCounter++;
-    if (confirm("本当にリセットしますか？全ての進捗が失われます。")) {
+    if (confirm(t('本当にリセットしますか？全ての進捗が失われます。'))) {
         isResetting = true;
         localStorage.removeItem('echizenSobaSaveV2_2');
         localStorage.removeItem('echizenSobaChallengeBackup');
@@ -141,6 +141,7 @@ loadGame();
 calculateCps();
 applySettings();
 switchTab('shop');
+translateDom();
 render();
 checkHints();
 // Offline support and home-screen install; service workers only run over http(s)

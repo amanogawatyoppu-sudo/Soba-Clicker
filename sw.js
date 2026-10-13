@@ -1,11 +1,13 @@
 // Service worker: lets the game open offline and from the home screen.
 // Network first, so a new version is picked up as soon as it is online; the cache is the fallback.
-const CACHE = 'echizen-soba-v2.4.1';
-const V = '2.4.1';
+const CACHE = 'echizen-soba-v2.5';
+const V = '2.5';
 const PRECACHE = [
     './',
     './soba_clicker.html',
     `./css/style.css?v=${V}`,
+    `./js/i18n.js?v=${V}`,
+    `./js/lang-en.js?v=${V}`,
     `./js/data.js?v=${V}`,
     `./js/core.js?v=${V}`,
     `./js/systems.js?v=${V}`,

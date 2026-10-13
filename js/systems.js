@@ -24,6 +24,8 @@ const TAB_GROUPS = [
     { id: 'settings', icon: '⚙️', label: '設定', views: [{ id: 'settings', label: '設定' }] }
 ];
 
+TAB_GROUPS.forEach(g => { g.label = t(g.label); g.views.forEach(v => { v.label = t(v.label); }); });
+
 const VIEW_RENDERERS = {
     stats: () => renderStats(),
     shrine: () => renderShrine(),
@@ -104,10 +106,10 @@ function openSettingsFromPanel() {
 
 function renderPrestigeView() {
     const soulsToGet = Math.max(0, getSoulsToGet());
-    document.getElementById('pv-souls').textContent = `${state.souls} 個 (+${getSoulBonusPercent()}%)`;
-    document.getElementById('pv-available').textContent = `${getAvailableSouls()} 個`;
-    document.getElementById('pv-gain').textContent = `${soulsToGet} 個`;
-    document.getElementById('pv-count').textContent = `${state.prestigeCount} 回`;
+    document.getElementById('pv-souls').textContent = t('{0} 個 (+{1}%)', fmt(state.souls), getSoulBonusPercent());
+    document.getElementById('pv-available').textContent = t('{0} 個', fmt(getAvailableSouls()));
+    document.getElementById('pv-gain').textContent = t('{0} 個', fmt(soulsToGet));
+    document.getElementById('pv-count').textContent = t('{0} 回', state.prestigeCount);
 }
 
 // ===================================================================
@@ -256,7 +258,7 @@ function updateBgm() {
 // ===================================================================
 // Settings
 // ===================================================================
-const NUMBER_FORMATS = { jp: '日本式 (1.2億)', sci: '指数 (1.2e8)' };
+const NUMBER_FORMATS = { jp: t('日本式 (1.2億)'), sci: t('指数 (1.2e8)') };
 
 function saveSettings() {
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* storage unavailable */ }
@@ -275,6 +277,14 @@ function toggleSetting(key) {
     saveSettings();
 }
 
+// The language is read once at startup (js/i18n.js), so switching saves and reloads the page
+function toggleLanguage() {
+    settings.lang = LANG === 'ja' ? 'en' : 'ja';
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch (e) { /* storage unavailable */ }
+    saveGame(true);
+    location.reload();
+}
+
 function cycleNumberFormat() {
     settings.numberFormat = settings.numberFormat === 'jp' ? 'sci' : 'jp';
     saveSettings();
@@ -289,7 +299,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 });
 window.addEventListener('appinstalled', () => {
     installPrompt = null;
-    notify("ホーム画面に追加しました！", "📱");
+    notify(t('ホーム画面に追加しました！'), "📱");
     renderSettings();
 });
 
@@ -307,8 +317,8 @@ function renderSettings() {
     const installBtn = document.getElementById('install-btn');
     const installDesc = document.getElementById('install-desc');
     installBtn.style.display = installPrompt ? '' : 'none';
-    if (isStandalone()) installDesc.textContent = 'ホーム画面から起動しています。';
-    else if (!installPrompt) installDesc.textContent = 'ブラウザのメニュー(iPhoneは共有ボタン)から「ホーム画面に追加」を選ぶと、アプリのように全画面で起動でき、電波がなくても遊べます。';
+    if (isStandalone()) installDesc.textContent = t('ホーム画面から起動しています。');
+    else if (!installPrompt) installDesc.textContent = t('ブラウザのメニュー(iPhoneは共有ボタン)から「ホーム画面に追加」を選ぶと、アプリのように全画面で起動でき、電波がなくても遊べます。');
 
     const setToggle = (id, on) => {
         const btn = document.getElementById(id);
@@ -319,6 +329,7 @@ function renderSettings() {
     setToggle('set-bgm', settings.bgm);
     setToggle('set-reduce', settings.reduceEffects);
     document.getElementById('set-numfmt').textContent = NUMBER_FORMATS[settings.numberFormat];
+    document.getElementById('set-lang').textContent = LANG === 'ja' ? '日本語' : 'English';
 }
 
 // ===================================================================
@@ -338,7 +349,7 @@ function decodeSave(code) {
 
 function getExportCode() {
     if (state.isChallengeRun) {
-        notify("挑戦中は書き出しできません。先に挑戦をクリアか中断してください。", "⚔️");
+        notify(t('挑戦中は書き出しできません。先に挑戦をクリアか中断してください。'), "⚔️");
         return null;
     }
     saveGame(true);
@@ -353,10 +364,10 @@ function exportSave() {
     area.select();
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(code)
-            .then(() => notify("セーブデータをコピーしました。メモ帳などに貼り付けて保管してください。", "📋"))
-            .catch(() => notify("セーブデータを書き出しました。表示された文字列をコピーしてください。", "📋"));
+            .then(() => notify(t('セーブデータをコピーしました。メモ帳などに貼り付けて保管してください。'), "📋"))
+            .catch(() => notify(t('セーブデータを書き出しました。表示された文字列をコピーしてください。'), "📋"));
     } else {
-        notify("セーブデータを書き出しました。表示された文字列をコピーしてください。", "📋");
+        notify(t('セーブデータを書き出しました。表示された文字列をコピーしてください。'), "📋");
     }
 }
 
@@ -373,12 +384,12 @@ function downloadSave() {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-    notify("セーブデータをファイルに保存しました。", "💾");
+    notify(t('セーブデータをファイルに保存しました。'), "💾");
 }
 
 function importSave(code) {
     if (!code || !code.trim()) {
-        notify("読み込むセーブデータを貼り付けてください。", "📥");
+        notify(t('読み込むセーブデータを貼り付けてください。'), "📥");
         return;
     }
     let data;
@@ -388,11 +399,11 @@ function importSave(code) {
         data = null;
     }
     if (!data || typeof data !== 'object' || typeof data.soba !== 'number' || typeof data.buildings !== 'object') {
-        notify("セーブデータを読み取れませんでした。文字列が途中で切れていないか確認してください。", "⚠️", true);
+        notify(t('セーブデータを読み取れませんでした。文字列が途中で切れていないか確認してください。'), "⚠️", true);
         return;
     }
-    const summary = `累計 ${fmt(data.allTimeSoba || 0)} 杯 / 転生 ${data.prestigeCount || 0} 回 / 実績 ${(data.achievements || []).length} 個`;
-    if (!confirm(`このセーブデータを読み込みますか？\n${summary}\n\n今の進行状況は上書きされます(挑戦中のデータも破棄されます)。`)) return;
+    const summary = t('累計 {0} 杯 / 転生 {1} 回 / 実績 {2} 個', fmt(data.allTimeSoba || 0), data.prestigeCount || 0, (data.achievements || []).length);
+    if (!confirm(t('このセーブデータを読み込みますか？\n{0}\n\n今の進行状況は上書きされます(挑戦中のデータも破棄されます)。', summary))) return;
     isResetting = true; // stop autosaves from overwriting the imported data before the reload
     delete data.isChallengeRun;
     localStorage.setItem(MAIN_SAVE_KEY, JSON.stringify(data));
@@ -407,7 +418,7 @@ function importSaveFile(input) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => importSave(String(reader.result));
-    reader.onerror = () => notify("ファイルを読み込めませんでした。", "⚠️", true);
+    reader.onerror = () => notify(t('ファイルを読み込めませんでした。'), "⚠️", true);
     reader.readAsText(file);
 }
 
@@ -505,7 +516,7 @@ function startOrder(now) {
     const reward = Math.max(500, baseCps * duration * 2) * (state.heavenlyUpgrades.includes('heav_23') ? 2 : 1) * (eventOrder ? 2 : 1);
     state.activeOrder = { customer: customerIdx, target, reward, startTotal: state.totalSoba, deadline: now + duration * 1000 };
     if (eventOrder) state.activeOrder.event = event.id;
-    notify(`${customer.name}から注文！${duration}秒以内に${fmt(target)}杯を作ろう。`, customer.icon, true);
+    notify(t('{0}から注文！{1}秒以内に{2}杯を作ろう。', customer.name, duration, fmt(target)), customer.icon, true);
     playSound('order');
 }
 
@@ -522,7 +533,7 @@ function completeOrder() {
     state.activeOrder = null;
     scheduleNextOrder();
     calculateCps();
-    notify(`${customer.name}の注文を達成！報酬 ${fmt(order.reward)} 杯${repUp ? '・評判+1' : ''}`, "🎉", true);
+    notify(t('{0}の注文を達成！報酬 {1} 杯', customer.name, fmt(order.reward)) + (repUp ? t('・評判+1') : ''), "🎉", true);
     playSound('order');
 }
 
@@ -531,7 +542,7 @@ function failOrder() {
     state.ordersFailed++;
     state.activeOrder = null;
     scheduleNextOrder();
-    notify(`${customer.name}の注文は時間切れ…。次は頑張ろう。`, "⌛");
+    notify(t('{0}の注文は時間切れ…。次は頑張ろう。', customer.name), "⌛");
     playSound('fail');
 }
 
@@ -539,7 +550,7 @@ function declineOrder() {
     if (!state.activeOrder) return;
     state.activeOrder = null;
     scheduleNextOrder();
-    notify("注文を断りました。", "🙇");
+    notify(t('注文を断りました。'), "🙇");
     render();
 }
 
@@ -552,11 +563,11 @@ function renderOrderBanner() {
     const ratio = Math.min(1, made / order.target);
     const secLeft = Math.max(0, Math.ceil((order.deadline - Date.now()) / 1000));
     banner.style.display = 'block';
-    document.getElementById('order-customer').textContent = `${customer.icon} ${customer.name}の注文${order.event ? ' (限定・報酬2倍)' : ''}`;
+    document.getElementById('order-customer').textContent = `${customer.icon} ` + t('{0}の注文', customer.name) + (order.event ? t(' (限定・報酬2倍)') : '');
     document.getElementById('order-bar-fill').style.width = (ratio * 100).toFixed(1) + '%';
-    document.getElementById('order-progress').textContent = `${fmt(made)} / ${fmt(order.target)} 杯`;
+    document.getElementById('order-progress').textContent = t('{0} / {1} 杯', fmt(made), fmt(order.target));
     const timeEl = document.getElementById('order-time');
-    timeEl.textContent = `残り ${secLeft} 秒`;
+    timeEl.textContent = t('残り {0} 秒', secLeft);
     timeEl.className = secLeft <= 15 ? 'urgent' : '';
 }
 
@@ -579,10 +590,10 @@ function buildShareCanvas() {
     const font = (size, weight = 700) => `${weight} ${size}px "Noto Sans JP", "Hiragino Sans", "Yu Gothic", sans-serif`;
     g.textBaseline = 'middle';
     g.fillStyle = '#f5c842'; g.font = font(44, 900);
-    g.fillText('越前そばクリッカー', 60, 80);
+    g.fillText(t('越前そばクリッカー'), 60, 80);
     g.fillStyle = '#c9a26b'; g.font = font(26);
     const stage = SHOP_STAGES[Math.max(0, currentStageIdx)];
-    g.fillText(`${stage ? stage.name : ''}　転生 ${state.prestigeCount} 回目`, 60, 130);
+    g.fillText(`${stage ? stage.name : ''}　` + t('転生 {0} 回目', state.prestigeCount), 60, 130);
 
     g.font = font(180, 400); g.textAlign = 'center';
     g.fillText('🍜', 210, 340);
@@ -590,13 +601,13 @@ function buildShareCanvas() {
 
     const playSec = Math.floor((Date.now() - state.startTime) / 1000);
     const rows = [
-        ['累計生産', `${fmt(state.allTimeSoba)} 杯`],
-        ['毎秒', `${fmt(getBaseCps())} 杯`],
-        ['越前魂', `${fmt(state.souls)} 個`],
-        ['実績', `${state.achievements.length} / ${ACHIEVEMENTS.length}`],
-        ['在来種図鑑', `${state.farm.discovered.length} / ${CROPS.length}`],
-        ['福井の支店', `${state.regions.length} / ${REGIONS.length}`],
-        ['プレイ時間', `${Math.floor(playSec / 3600)}時間${Math.floor((playSec % 3600) / 60)}分`]
+        [t('累計生産'), t('{0} 杯', fmt(state.allTimeSoba))],
+        [t('毎秒'), t('{0} 杯', fmt(getBaseCps()))],
+        [t('越前魂'), t('{0} 個', fmt(state.souls))],
+        [t('実績'), `${state.achievements.length} / ${ACHIEVEMENTS.length}`],
+        [t('在来種図鑑'), `${state.farm.discovered.length} / ${CROPS.length}`],
+        [t('福井の支店'), `${state.regions.length} / ${REGIONS.length}`],
+        [t('プレイ時間'), t('{0}時間{1}分', Math.floor(playSec / 3600), Math.floor((playSec % 3600) / 60))]
     ];
     rows.forEach(([label, value], i) => {
         const y = 200 + i * 52;
@@ -614,15 +625,15 @@ function buildShareCanvas() {
 
 function openShareDialog() {
     let url;
-    try { url = buildShareCanvas().toDataURL('image/png'); } catch (e) { notify("画像を作れませんでした。", "⚠️"); return; }
+    try { url = buildShareCanvas().toDataURL('image/png'); } catch (e) { notify(t('画像を作れませんでした。'), "⚠️"); return; }
     const canShare = !!(navigator.canShare && navigator.share);
     showModal(`
-        <div class="modal-title">📸 進み具合をシェア</div>
-        <img src="${url}" alt="進み具合の画像" style="width:100%; border-radius:8px; margin:12px 0; border:1px solid var(--border)">
+        <div class="modal-title">📸 ${t('進み具合をシェア')}</div>
+        <img src="${url}" alt="${t('進み具合の画像')}" style="width:100%; border-radius:8px; margin:12px 0; border:1px solid var(--border)">
         <div class="btn-row" style="justify-content:center">
-            <button class="action-btn" onclick="downloadShareImage()">💾 画像を保存</button>
-            ${canShare ? '<button class="action-btn" onclick="shareProgressImage()">📤 シェア</button>' : ''}
-            <button class="action-btn" onclick="closeModal()">閉じる</button>
+            <button class="action-btn" onclick="downloadShareImage()">💾 ${t('画像を保存')}</button>
+            ${canShare ? `<button class="action-btn" onclick="shareProgressImage()">📤 ${t('シェア')}</button>` : ''}
+            <button class="action-btn" onclick="closeModal()">${t('閉じる')}</button>
         </div>
     `);
 }
@@ -639,7 +650,7 @@ function downloadShareImage() {
 function shareProgressImage() {
     buildShareCanvas().toBlob(blob => {
         const file = new File([blob], 'echizen-soba.png', { type: 'image/png' });
-        const data = { files: [file], text: `越前そばクリッカーで累計${fmt(state.allTimeSoba)}杯のそばを打ちました！` };
+        const data = { files: [file], text: t('越前そばクリッカーで累計{0}杯のそばを打ちました！', fmt(state.allTimeSoba)) };
         if (navigator.canShare && navigator.canShare(data)) {
             navigator.share(data).catch(() => { /* cancelled */ });
         } else {
@@ -660,9 +671,9 @@ function checkEventAnnounce() {
     state.eventsSeen.push(info.key);
     showModal(`
         <div class="hint-icon">${event.icon}</div>
-        <div class="modal-title">${event.name} 開催中！</div>
-        <div class="hint-text">${event.desc}<br>期間中(あと${info.daysLeft}日)は全生産+10%。限定のお客さん「${event.customer.icon} ${event.customer.name}」から報酬2倍の注文が届きます。<br>限定の注文を${EVENT_ORDER_GOAL}回達成すると、イベントの実績がもらえます。</div>
-        <button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent); min-width:140px" onclick="closeModal()">楽しむ！</button>
+        <div class="modal-title">${t('{0} 開催中！', event.name)}</div>
+        <div class="hint-text">${event.desc}<br>${t('期間中(あと{0}日)は全生産+10%。限定のお客さん「{1}」から報酬2倍の注文が届きます。<br>限定の注文を{2}回達成すると、イベントの実績がもらえます。', info.daysLeft, event.customer.icon + ' ' + event.customer.name, EVENT_ORDER_GOAL)}</div>
+        <button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent); min-width:140px" onclick="closeModal()">${t('楽しむ！')}</button>
     `);
     playSound('golden');
 }
@@ -741,7 +752,7 @@ function plantSeed(i) {
     if (!crop || !state.farm.discovered.includes(crop.id)) return;
     const cost = getSeedCost(crop);
     if (state.soba < cost) {
-        notify(`${crop.name}の種を買うには ${fmt(cost)} 杯必要です。`, "🌱");
+        notify(t('{0}の種を買うには {1} 杯必要です。', crop.name, fmt(cost)), "🌱");
         return;
     }
     state.soba -= cost;
@@ -766,7 +777,7 @@ function harvestPlot(i, silent) {
     state.farm.plots[i] = null;
     state.farm.harvests++;
     if (!silent) {
-        notify(`${crop.name}を収穫！${fmt(gain)} 杯を獲得。`, crop.icon);
+        notify(t('{0}を収穫！{1} 杯を獲得。', crop.name, fmt(gain)), crop.icon);
         playSound('harvest');
         calculateCps();
         render();
@@ -779,8 +790,8 @@ function harvestAll() {
     state.farm.plots.forEach((plot, i) => {
         if (isPlotActive(i) && isPlotMature(plot)) { total += harvestPlot(i, true); count++; }
     });
-    if (count === 0) { notify("実っている作物はまだありません。", "🌱"); return; }
-    notify(`${count}株をまとめて収穫！${fmt(total)} 杯を獲得。`, "🧺");
+    if (count === 0) { notify(t('実っている作物はまだありません。'), "🌱"); return; }
+    notify(t('{0}株をまとめて収穫！{1} 杯を獲得。', count, fmt(total)), "🧺");
     playSound('harvest');
     calculateCps();
     render();
@@ -827,11 +838,11 @@ function farmTick(now) {
             const crop = getCrop(recipe.child);
             if (!state.farm.discovered.includes(crop.id)) {
                 state.farm.discovered.push(crop.id);
-                notify(`新種発見！そば畑に「${crop.name}」が芽吹いた！(全生産+2%)`, crop.icon, true);
+                notify(t('新種発見！そば畑に「{0}」が芽吹いた！(全生産+2%)', crop.name), crop.icon, true);
                 playSound('achieve');
-                if (crop.id === 'ono') notify("そば畑が4×4に広がった！", "🌾");
+                if (crop.id === 'ono') notify(t('そば畑が4×4に広がった！'), "🌾");
             } else {
-                notify(`そば畑に${crop.name}が芽吹いた。`, crop.icon);
+                notify(t('そば畑に{0}が芽吹いた。', crop.name), crop.icon);
             }
             break;
         }
@@ -841,9 +852,9 @@ function farmTick(now) {
 function formatDuration(ms) {
     const sec = Math.max(0, Math.ceil(ms / 1000));
     const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-    if (h > 0) return `${h}時間${m}分`;
-    if (m > 0) return `${m}分${s}秒`;
-    return `${s}秒`;
+    if (h > 0) return t('{0}時間{1}分', h, m);
+    if (m > 0) return t('{0}分{1}秒', m, s);
+    return t('{0}秒', s);
 }
 
 function renderFarm() {
@@ -864,7 +875,7 @@ function renderFarm() {
         div.className = `seed-btn ${selectedSeed === crop.id ? 'selected' : ''} ${state.soba < cost ? 'poor' : ''}`;
         div.innerHTML = `<span style="font-size:18px">${crop.icon}</span><span>${crop.name}<br><span class="seed-cost">🍜 ${fmt(cost)}</span></span>`;
         div.onpointerdown = (e) => { e.preventDefault(); selectSeed(crop.id); };
-        div.onmouseenter = (e) => showTooltip(e, crop.name, `${crop.desc}<br>成長: ${formatDuration(getCropGrowMs(crop))}<br>${crop.effectDesc}`, cost);
+        div.onmouseenter = (e) => showTooltip(e, crop.name, `${crop.desc}<br>${t('成長: {0}', formatDuration(getCropGrowMs(crop)))}<br>${crop.effectDesc}`, cost);
         div.onmouseleave = hideTooltip;
         seeds.appendChild(div);
     });
@@ -878,7 +889,7 @@ function renderFarm() {
         if (!plot) {
             div.className = 'farm-plot empty';
             div.textContent = '＋';
-            div.onmouseenter = (e) => showTooltip(e, '空き地', '選んだ種をタップで植えられます。<br>実った作物の隣では新種が芽吹くことも。', 0);
+            div.onmouseenter = (e) => showTooltip(e, t('空き地'), t('選んだ種をタップで植えられます。<br>実った作物の隣では新種が芽吹くことも。'), 0);
         } else {
             const crop = getCrop(plot.crop);
             const progress = getPlotProgress(plot);
@@ -888,8 +899,8 @@ function renderFarm() {
                 (mature ? '' : `<div class="plot-bar"><div style="width:${(progress * 100).toFixed(1)}%"></div></div>`);
             // Computed on hover: the grid is only rebuilt every 2% of growth
             div.onmouseenter = (e) => showTooltip(e, crop.name, isPlotMature(plot)
-                ? `実りました！タップで収穫(約${fmt(getHarvestAmount(crop))}杯)<br>${crop.effectDesc}`
-                : `成長中… あと${formatDuration(getCropGrowMs(crop) * (1 - getPlotProgress(plot)))}`, 0);
+                ? `${t('実りました！タップで収穫(約{0}杯)', fmt(getHarvestAmount(crop)))}<br>${crop.effectDesc}`
+                : t('成長中… あと{0}', formatDuration(getCropGrowMs(crop) * (1 - getPlotProgress(plot)))), 0);
         }
         div.onpointerdown = (e) => { e.preventDefault(); onPlotTap(i); };
         div.onmouseleave = hideTooltip;
@@ -906,8 +917,8 @@ function renderFarm() {
         if (found) desc = `${crop.desc}<br><span style="color:#9ccc65">${crop.effectDesc}</span>`;
         else if (recipe && recipe.parents.every(p => state.farm.discovered.includes(p))) {
             const [a, b] = recipe.parents.map(p => getCrop(p).name);
-            desc = `ヒント: ${a === b ? `実った${a}を2株` : `実った${a}と${b}`}の隣の空き地に芽吹くらしい…`;
-        } else desc = 'まだ誰も知らない在来種。';
+            desc = a === b ? t('ヒント: 実った{0}を2株の隣の空き地に芽吹くらしい…', a) : t('ヒント: 実った{0}と{1}の隣の空き地に芽吹くらしい…', a, b);
+        } else desc = t('まだ誰も知らない在来種。');
         const div = document.createElement('div');
         div.className = 'dex-item';
         div.innerHTML = `
@@ -957,16 +968,16 @@ function showLoginBonusModal(day, reward, lumpBonus) {
     let cells = '';
     for (let d = 1; d <= 7; d++) {
         const cls = d < day ? 'done' : (d === day ? 'today' : '');
-        cells += `<div class="login-day ${cls}"><span class="ld-icon">${d === 7 ? '🎁' : (d <= day ? '🍜' : '・')}</span>${d}日目</div>`;
+        cells += `<div class="login-day ${cls}"><span class="ld-icon">${d === 7 ? '🎁' : (d <= day ? '🍜' : '·')}</span>${t('{0}日目', d)}</div>`;
     }
     showModal(`
-        <div class="modal-title">🎁 ログインボーナス</div>
-        <div style="font-size:13px; color:var(--muted)">連続 ${state.loginStreak} 日目のご来店、ありがとうございます！</div>
+        <div class="modal-title">🎁 ${t('ログインボーナス')}</div>
+        <div style="font-size:13px; color:var(--muted)">${t('連続 {0} 日目のご来店、ありがとうございます！', state.loginStreak)}</div>
         <div class="login-days">${cells}</div>
-        <div style="font-size:18px; font-weight:900; color:var(--accent); margin-bottom:4px">+${fmt(reward)} 杯</div>
-        ${lumpBonus ? '<div style="font-size:13px; margin-bottom:4px">＋ 🍡 そば粉の塊 1個</div>' : ''}
-        <div style="font-size:11px; color:var(--muted); margin-bottom:16px">毎日遊ぶと報酬が増え、7日目には特別なおまけがもらえます。</div>
-        <button class="prestige-btn" style="margin:0; padding:12px; background:linear-gradient(135deg,#6b4a00,#2a1800); border-color:var(--accent)" onclick="closeModal()">受け取る</button>
+        <div style="font-size:18px; font-weight:900; color:var(--accent); margin-bottom:4px">+${t('{0} 杯', fmt(reward))}</div>
+        ${lumpBonus ? `<div style="font-size:13px; margin-bottom:4px">${t('＋ 🍡 そば粉の塊 1個')}</div>` : ''}
+        <div style="font-size:11px; color:var(--muted); margin-bottom:16px">${t('毎日遊ぶと報酬が増え、7日目には特別なおまけがもらえます。')}</div>
+        <button class="prestige-btn" style="margin:0; padding:12px; background:linear-gradient(135deg,#6b4a00,#2a1800); border-color:var(--accent)" onclick="closeModal()">${t('受け取る')}</button>
     `);
     playSound('golden');
 }
@@ -1000,6 +1011,7 @@ const SHOP_STAGES = [
     { min: 1e21, name: '🌌 宇宙そば時代', bg: 'radial-gradient(circle at 50% 40%, #2a1450 0%, #0a0518 100%)', stars: true },
     { min: 1e27, name: '♾️ 概念のそば', bg: 'radial-gradient(circle at 50% 40%, #4a0f3a 0%, #12030e 100%)', stars: true }
 ];
+SHOP_STAGES.forEach(st => { st.name = t(st.name); });
 let currentStageIdx = -1;
 
 function renderStage() {
@@ -1014,15 +1026,15 @@ function renderStage() {
     panel.classList.toggle('starry', !!stage.stars);
     document.getElementById('stage-label').textContent = stage.name;
     if (grew) {
-        notify(`お店が成長した！「${stage.name}」`, "🎊", true);
+        notify(t('お店が成長した！「{0}」', stage.name), "🎊", true);
         playSound('achieve');
     }
 }
 
 function renderBuffBar() {
     let html = '';
-    if (buffMult > 1 && buffTimer > 0) html += `<span class="buff-chip">🔥 FEVER ×${buffMult} 残り${Math.ceil(buffTimer)}秒</span>`;
-    if (clickBuffMult > 1 && clickBuffTimer > 0) html += `<span class="buff-chip click">👆 クリック×${clickBuffMult} 残り${Math.ceil(clickBuffTimer)}秒</span>`;
+    if (buffMult > 1 && buffTimer > 0) html += `<span class="buff-chip">🔥 FEVER ×${buffMult} ${t('残り{0}秒', Math.ceil(buffTimer))}</span>`;
+    if (clickBuffMult > 1 && clickBuffTimer > 0) html += `<span class="buff-chip click">👆 ${t('クリック')}×${clickBuffMult} ${t('残り{0}秒', Math.ceil(clickBuffTimer))}</span>`;
     setHTMLIfChanged(document.getElementById('buff-bar'), html);
     document.getElementById('fever-overlay').classList.toggle('on', buffMult > 1);
 }
@@ -1077,14 +1089,14 @@ function checkHints() {
     state.seenHints.push(hint.id);
     const buttons = hint.view
         ? `<div class="btn-row" style="justify-content:center">
-               <button class="action-btn" onclick="closeModal()">あとで</button>
-               <button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent)" onclick="closeModal(); goToView('${hint.view}')">見に行く</button>
+               <button class="action-btn" onclick="closeModal()">${t('あとで')}</button>
+               <button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent)" onclick="closeModal(); goToView('${hint.view}')">${t('見に行く')}</button>
            </div>`
-        : `<button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent); min-width:140px" onclick="closeModal()">わかった</button>`;
+        : `<button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent); min-width:140px" onclick="closeModal()">${t('わかった')}</button>`;
     showModal(`
         <div class="hint-icon">${hint.icon}</div>
-        <div class="modal-title">${hint.title}</div>
-        <div class="hint-text">${hint.text}</div>
+        <div class="modal-title">${t(hint.title)}</div>
+        <div class="hint-text">${t(hint.text)}</div>
         ${buttons}
     `);
 }

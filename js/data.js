@@ -31,6 +31,7 @@ const BUILDINGS = [
     { id: 'omniscience', name: '全知のそば', icon: '🧠', baseCost: 1e28, baseCps: 1e18, desc: 'そばを打つという行為そのものを理解し尽くした境地。' },
     { id: 'you', name: 'あなた', icon: '🧑‍🍳', baseCost: 1.5e30, baseCps: 5.8e19, desc: 'もはや誰が誰にそばを打たせているのかは分からない。生産の最後のピースは、あなた自身だった。' }
 ];
+localizeList(BUILDINGS, 'buildings');
 
 const UPGRADES = [
     { id: 'upg_click_1', name: '強化割り箸', icon: '🥢', cost: 100, type: 'click', power: 2, desc: 'クリックパワー2倍。', req: { totalSoba: 10 } },
@@ -95,6 +96,7 @@ const UPGRADES = [
     { id: 'upg_clickcps_4', name: '無心の連打', icon: '🧘', cost: 5e14, type: 'clickCps', cpsPercent: 0.01, desc: 'クリックごとに、毎秒生産の1%分のそばをさらに追加で獲得。', req: { clicks: 30000 } },
     { id: 'upg_clickcps_5', name: '越前流・神速打ち', icon: '⚡', cost: 5e19, type: 'clickCps', cpsPercent: 0.01, desc: 'クリックごとに、毎秒生産の1%分のそばをさらに追加で獲得。', req: { clicks: 75000 } }
 ];
+localizeList(UPGRADES, 'upgrades');
 
 // Tiered per-building upgrades, generated for every building so each one keeps scaling:
 // 25 owned → x3 (only where no hand-made 25-tier exists), 50 owned → x2, 100 owned → x2.
@@ -110,13 +112,13 @@ BUILDINGS.forEach(b => {
         if (exists) return;
         UPGRADES.push({
             id: `upg_${b.id}_t${tier.req}`,
-            name: `${b.name}・${tier.suffix}`,
+            name: t('{0}・{1}', b.name, t(tier.suffix)),
             icon: b.icon,
             cost: b.baseCost * tier.costMult,
             type: 'building',
             target: b.id,
             mult: tier.mult,
-            desc: `${b.name}の効率${tier.desc}。(${tier.req}個所有で出現)`,
+            desc: t('{0}の効率{1}。({2}個所有で出現)', b.name, t(tier.desc), tier.req),
             req: { buildings: { [b.id]: tier.req } }
         });
     });
@@ -166,6 +168,7 @@ const HEAVENLY_UPGRADES = [
     { id: 'heav_32', name: '越前魂の極致', icon: '💎', cost: 500, desc: '越前魂1個あたりの生産ボーナスが+2%になる。', effect: 'soulPower2', requires: 'heav_18' },
     { id: 'heav_33', name: '魂の器', icon: '🏺', cost: 3000, desc: '越前魂の効果がゆるやかになり始める個数が1000個から5000個になる。', effect: 'soulCap', requires: 'heav_32' }
 ];
+localizeList(HEAVENLY_UPGRADES, 'heavenly');
 
 const SPIRITS = [
     { id: 'spirit_speed', name: '疾風の精霊', icon: '💨', desc: '全生産+15%。ただし気が急いて、ゴールデン/呪われしそばの出現率が-15%される。', effects: [{ type: 'globalMult', value: 1.15 }, { type: 'goldenFreqMult', value: 0.85 }] },
@@ -175,6 +178,7 @@ const SPIRITS = [
     { id: 'spirit_commerce', name: '商いの精霊', icon: '💴', desc: '施設のコストが少し安くなる。ただし値切り交渉に気を取られ、クリックパワーが-8%される。', effects: [{ type: 'cheaperBuild', value: 0.97 }, { type: 'clickMult', value: 0.92 }] },
     { id: 'spirit_chaos', name: '混沌の精霊', icon: '🌀', desc: '全生産+50%という破格の力を持つが、その代償として呪われしそばの出現率が2倍になる。上級者向け。', effects: [{ type: 'globalMult', value: 1.5 }, { type: 'wrathChanceMult', value: 2.0 }] }
 ];
+localizeList(SPIRITS, 'spirits');
 
 function getSpiritEffectMult(type) {
     let mult = 1;
@@ -204,6 +208,7 @@ const SEASONS = [
     { id: 'autumn', name: '新そば収穫の陣', icon: '🍁', months: [9, 10, 11], effect: 'clickMult', value: 1.1, effectDesc: 'クリックパワー+10%', specialName: '新そば', specialIcon: '🍁🍜' },
     { id: 'winter', name: '年越しそばの陣', icon: '❄️', months: [12, 1, 2], effect: 'goldenBonus', value: 1.2, effectDesc: 'ゴールデンそばの報酬+20%', specialName: '年越しそば', specialIcon: '❄️🍜' }
 ];
+localizeList(SEASONS, 'seasons');
 
 function getSeasonByMonth() {
     const m = new Date().getMonth() + 1;
@@ -326,20 +331,21 @@ const ACHIEVEMENTS = [
     { id: 'ach_sell_1', name: '店じまい', icon: '💸', desc: '施設を売却する。', req: { buildingsSold: 1 } },
     { id: 'ach_event_all', name: '越前の一年', icon: '🗓️', desc: '全ての期間限定イベントで限定のお客さんの注文を3回ずつ達成する。', req: { eventsAll: 1 } }
 ];
+localizeList(ACHIEVEMENTS, 'achievements');
 
 // Per-building milestone achievements, generated for every building
 const BUILDING_ACHIEVEMENT_TIERS = [
-    { count: 50, title: 'の達人', icon: '🥉' },
-    { count: 100, title: 'の支配者', icon: '🥈' },
-    { count: 200, title: 'の頂点', icon: '🥇' }
+    { count: 50, title: '{0}の達人', icon: '🥉' },
+    { count: 100, title: '{0}の支配者', icon: '🥈' },
+    { count: 200, title: '{0}の頂点', icon: '🥇' }
 ];
 BUILDINGS.forEach(b => {
     BUILDING_ACHIEVEMENT_TIERS.forEach(tier => {
         ACHIEVEMENTS.push({
             id: `ach_b_${b.id}_${tier.count}`,
-            name: `${b.name}${tier.title}`,
+            name: t(tier.title, b.name),
             icon: b.icon,
-            desc: `${b.name}を${tier.count}個所有する。${tier.icon}`,
+            desc: t('{0}を{1}個所有する。', b.name, tier.count) + tier.icon,
             req: { buildings: { [b.id]: tier.count } }
         });
     });
@@ -352,12 +358,14 @@ const SHADOW_ACHIEVEMENTS = [
     { id: 'shadow_reset_addict', name: 'リセット常習犯', icon: '🌀', desc: 'リセットボタンを50回見る。' },
     { id: 'shadow_midnight', name: '満月の夜', icon: '🌕', desc: '深夜0時〜4時の間にプレイする。' }
 ];
+localizeList(SHADOW_ACHIEVEMENTS, 'shadow');
 
 const CHALLENGES = [
     { id: 'no_click', name: '不動の一杯', icon: '🧘', desc: 'クリックせずに施設の力だけで累計1000万杯を目指す。挑戦中はクリックパワーが常に0になる。', goal: 1e7, modifier: 'noClick' },
     { id: 'no_golden', name: '幸運を捨てし者', icon: '🚫', desc: 'ゴールデンそば・呪われしそば・季節限定そばが一切出現しない状態で累計1億杯を目指す。', goal: 1e8, modifier: 'noGolden' },
     { id: 'expensive', name: '高騰の時代', icon: '📈', desc: '施設のコストが常に1.5倍の状態で累計1000万杯を目指す。', goal: 1e7, modifier: 'expensiveBuildings' }
 ];
+localizeList(CHALLENGES, 'challenges');
 
 const REGIONS = [
     { id: 'katsuyama', name: '勝山', icon: '🦕', x: 60, y: 16, unlockBuildings: 500, cost: 5e9, bonusName: '恐竜ボーナス', bonusDesc: '太古の地層から呼び覚まされた力で、全生産が+10%される。', effect: 'globalMult', value: 1.10, requires: null, flavor: '恐竜博物館で知られる勝山に支店を開いた。地元の子供たちがそば打ちを恐竜の骨掘りのように楽しんでいる。' },
@@ -370,6 +378,7 @@ const REGIONS = [
     { id: 'tojinbo', name: '東尋坊', icon: '🌊', x: 22, y: 12, unlockBuildings: 3200, cost: 5e22, bonusName: '度胸ボーナス', bonusDesc: '断崖絶壁で鍛えた度胸で、呪われしそばで失うそばが40%減る。', effect: 'wrathShield', value: 0.6, requires: 'obama', flavor: '断崖の名所・東尋坊のそばに支店を開いた。' },
     { id: 'echizen_coast', name: '越前海岸', icon: '🦀', x: 18, y: 58, unlockBuildings: 6000, cost: 5e28, bonusName: '越前ガニボーナス', bonusDesc: '冬の味覚・越前ガニとの合わせ技で、全生産が+25%。', effect: 'globalMult', value: 1.25, requires: 'takefu', flavor: '越前ガニの本場・越前海岸に支店を開いた。' }
 ];
+localizeList(REGIONS, 'regions');
 
 // --- Soba farm crops: Fukui's native buckwheat strains, discovered by cross-breeding ---
 const FARM_UNLOCK_SOBA = 1e5;
@@ -382,6 +391,7 @@ const CROPS = [
     { id: 'miyama', name: '美山在来', icon: '🍂', growMin: 40, costSec: 1200, minCost: 100000, harvestSec: 6000, effect: { type: 'cps', value: 0.05 }, effectDesc: '実っている間、全生産+5%', desc: '山あいの美山で守られてきた希少な在来種。' },
     { id: 'maboroshi', name: '幻の越前在来', icon: '✨', growMin: 90, costSec: 3000, minCost: 1000000, harvestSec: 20000, effect: { type: 'cps', value: 0.12 }, effectDesc: '実っている間、全生産+12%', desc: '見た者はほとんどいないという、伝説のそば。' }
 ];
+localizeList(CROPS, 'crops');
 function createFreshFarm() {
     return { plots: new Array(FARM_MAX_SIZE * FARM_MAX_SIZE).fill(null), discovered: ['common'], harvests: 0 };
 }
@@ -413,6 +423,7 @@ const EVENTS = [
       customer: { icon: '🔔', name: '大晦日のお客さん' }, desc: '一年の締めくくりに、誰もが年越しそばを求めてやってくる。',
       news: ['大晦日、そば屋の前に除夜の鐘まで続く行列。', '「来年も細く長く」年越しそばの注文が殺到。'] }
 ];
+localizeList(EVENTS, 'events');
 const EVENT_ORDER_GOAL = 3; // event orders needed for that event's achievement
 
 function dayOfYearKey(month, day) {
@@ -441,7 +452,7 @@ function getEventInfo(event, date = new Date()) {
 
 // One achievement per limited-time event
 EVENTS.forEach(e => {
-    ACHIEVEMENTS.push({ id: `ach_event_${e.id}`, name: `${e.name}を満喫`, icon: e.icon, desc: `「${e.name}」の期間中に、限定のお客さんの注文を${EVENT_ORDER_GOAL}回達成する。`, req: { eventOrders: e.id } });
+    ACHIEVEMENTS.push({ id: `ach_event_${e.id}`, name: t('{0}を満喫', e.name), icon: e.icon, desc: t('「{0}」の期間中に、限定のお客さんの注文を{1}回達成する。', e.name, EVENT_ORDER_GOAL), req: { eventOrders: e.id } });
 });
 
 // --- Customer orders ---
@@ -455,6 +466,7 @@ const ORDER_CUSTOMERS = [
     { icon: '🚄', name: '北陸新幹線の乗客' },
     { icon: '⛩️', name: '永平寺の修行僧' }
 ];
+localizeList(ORDER_CUSTOMERS, 'customers', (c, i) => i);
 const ORDER_FIRST_DELAY = 90 * 1000;
 const ORDER_MIN_GAP = 180 * 1000;
 const ORDER_MAX_GAP = 360 * 1000;
@@ -493,6 +505,7 @@ const GLOSSARY = [
     { category: '基本', term: '設定・引き継ぎ', icon: '⚙️', desc: '「設定」タブで効果音・演出・数字の表示を変えられる。セーブデータを文字列やファイルで書き出し、別の端末で読み込むこともできる。' },
     { category: '隠し要素', term: '裏実績', icon: '🌑', desc: '通常の実績数にはカウントされない、少し変わった条件で解除される隠し実績。統計タブで確認できる。' }
 ];
+localizeList(GLOSSARY, 'glossary', (g, i) => i);
 
 const NEWS = [
     "越前そばの香りが街中に漂っています。",
@@ -531,3 +544,4 @@ const NEWS = [
     "越前そばの海外進出、現地語で「ECHIZEN SOBA」が流行語に。",
     "天気予報「明日は晴れ時々そば、所によりおろし」。"
 ];
+if (I18N[LANG] && I18N[LANG].data.news) NEWS.splice(0, NEWS.length, ...I18N[LANG].data.news);

@@ -12,8 +12,10 @@ let browser;
 before(async () => { browser = await chromium.launch(); });
 after(async () => { await browser.close(); });
 
-async function openGame(viewport = { width: 1400, height: 900 }) {
+async function openGame(viewport = { width: 1400, height: 900 }, lang = 'ja') {
     const context = await browser.newContext({ viewport });
+    // Fix the language so results don't depend on the machine's locale
+    await context.addInitScript((l) => { try { localStorage.setItem('echizenSobaSettings', JSON.stringify({ lang: l })); } catch (e) { /* ignore */ } }, lang);
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
@@ -328,4 +330,56 @@ test('map: branch names are visible and opened branches stay known', async () =>
     assert.deepEqual(r.names.filter(n => n === '？？？'), [], 'opened branches must not show as ？？？');
     assert.deepEqual(r.covered, [], 'labels must not be hidden behind markers');
     await close();
+});
+
+test('English mode leaves no Japanese on screen', async () => {
+    const { page, errors, close } = await openGame({ width: 1400, height: 900 }, 'en');
+    const leftovers = await page.evaluate(async () => {
+        const jp = /[\u3040-\u30ff\u4e00-\u9fff]/;
+        const found = new Set();
+        const scan = (where) => {
+            const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+            while (walker.nextNode()) {
+                const n = walker.currentNode;
+                // the language switch is deliberately labelled in both languages
+                if (jp.test(n.nodeValue) && !n.nodeValue.includes('Language') && n.parentElement && n.parentElement.offsetParent !== null) {
+                    found.add(`${where}: ${n.nodeValue.trim().slice(0, 60)}`);
+                }
+            }
+        };
+        scan('start');
+        state.allTimeSoba = state.totalSoba = 5e16; state.soba = 1e16; state.prestigeCount = 2; state.souls = 300;
+        BUILDINGS.slice(0, 14).forEach((b, i) => { state.buildings[b.id] = 120 - i * 5; });
+        state.regions = ['katsuyama', 'ono']; state.spirits = ['spirit_speed']; state.lumps = 3; state.heavenlyUpgrades = ['heav_1', 'heav_3'];
+        state.farm.discovered = ['common', 'maruoka']; state.farm.plots[0] = { crop: 'common', plantedAt: 0 };
+        state.achievements = ACHIEVEMENTS.slice(0, 30).map(a => a.id); buffMult = 7; buffTimer = 30; clickBuffMult = 777; clickBuffTimer = 5;
+        state.nextOrderTime = 1; orderTick(Date.now()); calculateCps(); render();
+        scan('main');
+        TAB_GROUPS.forEach(g => g.views.forEach(v => { switchTab(v.id); render(); scan(v.id); }));
+        setShopMode('sell'); switchTab('shop'); render(); scan('sell'); setShopMode('buy');
+        openAscensionScreen(); scan('ascension'); closeAscensionScreen();
+        showLoginBonusModal(7, 1e6, true); scan('login'); closeModal();
+        state.seenHints = []; checkHints(); scan('hint'); closeModal();
+        state.eventsSeen = []; checkEventAnnounce(); scan('event'); while (isModalOpen()) closeModal();
+        openShareDialog(); scan('share'); closeModal();
+        document.querySelectorAll('.building-item, .upgrade-item, .ach-icon-small').forEach(el => {
+            if (!el.onmouseenter) return;
+            el.onmouseenter({ clientX: 10, clientY: 10 });
+            const tip = document.getElementById('tooltip').innerText;
+            if (jp.test(tip)) found.add(`tooltip: ${tip.slice(0, 60)}`);
+        });
+        return [...found];
+    });
+    assert.deepEqual(leftovers, []);
+    assert.deepEqual(errors, []);
+    await close();
+});
+
+test('number formats: Japanese myriads and English short scale', async () => {
+    const ja = await openGame();
+    const en = await openGame({ width: 1400, height: 900 }, 'en');
+    const sample = () => [999, 12345, 1.5e8, 2.5e12].map(n => fmt(n));
+    assert.deepEqual(await ja.page.evaluate(sample), ['999', '1.23万', '1.50億', '2.50兆']);
+    assert.deepEqual(await en.page.evaluate(sample), ['999', '12.35K', '150M', '2.5T']);
+    await ja.close(); await en.close();
 });
