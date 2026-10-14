@@ -498,6 +498,97 @@ const DAILY_MISSION_COUNT = 3;
 const DAILY_REWARD_SECONDS = 900;   // each mission: 15 minutes of base production
 const DAILY_MIN_REWARD = 1000;
 
+// --- Story: short scenes that unlock as the shop grows (re-readable under Records → Story) ---
+const STORY_CHARACTERS = {
+    you: { icon: '🧑‍🍳', name: 'あなた' },
+    grandma: { icon: '👵', name: 'ふみ婆ちゃん' },
+    kenta: { icon: '👦', name: '見習いの健太' },
+    gen: { icon: '👨‍🦳', name: '常連の源さん' },
+    mayumi: { icon: '👩‍💼', name: '観光協会の真由美さん' },
+    sobataro: { icon: '🤖', name: 'ソバ太郎' },
+    spirit: { icon: '👁️', name: 'そばの神髄' }
+};
+const STORY = [
+    { id: 'ch_open', title: '店を継ぐ日', when: () => state.clicks >= 5, lines: [
+        ['grandma', '今日からこの店は、あんたのもんや。'],
+        ['grandma', 'ほやけど、そばは手を抜いたらすぐばれる。一杯ずつ、心を込めて打つんやざ。'],
+        ['you', 'はい。……まずは一杯目から。'],
+        ['grandma', '大根おろしは、たっぷりな。']] },
+    { id: 'ch_kenta', title: '見習いがやってきた', when: () => state.buildings.student >= 1, lines: [
+        ['kenta', 'あの！ここで、そば打ちを教えてもらえませんか！'],
+        ['you', '……手はきれいに洗ってきた？'],
+        ['kenta', 'はい！三回洗いました！'],
+        ['grandma', 'ええ目をしとる子やの。しっかり鍛えてやり。']] },
+    { id: 'ch_gen', title: '常連さん', when: () => state.allTimeSoba >= 1e5, lines: [
+        ['gen', 'ふみさんの店が代替わりしたって聞いての。どれ、一杯もらおうか。'],
+        ['gen', '……(ずずっ)'],
+        ['gen', 'ん。辛味大根が効いとる。ふみさんの味や。'],
+        ['you', 'ありがとうございます！'],
+        ['gen', '明日も来るでの。毎日来るでの。']] },
+    { id: 'ch_popular', title: '行列のできる店', when: () => state.allTimeSoba >= 1e6, lines: [
+        ['kenta', '師匠！外、行列ができてます！'],
+        ['you', 'えっ、なんで？'],
+        ['gen', 'わしが町じゅうに言いふらしたでの。'],
+        ['grandma', '繁盛は、ありがたいことや。ほやけど、味は変えたらあかんよ。']] },
+    { id: 'ch_city', title: 'そばの街', when: () => state.allTimeSoba >= 1e9, lines: [
+        ['mayumi', '観光協会の者です。この町を「そばの街」として売り出したいんです！'],
+        ['mayumi', '恐竜、東尋坊、カニ……そして越前そば。福井にはまだまだ魅力があります！'],
+        ['you', '店が一軒増えるたびに、町がにぎやかになっていく気がします。'],
+        ['mayumi', '支店を出すなら、県内どこへでもご案内しますよ。']] },
+    { id: 'ch_robot', title: 'ソバ太郎', when: () => state.buildings.robot >= 1, lines: [
+        ['sobataro', 'ハジメマシテ。AI製麺ロボ「ソバ太郎」デス。最適ナ加水率ハ、47.3%デス。'],
+        ['kenta', '師匠、ロボットに仕事取られちゃいますよ……'],
+        ['sobataro', 'ワタシニハ、マダ足リナイモノガアリマス。ソレハ「心」デス。教エテクダサイ。'],
+        ['grandma', 'ほんなら、まずは食べてみ。うまいもんを知らんと、うまいもんは打てんでの。']] },
+    { id: 'ch_dream', title: '夢の中で', when: () => state.allTimeSoba >= 1e12, lines: [
+        ['grandma', '……ずいぶん、遠くまで来たのう。'],
+        ['you', '婆ちゃん？ ここは……'],
+        ['grandma', 'そばの一生はな、打って、茹でて、食べられて、また畑に還るんや。店も、人も、おんなじや。'],
+        ['grandma', 'いっぺん全部手放してみ。手に残ったもんが、ほんまもんの「越前魂」や。']] },
+    { id: 'ch_reborn', title: '生まれ変わり', when: () => state.prestigeCount >= 1, lines: [
+        ['you', '……また小さな店から、やり直しだ。'],
+        ['kenta', '師匠、なんだか前より手つきが速くなってません？'],
+        ['you', '体は覚えてないのに、魂が覚えてるみたいなんだ。'],
+        ['gen', 'なんや知らんが、うまいでの。それでええ。']] },
+    { id: 'ch_world', title: '世界へ', when: () => state.allTimeSoba >= 1e15, lines: [
+        ['mayumi', '大変です！ 海外からの予約が止まりません！'],
+        ['mayumi', 'パリにもニューヨークにも「ECHIZEN SOBA」の看板が！'],
+        ['gen', 'わしの行きつけが、世界の行きつけになってもうたのう。'],
+        ['you', 'どこで食べても、福井の水と風を感じられる一杯にしたいです。']] },
+    { id: 'ch_space', title: '宇宙そば時代', when: () => state.buildings.satellite >= 1, lines: [
+        ['sobataro', '報告。無重力下ノそば粉、香リ+12%。ワタシハ、コレヲ「ウマイ」ト判断シマス。'],
+        ['kenta', 'ソバ太郎、「うまい」がわかるようになったんだ！'],
+        ['sobataro', 'ハイ。ふみサンノそばヲ、毎日食ベマシタカラ。'],
+        ['grandma', 'ほうか。そら、よかったのう。']] },
+    { id: 'ch_god', title: 'そばの神髄', when: () => state.buildings.god >= 1, lines: [
+        ['spirit', 'よくぞここまで来た、そばを打つ者よ。'],
+        ['you', 'あなたは……？'],
+        ['spirit', '我はそばの神髄。全ての一杯に宿り、全ての一杯を見てきた。'],
+        ['spirit', 'だが、まだ一つ足りぬ。最後の一片は、そなた自身が見つけねばならぬ。']] },
+    { id: 'ch_you', title: '最後のピース', when: () => state.buildings.you >= 1, lines: [
+        ['spirit', '見つけたか。生産の最後のピースは――'],
+        ['you', '……わたし自身、だったんですね。'],
+        ['grandma', '最初から言うとったやろ。一杯ずつ、心を込めて打つんやざ、って。'],
+        ['kenta', '師匠！ 今日も行列できてます！'],
+        ['you', 'よし、打とう。一杯目から。']] },
+    { id: 'ch_divine', title: '神さまのそば屋', when: () => state.divinityCount >= 1, lines: [
+        ['spirit', '全てを捧げたか。その魂、もはや人のものではない。'],
+        ['grandma', '神さんになっても、店に立つんやろ？'],
+        ['you', 'もちろん。お客さんが待ってますから。'],
+        ['gen', 'わしは毎日来るでの。……神さんの店でもな。']] }
+];
+(function localizeStory() {
+    const data = I18N[LANG] && I18N[LANG].data;
+    if (!data || !data.story) return;
+    STORY.forEach(c => {
+        const tr = data.story[c.id];
+        if (!tr) return;
+        c.title = tr.title;
+        c.lines.forEach((line, i) => { if (tr.lines[i]) line[1] = tr.lines[i]; });
+    });
+    Object.entries(data.storyCharacters || {}).forEach(([id, name]) => { if (STORY_CHARACTERS[id]) STORY_CHARACTERS[id].name = name; });
+})();
+
 // --- Divinity: the second-tier prestige, offering souls and heavenly powers for divine virtue ---
 const DIVINITY_MIN_SOULS = 1000;
 const DIVINITY_PROD_PER_POINT = 1;   // +100% production per point (production only: a soul bonus fed back into itself)

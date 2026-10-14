@@ -365,6 +365,9 @@ test('English mode leaves no Japanese on screen', async () => {
         // every hint and daily task, not just the ones this state happens to show
         HINTS.forEach(h => { if (t(h.title) === h.title || t(h.text) === h.text) found.add(`hint: ${h.id}`); });
         DAILY_MISSIONS.forEach(m => { if (t(m.text) === m.text) found.add(`daily: ${m.id}`); });
+        state.storySeen = STORY.map(c => c.id); switchTab('story'); render(); scan('story');
+        STORY.forEach(c => { showStoryChapter(c.id); scan(`story ${c.id}`); closeModal(); });
+        switchTab('stats'); render(); scan('stats breakdown');
         document.querySelectorAll('.building-item, .upgrade-item, .ach-icon-small').forEach(el => {
             if (!el.onmouseenter) return;
             el.onmouseenter({ clientX: 10, clientY: 10 });
@@ -504,6 +507,57 @@ test('late-game challenges: locked early, no upgrades, and the time limit fails 
     assert.equal(r.after, null, 'time limit sends the player back');
     assert.equal(r.souls, 50);
     assert.equal(r.cleared, false);
+    assert.deepEqual(errors, []);
+    await close();
+});
+
+test('story: a chapter shows once when reached, and old saves unlock reached chapters quietly', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        while (isModalOpen()) closeModal();
+        state.storySeen = []; state.clicks = 0;
+        checkStory();
+        const none = isModalOpen();
+        state.clicks = 10; checkStory();
+        const shown = isModalOpen() && document.getElementById('modal-box').innerText.includes(STORY[0].title);
+        closeModal(); checkStory(); // nothing new
+        const once = !isModalOpen() && state.storySeen.length === 1;
+        // a save from before the story existed
+        const old = JSON.parse(JSON.stringify(state)); delete old.storySeen;
+        old.allTimeSoba = 2e9; old.buildings.student = 5; old.clicks = 100;
+        normalizeStateObject(old);
+        return { none, shown, once, oldSeen: old.storySeen };
+    });
+    assert.equal(r.none, false);
+    assert.ok(r.shown);
+    assert.ok(r.once);
+    assert.deepEqual(r.oldSeen, ['ch_open', 'ch_kenta', 'ch_gen', 'ch_popular', 'ch_city']);
+    assert.deepEqual(errors, []);
+    await close();
+});
+
+test('production breakdown and payback times add up', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        state.buildings.student = 10; state.buildings.kitchen = 5; state.reputation = 10; state.artisanPoints = 5;
+        calculateCps();
+        const raw = Object.values(buildingRawCps).reduce((a, b) => a + b, 0);
+        const product = cpsFactors.reduce((m, f) => m * f[1], 1);
+        const student = BUILDINGS.find(b => b.id === 'student');
+        const unit = getBuildingUnitCps(student);
+        const cost = getBuildingCost(student);
+        state.allTimeSoba = state.totalSoba = 1000;
+        switchTab('stats'); render();
+        const statsText = document.getElementById('stats-container').innerText;
+        return { raw, product, base: getBaseCps(), unitTimesCount: unit * 10, studentShare: buildingRawCps.student * product,
+                 payback: getPaybackSec(student, 1, cost), expected: cost / unit, best: getBestValueBuilding(),
+                 hasBreakdown: statsText.includes('生産の内訳') && statsText.includes('評判') };
+    });
+    assert.ok(Math.abs(r.raw * r.product - r.base) < 1e-9 * r.base);
+    assert.ok(Math.abs(r.unitTimesCount - r.studentShare) < 1e-9 * r.studentShare);
+    assert.ok(Math.abs(r.payback - r.expected) < 1e-9);
+    assert.ok(['student', 'kitchen', 'mill'].includes(r.best), String(r.best));
+    assert.ok(r.hasBreakdown);
     assert.deepEqual(errors, []);
     await close();
 });

@@ -96,6 +96,8 @@ function normalizeState() {
     if (state.divinity === undefined) state.divinity = 0;
     if (state.divinityCount === undefined) state.divinityCount = 0;
     if (state.pastSoba === undefined) state.pastSoba = 0;
+    // Saves from before the story: chapters already reached are unlocked quietly, to read under Records
+    if (state.storySeen === undefined) state.storySeen = STORY.filter(c => c.when()).map(c => c.id);
     if (state.seenHints === undefined) {
         // Saves from before hints existed: only explain features the player hasn't reached yet
         state.seenHints = HINTS.filter(h => h.id !== 'welcome' && h.when()).map(h => h.id);
