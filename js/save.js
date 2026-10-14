@@ -91,6 +91,11 @@ function normalizeState() {
     if (state.buildingsSold === undefined) state.buildingsSold = 0;
     if (!state.eventOrders) state.eventOrders = {};
     if (!state.eventsSeen) state.eventsSeen = [];
+    if (state.daily === undefined) state.daily = null;
+    if (state.dailyFullDays === undefined) state.dailyFullDays = 0;
+    if (state.divinity === undefined) state.divinity = 0;
+    if (state.divinityCount === undefined) state.divinityCount = 0;
+    if (state.pastSoba === undefined) state.pastSoba = 0;
     if (state.seenHints === undefined) {
         // Saves from before hints existed: only explain features the player hasn't reached yet
         state.seenHints = HINTS.filter(h => h.id !== 'welcome' && h.when()).map(h => h.id);

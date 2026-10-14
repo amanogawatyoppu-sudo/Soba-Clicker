@@ -49,7 +49,12 @@ function createFreshState() {
         lastLoginDay: '',
         buildingsSold: 0,
         eventOrders: {},
-        eventsSeen: []
+        eventsSeen: [],
+        daily: null,
+        dailyFullDays: 0,
+        divinity: 0,
+        divinityCount: 0,
+        pastSoba: 0
     };
 }
 
@@ -152,6 +157,9 @@ function calculateCps() {
     // Limited-time event running today
     const event = getActiveEvent();
     if (event) newCps *= event.prodBonus;
+
+    // Divine virtue from the second-tier prestige
+    newCps *= getDivinityProdMult();
     
     // Prestige Bonus: Each soul gives +1% bonus
     let prestigeMult = 1 + getEffectiveSouls() * getSoulBonusPerSoul();
@@ -287,6 +295,7 @@ function update() {
         checkLoginBonus();
         checkHints();
         checkEventAnnounce();
+        dailyTick();
     }
     checkChallengeProgress();
 
@@ -361,6 +370,7 @@ function render() {
     if (activeView === 'farm') renderFarm();
     if (activeView === 'lump') renderLumpList();
     if (activeView === 'prestige') renderPrestigeView();
+    if (activeView === 'daily') renderDaily();
 
     renderShop();
     renderUpgrades();
@@ -485,7 +495,7 @@ function renderShop() {
 function renderUpgrades() {
     if (activeView !== 'shop') return;
     const visible = UPGRADES.filter(u => {
-        if (state.upgrades.includes(u.id)) return false;
+        if (state.upgrades.includes(u.id) || state.isChallengeRun === 'no_upgrade') return false;
         if (u.req.totalSoba && state.totalSoba >= u.req.totalSoba * 0.5) return true;
         if (u.req.clicks && state.clicks >= u.req.clicks * 0.5) return true;
         if (u.req.buildings) {
@@ -555,6 +565,9 @@ function renderStats() {
         <div class="stat-row"><span class="stat-label">${t('お客さんの注文')}</span><span>${t('達成 {0} 回 / 失敗 {1} 回', state.ordersCompleted, state.ordersFailed)}</span></div>
         <div class="stat-row"><span class="stat-label">${t('評判')}</span><span>${t('⭐ {0} (全生産+{1}%)', state.reputation, (state.reputation * REPUTATION_BONUS * 100).toFixed(1))}</span></div>
         <div class="stat-row"><span class="stat-label">${t('そば畑')}</span><span>${t('図鑑 {0}/{1}・収穫 {2} 回', state.farm.discovered.length, CROPS.length, state.farm.harvests)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('今日のお題')}</span><span>${t('全達成 {0} 日', state.dailyFullDays)}</span></div>
+        ${state.divinityCount > 0 ? `<div class="stat-row"><span class="stat-label">${t('神徳')}</span><span>${t('✨ {0} (神格 {1} 回)', state.divinity, state.divinityCount)}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('神格以前も含めた総生産')}</span><span>${t('{0} 杯', fmt(state.pastSoba + state.allTimeSoba))}</span></div>` : ''}
         <div class="stat-row"><span class="stat-label">${t('ログイン')}</span><span>${t('連続 {0} 日 (最高 {1} 日)', state.loginStreak, state.bestLoginStreak)}</span></div>
         <div class="stat-row"><span class="stat-label">${t('売却した施設')}</span><span>${t('{0} 個', state.buildingsSold)}</span></div>
         <div class="stat-row"><span class="stat-label">${t('期間限定イベント')}</span><span>${t('{0}/{1} 満喫', EVENTS.filter(e => (state.eventOrders[e.id] || 0) >= EVENT_ORDER_GOAL).length, EVENTS.length)}${getActiveEvent() ? t(' (開催中: {0})', getActiveEvent().name) : ''}</span></div>
@@ -755,6 +768,7 @@ function stopArtisanChallenge() {
 
     state.lastArtisanTime = Date.now();
     state.artisanAttempts++;
+    progressDaily('artisan');
 
     // Rewards are minutes of base production (a running fever doesn't multiply them). A critical hit
     // used to pay 20 minutes every 5-minute cooldown, which outpaced all other production; the
@@ -819,7 +833,7 @@ function startChallenge(id) {
         return;
     }
     const challenge = CHALLENGES.find(c => c.id === id);
-    if (!challenge) return;
+    if (!challenge || !isChallengeUnlocked(challenge)) return;
     if (!confirm(t('「{0}」に挑戦しますか？\n現在の進行状況は安全に退避され、挑戦を終える（または中断する）といつでも戻せます。', challenge.name))) return;
 
     // An order in progress would sit in the backup past its deadline and count as a failure on return
@@ -843,6 +857,20 @@ function checkChallengeProgress() {
     const challenge = CHALLENGES.find(c => c.id === state.isChallengeRun);
     if (!challenge) return;
     if (state.allTimeSoba >= challenge.goal) completeChallenge();
+    else if (challenge.timeLimitSec && getChallengeTimeLeft(challenge) <= 0) failChallenge(challenge);
+}
+
+function getChallengeTimeLeft(challenge) {
+    return challenge.timeLimitSec - (Date.now() - state.challengeStartTime) / 1000;
+}
+
+function isChallengeUnlocked(c) {
+    // During a challenge run the state is fresh, so judge by the saved main progress
+    let prestiges = state.prestigeCount;
+    if (state.isChallengeRun) {
+        try { prestiges = JSON.parse(localStorage.getItem('echizenSobaChallengeBackup')).prestigeCount || 0; } catch (e) { prestiges = 0; }
+    }
+    return !c.minPrestige || prestiges >= c.minPrestige;
 }
 
 function completeChallenge() {
@@ -881,6 +909,15 @@ function completeChallenge() {
 function abandonChallenge() {
     if (!state.isChallengeRun) return;
     if (!confirm(t('挑戦を中断しますか？(挑戦中の進行は失われますが、元のセーブデータは無事です)'))) return;
+    returnFromChallenge(t('挑戦を中断し、元の進行状況に戻りました。'), "↩️");
+}
+
+function failChallenge(challenge) {
+    returnFromChallenge(t('時間切れ…「{0}」は失敗しました。元の進行状況に戻りました。', challenge.name), "⏱️");
+}
+
+// Back to the saved main progress without the clear reward (abandoned or failed)
+function returnFromChallenge(message, icon) {
     const backupRaw = localStorage.getItem('echizenSobaChallengeBackup');
     if (!backupRaw) {
         notify(t('元のセーブデータが見つかりません。念のため中断を取り消しました。ページを再読み込みしてから再度お試しください。'), "⚠️", true);
@@ -900,7 +937,7 @@ function abandonChallenge() {
     calculateCps();
     saveGame(true);
     switchTab('shop');
-    notify(t('挑戦を中断し、元の進行状況に戻りました。'), "↩️");
+    notify(message, icon, true);
     render();
 }
 
@@ -921,7 +958,12 @@ function renderChallengeBanner() {
     if (!challenge) { banner.style.display = 'none'; return; }
     banner.style.display = 'block';
     document.getElementById('challenge-banner-name').textContent = `${challenge.icon} ${challenge.name}`;
-    document.getElementById('challenge-banner-progress').textContent = t('{0} / {1} 杯', fmt(state.allTimeSoba), fmt(challenge.goal));
+    let progress = t('{0} / {1} 杯', fmt(state.allTimeSoba), fmt(challenge.goal));
+    if (challenge.timeLimitSec) {
+        const left = Math.max(0, Math.ceil(getChallengeTimeLeft(challenge)));
+        progress += ` ⏱️${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+    }
+    document.getElementById('challenge-banner-progress').textContent = progress;
 }
 
 function renderChallengeList() {
@@ -930,6 +972,14 @@ function renderChallengeList() {
     CHALLENGES.forEach(c => {
         const completed = state.challengesCompleted && state.challengesCompleted.includes(c.id);
         const active = state.isChallengeRun === c.id;
+        if (!active && !isChallengeUnlocked(c)) {
+            const locked = document.createElement('div');
+            locked.className = 'building-item locked';
+            locked.style.opacity = '0.5';
+            locked.innerHTML = `<div class="b-icon">🔒</div><div class="b-info"><div class="b-name">${t('？？？')}</div><div class="b-cost">${t('転生を{0}回すると挑戦できるようになる。', c.minPrestige)}</div></div>`;
+            list.appendChild(locked);
+            return;
+        }
         const div = document.createElement('div');
         div.className = `building-item ${active ? '' : (state.isChallengeRun ? 'locked' : 'can-buy')}`;
         div.style.opacity = state.isChallengeRun && !active ? '0.4' : '1';
@@ -975,7 +1025,7 @@ function renderMap() {
             marker.onpointerdown = (e) => { e.preventDefault(); establishBranch(r.id); };
         }
         let tipDesc = established ? `${t('✅ 支店設立済み')}<br>${r.bonusName}: ${r.bonusDesc}` : (unlocked ? `${r.bonusName}: ${r.bonusDesc}<br>${t('費用: 🍜 {0}杯', fmt(r.cost))}` : t('施設合計{0}個で解禁', r.unlockBuildings));
-        marker.onmouseenter = (e) => showTooltip(e, unlocked ? r.name : '？？？', tipDesc, 0);
+        marker.onmouseenter = (e) => showTooltip(e, unlocked ? r.name : t('？？？'), tipDesc, 0);
         marker.onmouseleave = hideTooltip;
         mapEl.appendChild(marker);
 
@@ -983,7 +1033,7 @@ function renderMap() {
         label.className = 'region-marker-label';
         label.style.left = r.x + '%';
         label.style.top = r.y + '%';
-        label.textContent = unlocked ? r.name : '？？？';
+        label.textContent = unlocked ? r.name : t('？？？');
         mapEl.appendChild(label);
     });
 
@@ -1002,7 +1052,7 @@ function renderMap() {
         div.innerHTML = `
             <div class="b-icon">${unlocked ? r.icon : '❓'}</div>
             <div class="b-info">
-                <div class="b-name">${unlocked ? r.name : '？？？'}</div>
+                <div class="b-name">${unlocked ? r.name : t('？？？')}</div>
                 <div class="b-cost">${established ? t('✅ {0} 取得済み', r.bonusName) : (unlocked ? t('🍜 {0} で設立 ({1})', fmt(r.cost), r.bonusName) : t('施設合計{0}個で解禁', r.unlockBuildings))}</div>
             </div>
         `;
@@ -1056,8 +1106,8 @@ function computeSkillTreeLayout() {
     const total = roots.reduce((sum, r) => sum + weigh(r), 0);
 
     const positions = {};
-    const baseRadius = 130;
-    const radiusStep = 115;
+    const baseRadius = 140;
+    const radiusStep = 135; // room for the cost badge and a two-line name under each node
     function place(id, startAngle, span, depth) {
         const angle = startAngle + span / 2;
         const radius = baseRadius + depth * radiusStep;
@@ -1155,7 +1205,7 @@ function renderSkillTree(available) {
 
         const label = document.createElement('div');
         label.className = `skill-node-label ${prereqMet ? '' : 'locked-label'}`;
-        label.textContent = prereqMet ? h.name : '？？？';
+        label.textContent = prereqMet ? h.name : t('？？？');
         div.appendChild(label);
 
         if (!owned && prereqMet) {
@@ -1168,7 +1218,7 @@ function renderSkillTree(available) {
         } else if (owned) {
             tipDesc = `${t('✅ 取得済み')}<br>${h.desc}`;
         }
-        div.onmouseenter = (e) => showTooltip(e, prereqMet ? h.name : '？？？', tipDesc, owned || !prereqMet ? 0 : h.cost);
+        div.onmouseenter = (e) => showTooltip(e, prereqMet ? h.name : t('？？？'), tipDesc, owned || !prereqMet ? 0 : h.cost);
         div.onmouseleave = hideTooltip;
         canvas.appendChild(div);
     });
@@ -1288,6 +1338,7 @@ function clickBowl(e) {
     state.totalSoba += clickPower;
     state.allTimeSoba += clickPower;
     state.clicks++;
+    progressDaily('click');
     clickTimestamps.push(Date.now());
     playSound('click');
     if (settings.reduceEffects) { calculateCps(); return; }
@@ -1384,6 +1435,7 @@ function buyBuilding(id) {
     }
     state.soba -= cost;
     state.buildings[id] = (state.buildings[id] || 0) + quantity;
+    progressDaily('buy', quantity);
     playSound('buy');
     spawnBuyPop(id, `+${quantity} ${b.icon}`);
     calculateCps();
@@ -1392,9 +1444,14 @@ function buyBuilding(id) {
 
 function buyUpgrade(id) {
     const u = UPGRADES.find(x => x.id === id);
+    if (state.isChallengeRun === 'no_upgrade') {
+        notify(t('この挑戦ではアップグレードを買えません。'), "🌾");
+        return;
+    }
     if (state.soba >= u.cost && !state.upgrades.includes(id)) {
         state.soba -= u.cost;
         state.upgrades.push(id);
+        progressDaily('upgrade');
         playSound('buy');
         calculateCps();
         render();
@@ -1461,6 +1518,8 @@ function checkAchievements() {
         if (a.req.challengesAll && (!state.challengesCompleted || state.challengesCompleted.length < CHALLENGES.length)) met = false;
         if (a.req.regionsCount && (!state.regions || state.regions.length < a.req.regionsCount)) met = false;
         if (a.req.regionsAll && (!state.regions || state.regions.length < REGIONS.length)) met = false;
+        if (a.req.dailyFullDays && state.dailyFullDays < a.req.dailyFullDays) met = false;
+        if (a.req.divinityCount && state.divinityCount < a.req.divinityCount) met = false;
 
         if (met) {
             state.achievements.push(a.id);
@@ -1502,6 +1561,49 @@ function prestige() {
         switchTab('shop');
         notify(t('輪廻転生しました。新たな人生の始まりです。'), "♻️");
     }
+}
+
+// --- Divinity: the second-tier prestige ---
+function getDivinityProdMult() {
+    return 1 + (state.divinity || 0) * DIVINITY_PROD_PER_POINT;
+}
+
+// Divine virtue is set by the most souls ever offered (10 at 1,000 souls, 20 at 8,000, 100 at a million);
+// a rite grants only what beats the record. In the balance simulation, a full grant every time (or a
+// bonus to souls) let quick repeated rites snowball without limit.
+function getDivinityFor(souls) {
+    return souls < DIVINITY_MIN_SOULS ? 0 : Math.floor(DIVINITY_PER_CBRT * Math.cbrt(souls / DIVINITY_MIN_SOULS) + 1e-9);
+}
+
+// Souls needed for the next point of divine virtue
+function getNextDivinitySouls() {
+    return Math.max(DIVINITY_MIN_SOULS, Math.ceil(DIVINITY_MIN_SOULS * Math.pow((state.divinity + 1) / DIVINITY_PER_CBRT, 3) - 1e-6));
+}
+
+function getDivinityToGet() {
+    return Math.max(0, getDivinityFor(state.souls) - state.divinity);
+}
+
+function performDivinity() {
+    const gain = getDivinityToGet();
+    if (gain <= 0 || state.isChallengeRun) return;
+    if (!confirm(t('神格の儀を行いますか？\n獲得する神徳: {0}\n越前魂・天界の力・施設・アップグレード・そばは全てなくなります。\n(実績・熟成・そば畑・評判・支店・挑戦の報酬は残ります)', gain))) return;
+    state.divinity += gain;
+    state.divinityCount++;
+    state.pastSoba += state.allTimeSoba;
+    state.allTimeSoba = 0;
+    state.souls = 0;
+    state.heavenlyUpgrades = [];
+    state.spirits = state.spirits.slice(0, getMaxSpiritSlots());
+    resetState();
+    state.activeOrder = null;
+    scheduleNextOrder();
+    calculateCps();
+    closeAscensionScreen();
+    switchTab('shop');
+    saveGame(true);
+    notify(t('神格の儀を終えました。神徳が{0}になり、全生産が{1}倍になりました。', state.divinity, getDivinityProdMult()), "✨", true);
+    render();
 }
 
 let goldenHideTimer = null;
@@ -1582,6 +1684,7 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
     }
 
     state.goldenClicks++;
+    progressDaily('golden');
     playSound('golden');
     const goldenBonusMult = getGoldenBonusMult();
     const rand = Math.random();

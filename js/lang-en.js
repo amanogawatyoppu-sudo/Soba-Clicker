@@ -254,7 +254,12 @@ I18N.en.data = {
         ach_login_7: { name: 'Perfect Attendance', desc: 'Play 7 days in a row.' },
         ach_login_30: { name: 'Regular of Echizen', desc: 'Play 30 days in a row.' },
         ach_sell_1: { name: 'Closing Shop', desc: 'Sell a building.' },
-        ach_event_all: { name: 'A Year in Echizen', desc: 'Complete 3 event-customer orders in every limited-time event.' }
+        ach_event_all: { name: 'A Year in Echizen', desc: 'Complete 3 event-customer orders in every limited-time event.' },
+        ach_daily_1: { name: "Today's Tasks", desc: "Complete all 3 of the day's tasks." },
+        ach_daily_7: { name: 'Task Regular', desc: 'Complete every daily task on 7 different days.' },
+        ach_daily_30: { name: 'Task Master', desc: 'Complete every daily task on 30 different days.' },
+        ach_divine_1: { name: 'Ascending the Throne', desc: 'Perform the Rite of Divinity.' },
+        ach_divine_3: { name: 'Thrice Divine', desc: 'Perform the Rite of Divinity 3 times.' }
     },
     shadow: {
         shadow_pacifist: { name: 'Hands-Off Philosophy', desc: 'Reach 50,000 bowls without clicking once.' },
@@ -265,7 +270,9 @@ I18N.en.data = {
     challenges: {
         no_click: { name: 'The Unmoving Bowl', desc: 'Reach 10 million bowls with buildings alone. Click power is always 0.' },
         no_golden: { name: 'Forsaking Fortune', desc: 'Reach 100 million bowls with no golden, cursed or seasonal soba at all.' },
-        expensive: { name: 'Age of Inflation', desc: 'Reach 10 million bowls with buildings always costing 1.5x.' }
+        expensive: { name: 'Age of Inflation', desc: 'Reach 10 million bowls with buildings always costing 1.5x.' },
+        no_upgrade: { name: 'Pure Ingredients', desc: 'Reach 100 million bowls without buying a single upgrade.' },
+        speedrun: { name: 'Every Second Counts', desc: 'Reach 100 million bowls within 60 minutes (real time). If time runs out, the challenge fails and your progress comes back.' }
     },
     regions: {
         katsuyama: { name: 'Katsuyama', bonusName: 'Dinosaur Bonus', bonusDesc: 'Power awakened from ancient strata: all production +10%.', flavor: 'You opened a branch in Katsuyama, home of the dinosaur museum.' },
@@ -337,7 +344,9 @@ I18N.en.data = {
         25: { category: 'Basics', term: 'Selling', desc: "Sell buildings in the shop's Sell mode for 25% of their price back." },
         26: { category: 'Basics', term: 'Login bonus', desc: 'Get soba the first time you play each day. It grows with your streak, and day 7 adds a buckwheat lump.' },
         27: { category: 'Basics', term: 'Settings & transfer', desc: 'Change sound, effects, number format and language in Settings. Export your save as text or a file and load it on another device.' },
-        28: { category: 'Hidden', term: 'Shadow achievements', desc: 'Hidden achievements with odd conditions that do not count toward the normal total. See them in Stats.' }
+        28: { category: 'Hidden', term: 'Shadow achievements', desc: 'Hidden achievements with odd conditions that do not count toward the normal total. See them in Stats.' },
+        29: { category: 'Basics', term: "Today's tasks", desc: 'Three new tasks every day. Each one pays soba, and finishing all three adds a buckwheat lump. New tasks arrive when the date changes. They do not progress during a challenge.' },
+        30: { category: 'Prestige', term: 'Divinity & divine virtue', desc: 'A step beyond prestige, available at 1,000 Echizen Souls. Offer everything, souls and heavenly powers included, for divine virtue. Each point gives +100% production, for good. It is set by the most souls ever offered (10 at 1,000, 20 at 8,000, 100 at a million); beating the record adds the difference. Achievements, aging, the farm, reputation, branches and challenge rewards stay.' }
     },
     news: [
         'The scent of Echizen soba drifts through town.',
@@ -729,8 +738,54 @@ I18N.en.text = {
     '挑戦モードが解放された': 'Challenge mode is open',
     '「転生 → 挑戦」で、特殊なルールのもとで目標を目指せます。今の進行状況は安全に退避されます。<br>クリアするごとに恒久ボーナス+3%。': 'In Prestige → Challenges, chase goals under special rules. Your progress is safely set aside meanwhile.<br>Each clear gives a permanent +3%.',
 
+    // --- daily tasks ---
+    '📅 今日のお題': "📅 Today's Tasks",
+    '今日のお題': "Today's tasks",
+    'そばを{0}回打つ': 'Make soba {0} times',
+    'ゴールデンそばを{0}回つかまえる': 'Catch {0} golden soba',
+    'お客さんの注文を{0}回達成する': 'Complete {0} customer orders',
+    '施設を{0}個買う': 'Buy {0} buildings',
+    'アップグレードを{0}個買う': 'Buy {0} upgrades',
+    'そば畑で{0}回収穫する': 'Harvest the soba farm {0} times',
+    '手打ちそば道場に{0}回挑む': 'Train at the soba dojo {0} times',
+    'そばを{0}杯作る': 'Make {0} bowls of soba',
+    '今日のお題を達成！「{0}」 報酬 {1} 杯': 'Task complete! "{0}" Reward: {1} bowls',
+    '今日のお題を全て達成！おまけに 🍡 そば粉の塊を1個もらった。': 'All of today\'s tasks done! Bonus: 🍡 1 buckwheat lump.',
+    '挑戦モード中はお題は進みません。': 'Daily tasks do not progress during a challenge.',
+    '達成！': 'Done!',
+    '今日のお題は全て達成しました！': 'All of today\'s tasks are done!',
+    '次のお題まで {0}': 'New tasks in {0}',
+    '全達成した日: {0} 日': 'Days fully completed: {0}',
+    '全達成 {0} 日': '{0} days fully completed',
+    '毎日3つのお題が出ます。達成するとそばがもらえ、3つ全て達成するとそば粉の塊もおまけでもらえます。': 'Three new tasks every day. Each one pays soba, and finishing all three adds a buckwheat lump.',
+    '今日のお題が登場': "Today's tasks have arrived",
+    '「ショップ → 今日のお題」に、毎日3つのお題が出ます。<br>達成するとそばがもらえ、3つ全て達成するとそば粉の塊もおまけでもらえます。': "Shop → Today's Tasks has three new tasks every day.<br>Each one pays soba, and finishing all three adds a buckwheat lump.",
+
+    // --- divinity ---
+    '✨ 神格': '✨ Divinity',
+    '越前魂を1000個以上集めると「神格の儀」を行えます。越前魂と天界の力も含めて全てを捧げる代わりに「神徳」を得て、全生産がずっと強化されます(神徳1つにつき+100%)。実績・熟成・そば畑・評判・支店・挑戦の報酬は残ります。神徳は捧げた越前魂の最高記録で決まり、記録を超えるたびにその差の分だけ増えます。': 'With 1,000 or more Echizen Souls you can perform the Rite of Divinity. Offer everything, souls and heavenly powers included, for divine virtue that boosts all production for good (+100% per point). Achievements, aging, the farm, reputation, branches and challenge rewards stay. Divine virtue is set by the most souls you have ever offered: each new record adds the difference.',
+    '神徳': 'Divine virtue',
+    '今行うと獲得': 'Gained if done now',
+    '✨ 神格の儀': '✨ Rite of Divinity',
+    '✨ {0} (全生産+{1}%)': '✨ {0} (production +{1}%)',
+    '越前魂 {0} / {1} 個': 'Echizen Souls {0} / {1}',
+    '✨ 神格の儀を行い、神徳 {0} を得る': '✨ Perform the Rite of Divinity for {0} divine virtue',
+    '✨ 神格の儀 (越前魂{0}個から)': '✨ Rite of Divinity (from {0} souls)',
+    '神格の儀を行いますか？\n獲得する神徳: {0}\n越前魂・天界の力・施設・アップグレード・そばは全てなくなります。\n(実績・熟成・そば畑・評判・支店・挑戦の報酬は残ります)': 'Perform the Rite of Divinity?\nDivine virtue gained: {0}\nAll Echizen Souls, heavenly powers, buildings, upgrades and soba will be gone.\n(Achievements, aging, the farm, reputation, branches and challenge rewards stay.)',
+    '神格の儀を終えました。神徳が{0}になり、全生産が{1}倍になりました。': 'The Rite of Divinity is complete. Divine virtue is now {0}, and all production is x{1}.',
+    '✨ {0} (神格 {1} 回)': '✨ {0} ({1} rites)',
+    '神格以前も含めた総生産': 'Total production incl. before divinity',
+    '神格の儀が行えるようになった': 'The Rite of Divinity is available',
+    '越前魂が1000個に達しました。「転生」タブの「神格の儀」では、越前魂と天界の力も含めて全てを捧げる代わりに「神徳」を得られます。<br>神徳1つにつき全生産+100%(1000個なら神徳10)。急ぐ必要はありません。': 'You have 1,000 Echizen Souls. The Rite of Divinity on the Prestige tab offers everything, souls and heavenly powers included, for divine virtue.<br>Each point gives +100% production (1,000 souls give 10). There is no rush.',
+
+    // --- late-game challenges ---
+    '？？？': '???',
+    'この挑戦ではアップグレードを買えません。': 'Upgrades cannot be bought in this challenge.',
+    '時間切れ…「{0}」は失敗しました。元の進行状況に戻りました。': 'Time is up... "{0}" failed. Your progress is back.',
+    '転生を{0}回すると挑戦できるようになる。': 'Unlocks after {0} prestiges.',
+
     // --- page ---
-    '越前そばクリッカー Pro v2.5 - 究極版': 'Echizen Soba Clicker Pro v2.5',
+    '越前そばクリッカー Pro v2.6 - 究極版': 'Echizen Soba Clicker Pro v2.6',
     'そばクリッカー': 'Soba Clicker',
     '越前そばの歴史は深い... 最初のそばを打とう！': 'Echizen soba has a long history... Make your first bowl!',
     '🍲 だし Lv.': '🍲 Dashi Lv.',

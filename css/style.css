@@ -51,7 +51,7 @@ body{font-family:'Noto Sans JP',sans-serif;background:var(--bg-dark);color:var(-
 .sub-tab.active{background:var(--accent);border-color:var(--accent);color:#1a0f00}
 
 /* Shared view pieces */
-#farm-view,#lump-view,#prestige-view,#settings-view{flex:1;overflow-y:auto;padding:20px;display:none;-webkit-overflow-scrolling:touch}
+#farm-view,#lump-view,#prestige-view,#settings-view,#daily-view{flex:1;overflow-y:auto;padding:20px;display:none;-webkit-overflow-scrolling:touch}
 .view-title{margin-bottom:6px;font-size:17px}
 .view-desc{font-size:12px;color:#aaa;margin-bottom:15px;line-height:1.6}
 .action-btn{padding:10px 14px;background:var(--border);border:1px solid #5a3810;color:var(--text);border-radius:8px;cursor:pointer;font-family:inherit;font-weight:700;font-size:12px}
@@ -235,9 +235,10 @@ body.reduced #fever-overlay.on{animation:none}
 .skill-node.unaffordable{border-color:#777;opacity:0.85}
 @keyframes skill-pulse{0%,100%{box-shadow:0 0 12px rgba(0,229,255,0.5)}50%{box-shadow:0 0 22px rgba(0,229,255,0.9)}}
 .skill-node-lock-badge{position:absolute;top:-6px;right:-6px;background:#1a0a2e;border:2px solid #4a4a5a;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px}
-.skill-node-cost{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);font-size:12px;color:#1a0f00;background:var(--prestige);padding:1px 7px;border-radius:8px;white-space:nowrap;font-weight:900;box-shadow:0 2px 4px rgba(0,0,0,0.4)}
+.skill-node-cost{position:absolute;bottom:-20px;z-index:1;left:50%;transform:translateX(-50%);font-size:12px;color:#1a0f00;background:var(--prestige);padding:1px 7px;border-radius:8px;white-space:nowrap;font-weight:900;box-shadow:0 2px 4px rgba(0,0,0,0.4)}
 .skill-node.locked .skill-node-cost{background:#555;color:#ccc}
-.skill-node-label{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);font-size:12px;font-weight:bold;color:var(--text);white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,0.9);pointer-events:none}
+.skill-node-label{position:absolute;top:calc(100% + 24px);left:50%;transform:translateX(-50%);width:max-content;max-width:130px;font-size:12px;line-height:1.2;font-weight:bold;color:var(--text);text-align:center;text-shadow:0 1px 3px rgba(0,0,0,0.9);pointer-events:none}
+.skill-node.owned .skill-node-label{top:calc(100% + 6px)}
 .skill-node-label.locked-label{color:#888}
 #challenge-view{flex:1;overflow-y:auto;padding:25px;display:none;-webkit-overflow-scrolling: touch;}
 .glossary-category{font-size:12px;color:#8fd6ff;text-transform:uppercase;letter-spacing:0.1em;margin:18px 0 10px;border-bottom:1px solid var(--border);padding-bottom:5px}
@@ -249,6 +250,16 @@ body.reduced #fever-overlay.on{animation:none}
 .prestige-btn{width:100%;padding:20px;background:linear-gradient(135deg, #004466 0%, #001122 100%);border:2px solid var(--prestige);border-radius:12px;color:#fff;font-weight:bold;cursor:pointer;margin-bottom:20px;transition:0.3s}
 .prestige-btn:hover:not(:disabled){box-shadow: 0 0 20px rgba(0,212,255,0.4); transform: scale(1.02)}
 .prestige-btn:disabled{opacity:0.5; cursor:not-allowed; border-color: #333}
+.divinity-btn{background:linear-gradient(135deg,#5a4300 0%,#1f1400 100%);border-color:#ffd76a}
+.divinity-btn:hover:not(:disabled){box-shadow:0 0 20px rgba(255,215,106,0.45)}
+.daily-item{display:flex;gap:12px;align-items:center;padding:12px;margin-bottom:10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,0.03)}
+.daily-item.done{border-color:var(--accent);background:rgba(245,200,66,0.08)}
+.daily-icon{font-size:28px;width:36px;text-align:center;flex-shrink:0}
+.daily-body{flex:1;min-width:0}
+.daily-text{font-weight:bold;font-size:14px;margin-bottom:6px}
+.daily-bar{height:8px;background:#2a1800;border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.daily-bar-fill{height:100%;background:linear-gradient(90deg,#f5c842,#ff8c00);transition:width 0.3s}
+.daily-progress{font-size:11px;color:var(--muted);margin-top:4px}
 
 /* Full-screen Ascension overlay - completely replaces normal gameplay, original-inspired */
 #ascension-screen{display:none;position:fixed;inset:0;z-index:2000;background:radial-gradient(circle at 50% 30%, #1a0a2e 0%, #05020a 80%);overflow-y:auto;flex-direction:column;align-items:center;padding:20px;}
