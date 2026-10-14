@@ -25,6 +25,8 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 - **転生と天界の力**: 越前魂で買える、35項目のスキルツリー。
 - **神格**: 越前魂を1000個集めると行える、転生のさらに上の段階。全てを捧げて「神徳」を得る、終盤の目標です。
 - **今日のお題**: 毎日3つ出る日替わりのお題。全部達成するとおまけつき。
+- **物語**: お店の成長に合わせて進む全13話のお話。ふみ婆ちゃん、見習いの健太、常連の源さん、AI製麺ロボのソバ太郎たちと、小さなそば屋から宇宙の果てまで。
+- **遊びやすさ**: 施設ごとに「元が取れるまでの時間」と「おすすめ」を表示。統計タブで生産の内訳(どの施設・どの倍率が効いているか)が見られます。
 - **ゴールデンそば・フィーバー**: ときどき現れる幸運のそば。
 - **お客さんの注文**: 制限時間内に注文の杯数を作ると、報酬と評判がもらえます。
 - **そば畑**: 現実の時間で育つそば畑。丸岡在来・大野在来など、福井の在来種を交配で見つけよう。
@@ -48,6 +50,8 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 - **Prestige and heavenly powers**: a 35-node skill tree bought with Echizen Souls.
 - **Divinity**: a step beyond prestige at 1,000 souls. Offer everything for divine virtue, a late-game goal.
 - **Today's tasks**: three new tasks every day, with a bonus for finishing them all.
+- **Story**: 13 chapters that unfold as your shop grows, with Grandma Fumi, Kenta the apprentice, Gen the regular and Sobataro the noodle robot, from a tiny shop to the edge of the universe.
+- **Easy to read**: each building shows how long it takes to pay for itself and which one is the best value; Stats breaks down where your production comes from.
 - **Golden soba and Fever Time**: lucky soba that shows up now and then.
 - **Customer orders**: make the ordered amount in time for a reward and reputation.
 - **Soba farm**: crops that grow in real time. Cross-breed them to discover Fukui heirloom strains.

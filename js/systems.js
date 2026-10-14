@@ -23,7 +23,7 @@ const TAB_GROUPS = [
         { id: 'prestige', label: '☁️ 転生', unlocked: () => state.allTimeSoba >= 1e12 || state.prestigeCount > 0 },
         { id: 'challenge', label: '⚔️ 挑戦', unlocked: () => state.prestigeCount >= 1 || !!state.isChallengeRun }
     ] },
-    { id: 'record', icon: '📊', label: '記録', views: [{ id: 'stats', label: '📊 統計' }, { id: 'glossary', label: '📖 用語集' }] },
+    { id: 'record', icon: '📊', label: '記録', views: [{ id: 'stats', label: '📊 統計' }, { id: 'story', label: '📜 物語', unlocked: () => state.storySeen.length > 0 }, { id: 'glossary', label: '📖 用語集' }] },
     { id: 'settings', icon: '⚙️', label: '設定', views: [{ id: 'settings', label: '設定' }] }
 ];
 
@@ -39,6 +39,7 @@ const VIEW_RENDERERS = {
     lump: () => renderLumpList(),
     prestige: () => renderPrestigeView(),
     daily: () => renderDaily(),
+    story: () => renderStory(),
     settings: () => renderSettings()
 };
 
@@ -203,6 +204,43 @@ function progressDaily(type, amount = 1) {
             notify(t('今日のお題を全て達成！おまけに 🍡 そば粉の塊を1個もらった。'), "🎊", true);
         }
     });
+}
+
+// ===================================================================
+// Story: a scene pops up when its chapter is reached, one at a time
+// ===================================================================
+function checkStory() {
+    if (state.isChallengeRun || isResetting || isModalOpen()) return;
+    const chapter = STORY.find(c => !state.storySeen.includes(c.id) && c.when());
+    if (!chapter) return;
+    state.storySeen.push(chapter.id);
+    showStoryChapter(chapter.id);
+}
+
+function showStoryChapter(id) {
+    const idx = STORY.findIndex(c => c.id === id);
+    const chapter = STORY[idx];
+    const lines = chapter.lines.map(([who, text]) => {
+        const ch = STORY_CHARACTERS[who];
+        return `<div class="story-line ${who === 'you' ? 'mine' : ''}"><div class="story-face">${ch.icon}</div>
+            <div class="story-bubble"><div class="story-who">${ch.name}</div><div class="story-text">${text}</div></div></div>`;
+    }).join('');
+    showModal(`
+        <div class="story-chapter">${t('第{0}話', idx + 1)}</div>
+        <div class="modal-title">📜 ${chapter.title}</div>
+        <div class="story-lines">${lines}</div>
+        <button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent); min-width:140px" onclick="closeModal()">${t('つづける')}</button>
+    `);
+}
+
+function renderStory() {
+    if (activeView !== 'story') return;
+    const list = document.getElementById('story-list');
+    if (!hasChanged('story', state.storySeen.join())) return;
+    list.innerHTML = STORY.map((c, i) => state.storySeen.includes(c.id)
+        ? `<button class="story-item" onclick="showStoryChapter('${c.id}')"><span class="story-num">${t('第{0}話', i + 1)}</span>${c.title}</button>`
+        : `<div class="story-item locked"><span class="story-num">${t('第{0}話', i + 1)}</span>${t('？？？')}</div>`).join('');
+    document.getElementById('story-count').textContent = `${state.storySeen.length}/${STORY.length}`;
 }
 
 function getDailyBadge() {
@@ -697,7 +735,10 @@ function renderOrderBanner() {
     banner.style.display = 'block';
     document.getElementById('order-customer').textContent = `${customer.icon} ` + t('{0}の注文', customer.name) + (order.event ? t(' (限定・報酬2倍)') : '');
     document.getElementById('order-bar-fill').style.width = (ratio * 100).toFixed(1) + '%';
-    document.getElementById('order-progress').textContent = t('{0} / {1} 杯', fmt(made), fmt(order.target));
+    // Will idle production alone make it in time?
+    const onPace = getBaseCps() * secLeft >= order.target - made;
+    document.getElementById('order-progress').textContent = t('{0} / {1} 杯', fmt(made), fmt(order.target))
+        + ' ' + (onPace ? t('✅ このままで間に合う') : t('👆 クリックで追い込もう'));
     const timeEl = document.getElementById('order-time');
     timeEl.textContent = t('残り {0} 秒', secLeft);
     timeEl.className = secLeft <= 15 ? 'urgent' : '';
@@ -1213,6 +1254,7 @@ const HINTS = [
     { id: 'prestige', view: 'prestige', icon: '☁️', title: '転生できるようになった', text: '累計1兆杯に到達しました。転生すると施設やそばはリセットされますが、「越前魂」を得て全生産がずっと強化されます。<br>越前魂は多く貯めてから転生するほど多くもらえるので、急がなくても大丈夫です。', when: () => viewUnlocked('prestige') },
     { id: 'challenge', view: 'challenge', icon: '⚔️', title: '挑戦モードが解放された', text: '「転生 → 挑戦」で、特殊なルールのもとで目標を目指せます。今の進行状況は安全に退避されます。<br>クリアするごとに恒久ボーナス+3%。', when: () => viewUnlocked('challenge') },
     { id: 'daily', view: 'daily', icon: '📅', title: '今日のお題が登場', text: '「ショップ → 今日のお題」に、毎日3つのお題が出ます。<br>達成するとそばがもらえ、3つ全て達成するとそば粉の塊もおまけでもらえます。', when: () => viewUnlocked('daily') && !!state.daily },
+    { id: 'story', view: 'story', icon: '📜', title: '物語が読めるようになった', text: 'お店の成長に合わせて、少しずつお話が進みます。<br>「記録 → 物語」で、これまでのお話をいつでも読み返せます。', when: () => state.storySeen.length >= 2 },
     { id: 'divinity', view: 'prestige', icon: '✨', title: '神格の儀が行えるようになった', text: '越前魂が1000個に達しました。「転生」タブの「神格の儀」では、越前魂と天界の力も含めて全てを捧げる代わりに「神徳」を得られます。<br>神徳1つにつき全生産+100%(1000個なら神徳10)。急ぐ必要はありません。', when: () => state.souls >= DIVINITY_MIN_SOULS }
 ];
 

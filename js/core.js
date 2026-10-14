@@ -54,7 +54,8 @@ function createFreshState() {
         dailyFullDays: 0,
         divinity: 0,
         divinityCount: 0,
-        pastSoba: 0
+        pastSoba: 0,
+        storySeen: []
     };
 }
 
@@ -109,60 +110,74 @@ function getMasteryBonusMult() {
     return 1 + tier * perTier;
 }
 
+// What calculateCps found, for the production breakdown in Stats and the shop's payback times
+let buildingRawCps = {};   // each building type's production before the global multipliers
+let cpsFactors = [];       // [label, multiplier] for every global multiplier that isn't 1
+
 function calculateCps() {
     let newCps = 0;
+    buildingRawCps = {};
     BUILDINGS.forEach(b => {
         let count = state.buildings[b.id];
         let level = state.buildingLevels[b.id] || 0;
         let bCps = b.baseCps * count * Math.pow(1.01, level);
         UPGRADES.filter(u => u.type === 'building' && u.target === b.id && state.upgrades.includes(u.id))
                 .forEach(u => bCps *= u.mult);
+        buildingRawCps[b.id] = bCps;
         newCps += bCps;
     });
+    cpsFactors = [];
+    const apply = (label, mult) => {
+        if (mult === 1) return;
+        newCps *= mult;
+        const same = cpsFactors.find(f => f[0] === label);
+        if (same) same[1] *= mult; else cpsFactors.push([label, mult]);
+    };
     UPGRADES.filter(u => u.type === 'global' && state.upgrades.includes(u.id))
-            .forEach(u => newCps *= u.mult);
+            .forEach(u => apply(t('アップグレード'), u.mult));
 
     // Kitten/Dashi upgrades: each purchased kitten scales with current dashi level
     const dashiLevel = getDashiLevel();
     UPGRADES.filter(u => u.type === 'kitten' && state.upgrades.includes(u.id))
-            .forEach(u => newCps *= (1 + u.kittenPercent * dashiLevel));
+            .forEach(u => apply(t('だし猫'), 1 + u.kittenPercent * dashiLevel));
 
     // Heavenly upgrades: permanent global multipliers
     HEAVENLY_UPGRADES.filter(h => h.effect === 'globalMult' && state.heavenlyUpgrades.includes(h.id))
-            .forEach(h => newCps *= h.mult);
+            .forEach(h => apply(t('天界の力'), h.mult));
 
     // Shrine spirits: net effect of all equipped spirits' globalMult entries (benefits and drawbacks both apply)
-    newCps *= getSpiritEffectMult('globalMult');
+    apply(t('祭壇の精霊'), getSpiritEffectMult('globalMult'));
 
     // Fukui branch-store regional bonuses (globalMult, e.g. Katsuyama's dinosaur bonus)
-    newCps *= getRegionEffectMult('globalMult');
+    apply(t('福井の支店'), getRegionEffectMult('globalMult'));
 
     // Seasonal event bonus
     const season = getCurrentSeason();
-    if (season && season.effect === 'globalMult') newCps *= season.value;
+    if (season && season.effect === 'globalMult') apply(t('季節'), season.value);
 
     // Hidden mastery bonus tied to achievement count
-    newCps *= getMasteryBonusMult();
+    apply(t('隠された熟練の力'), getMasteryBonusMult());
 
     // Artisan points from the handmade soba workshop minigame (this game's original mechanic)
-    newCps *= (1 + state.artisanPoints / 100);
+    apply(t('職人ポイント'), 1 + state.artisanPoints / 100);
 
     // Permanent bonus per completed challenge (+3% each)
-    newCps *= (1 + (state.challengeBonusPoints || 0) * getChallengeBonusPerClear());
+    apply(t('挑戦モード'), 1 + (state.challengeBonusPoints || 0) * getChallengeBonusPerClear());
 
     // Reputation from customer orders, and the soba farm (mature crops + discovered strains)
-    newCps *= (1 + state.reputation * REPUTATION_BONUS);
-    newCps *= getFarmCpsMult();
+    apply(t('評判'), 1 + state.reputation * REPUTATION_BONUS);
+    apply(t('そば畑'), getFarmCpsMult());
 
     // Limited-time event running today
     const event = getActiveEvent();
-    if (event) newCps *= event.prodBonus;
+    if (event) apply(t('期間限定イベント'), event.prodBonus);
 
     // Divine virtue from the second-tier prestige
-    newCps *= getDivinityProdMult();
-    
+    apply(t('神徳'), getDivinityProdMult());
+
     // Prestige Bonus: Each soul gives +1% bonus
     let prestigeMult = 1 + getEffectiveSouls() * getSoulBonusPerSoul();
+    if (prestigeMult !== 1) cpsFactors.push([t('越前魂'), prestigeMult]);
     cps = newCps * buffMult * prestigeMult;
     
     let newClickPower = 1;
@@ -296,6 +311,7 @@ function update() {
         checkHints();
         checkEventAnnounce();
         dailyTick();
+        checkStory();
     }
     checkChallengeProgress();
 
@@ -410,7 +426,32 @@ function renderBuyAmountToggle() {
 
 const shopItemEls = {};
 
-function getBuyItemView(b) {
+// Production of one more of this building, with every global multiplier but no temporary buff
+function getBuildingUnitCps(b) {
+    let unit = b.baseCps * Math.pow(1.01, state.buildingLevels[b.id] || 0);
+    UPGRADES.filter(u => u.type === 'building' && u.target === b.id && state.upgrades.includes(u.id)).forEach(u => unit *= u.mult);
+    return unit * cpsFactors.reduce((m, f) => m * f[1], 1);
+}
+
+// Seconds of production a purchase takes to pay for itself (Infinity if it produces nothing, e.g. in no_click)
+function getPaybackSec(b, quantity, cost) {
+    const gain = getBuildingUnitCps(b) * quantity;
+    return gain > 0 ? cost / gain : Infinity;
+}
+
+// The unlocked building whose next one pays for itself soonest
+function getBestValueBuilding() {
+    let best = null, bestSec = Infinity, unlocked = 0;
+    BUILDINGS.forEach(b => {
+        if (state.totalSoba < b.baseCost * 0.4 && state.buildings[b.id] === 0) return;
+        unlocked++;
+        const sec = getPaybackSec(b, 1, getBuildingCost(b));
+        if (sec < bestSec) { bestSec = sec; best = b.id; }
+    });
+    return unlocked >= 2 ? best : null;
+}
+
+function getBuyItemView(b, bestId) {
     const locked = state.totalSoba < b.baseCost * 0.4 && state.buildings[b.id] === 0;
     const owned = state.buildings[b.id] || 0;
     if (locked) {
@@ -433,16 +474,23 @@ function getBuyItemView(b) {
     }
     const level = state.buildingLevels[b.id] || 0;
     const qtyLabel = buyAmount === 'max' ? ` (MAX: ${quantity})` : (quantity > 1 ? ` ×${quantity}` : '');
+    const payback = getPaybackSec(b, Math.max(1, quantity), cost);
+    const paybackLabel = isFinite(payback) ? `<span class="b-payback">${t('⏱ 回収 {0}', formatDuration(payback * 1000))}</span>` : '';
+    const unitCps = getBuildingUnitCps(b);
+    const rawTotal = Object.values(buildingRawCps).reduce((a, x) => a + x, 0);
+    const share = rawTotal > 0 ? (buildingRawCps[b.id] || 0) / rawTotal * 100 : 0;
     return {
         className: `building-item ${canBuy ? 'can-buy' : ''}`,
         html: `<div class="b-icon">${b.icon}</div>
             <div class="b-info">
-                <div class="b-name">${b.name}${level > 0 ? ` <span style="color:var(--accent); font-size:11px">Lv.${level}</span>` : ''}</div>
-                <div class="b-cost">🍜 ${fmt(cost)}${qtyLabel}</div>
+                <div class="b-name">${b.name}${level > 0 ? ` <span style="color:var(--accent); font-size:11px">Lv.${level}</span>` : ''}${bestId === b.id ? ` <span class="b-best">${t('⭐おすすめ')}</span>` : ''}</div>
+                <div class="b-cost">🍜 ${fmt(cost)}${qtyLabel}${paybackLabel}</div>
             </div>
             <div class="b-count">${owned}</div>`,
         action: () => buyBuilding(b.id),
-        tooltip: [b.name, `${b.desc}<br>${t('生産: {0}/秒', fmt(b.baseCps))}${level > 0 ? t(' (熟成Lv.{0}: +{0}%)', level) : ''}`, cost]
+        tooltip: [b.name, `${b.desc}<br>${t('1つあたり: {0}/秒', fmt(unitCps))}${level > 0 ? t(' (熟成Lv.{0}: +{0}%)', level) : ''}`
+            + (owned > 0 ? `<br>${t('{0}個で {1}/秒 (全体の{2}%)', owned, fmt(unitCps * owned), share.toFixed(1))}` : '')
+            + (isFinite(payback) ? `<br>${t('元が取れるまで: {0}', formatDuration(payback * 1000))}` : ''), cost]
     };
 }
 
@@ -477,13 +525,14 @@ function renderShop() {
     renderBuyAmountToggle();
     if (activeView !== 'shop') return;
     const list = document.getElementById('buildings-list');
+    const bestId = shopMode === 'sell' ? null : getBestValueBuilding();
     BUILDINGS.forEach(b => {
         let el = shopItemEls[b.id];
         if (!el) {
             el = shopItemEls[b.id] = createShopItem();
             list.appendChild(el);
         }
-        const view = shopMode === 'sell' ? getSellItemView(b) : getBuyItemView(b);
+        const view = shopMode === 'sell' ? getSellItemView(b) : getBuyItemView(b, bestId);
         el._view = view;
         el.style.display = view.hidden ? 'none' : '';
         if (view.hidden) return;
@@ -505,7 +554,9 @@ function renderUpgrades() {
         }
         return false;
     });
-    if (!hasChanged('upgrades', visible.map(u => u.id + (state.soba >= u.cost ? '+' : '-')).join())) return;
+    // Affordable ones first, so the folded (two-row) grid shows what can be bought now
+    visible.sort((a, b) => (state.soba >= b.cost) - (state.soba >= a.cost));
+    if (!hasChanged('upgrades', visible.map(u => u.id + (state.soba >= u.cost ? '+' : '-')).join() + upgradesExpanded)) return;
     const grid = document.getElementById('upgrades-grid');
     grid.innerHTML = '';
     visible.forEach(u => {
@@ -517,6 +568,17 @@ function renderUpgrades() {
         div.onmouseleave = hideTooltip;
         grid.appendChild(div);
     });
+    grid.classList.toggle('collapsed', !upgradesExpanded);
+    const toggle = document.getElementById('upg-toggle');
+    const overflowing = upgradesExpanded || grid.scrollHeight > grid.clientHeight + 2;
+    toggle.style.display = overflowing ? 'block' : 'none';
+    toggle.textContent = upgradesExpanded ? t('▲ たたむ') : t('▼ すべて表示 ({0})', visible.length);
+}
+
+let upgradesExpanded = false;
+function toggleUpgradesExpanded() {
+    upgradesExpanded = !upgradesExpanded;
+    renderUpgrades();
 }
 
 function renderAchievements() {
@@ -532,6 +594,30 @@ function renderAchievements() {
         div.onmouseleave = hideTooltip;
         list.appendChild(div);
     });
+}
+
+function fmtMult(m) {
+    return '×' + (m < 1000 ? (Math.round(m * 100) / 100).toString() : fmt(m));
+}
+
+// Where production comes from: each building's share, then every multiplier applied on top
+function renderCpsBreakdown() {
+    const rawTotal = Object.values(buildingRawCps).reduce((a, b) => a + b, 0);
+    if (rawTotal <= 0) return '';
+    const rows = BUILDINGS.filter(b => buildingRawCps[b.id] > 0)
+        .map(b => ({ b, share: buildingRawCps[b.id] / rawTotal * 100 }))
+        .sort((x, y) => y.share - x.share).slice(0, 8)
+        .map(({ b, share }) => `<div class="breakdown-row"><span class="breakdown-name">${b.icon} ${b.name}</span>
+            <span class="breakdown-bar"><span style="width:${share.toFixed(1)}%"></span></span><span class="breakdown-val">${share.toFixed(1)}%</span></div>`).join('');
+    const factors = cpsFactors.slice().sort((x, y) => y[1] - x[1])
+        .map(([label, m]) => `<div class="stat-row"><span class="stat-label">${label}</span><span style="color:${m >= 1 ? 'var(--accent)' : '#ff8a8a'}">${fmtMult(m)}</span></div>`).join('');
+    return `<h3 class="settings-section">${t('🔍 生産の内訳')}</h3>
+        <p class="view-desc">${t('施設ごとの生産の割合(上位8つ)と、その上にかかっている倍率です。')}</p>
+        ${rows}
+        <div style="height:10px"></div>
+        <div class="stat-row"><span class="stat-label">${t('施設の生産(倍率なし)')}</span><span>${t('{0}/秒', fmt(rawTotal))}</span></div>
+        ${factors}
+        <div class="stat-row"><span class="stat-label"><b>${t('合計')}</b></span><span><b>${t('{0}/秒', fmt(getBaseCps()))}</b></span></div>`;
 }
 
 function renderStats() {
@@ -571,7 +657,7 @@ function renderStats() {
         <div class="stat-row"><span class="stat-label">${t('ログイン')}</span><span>${t('連続 {0} 日 (最高 {1} 日)', state.loginStreak, state.bestLoginStreak)}</span></div>
         <div class="stat-row"><span class="stat-label">${t('売却した施設')}</span><span>${t('{0} 個', state.buildingsSold)}</span></div>
         <div class="stat-row"><span class="stat-label">${t('期間限定イベント')}</span><span>${t('{0}/{1} 満喫', EVENTS.filter(e => (state.eventOrders[e.id] || 0) >= EVENT_ORDER_GOAL).length, EVENTS.length)}${getActiveEvent() ? t(' (開催中: {0})', getActiveEvent().name) : ''}</span></div>
-    `;
+    ` + renderCpsBreakdown();
     setHTMLIfChanged(container, html);
 }
 

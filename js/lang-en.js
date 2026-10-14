@@ -305,6 +305,79 @@ I18N.en.data = {
         toshikoshi: { name: 'Year-End Soba Operation', desc: "To close out the year, everyone comes for New Year's Eve soba.", customer: { icon: '🔔', name: "New Year's Eve customer" },
             news: ["On New Year's Eve the line runs until the temple bells ring.", '"Long and thin, like next year": year-end soba orders pour in.'] }
     },
+    storyCharacters: {
+        you: 'You', grandma: 'Grandma Fumi', kenta: 'Kenta the apprentice', gen: 'Gen, the regular',
+        mayumi: 'Mayumi from the tourism office', sobataro: 'Sobataro', spirit: 'The Spirit of Soba'
+    },
+    story: {
+        ch_open: { title: 'Taking Over the Shop', lines: [
+            'From today, this shop is yours.',
+            "But soba can tell when you cut corners. Make every bowl with your whole heart, you hear?",
+            'Yes. ...Starting with the first bowl.',
+            'And be generous with the grated daikon.'] },
+        ch_kenta: { title: 'An Apprentice Arrives', lines: [
+            'Excuse me! Could you teach me to make soba here?',
+            '...Did you wash your hands?',
+            'Yes! Three times!',
+            'That boy has good eyes. Train him well.'] },
+        ch_gen: { title: 'A Regular', lines: [
+            "Heard Fumi's shop changed hands. Well then, let's have a bowl.",
+            '...(slurp)',
+            "Mm. The spicy daikon bites just right. That's Fumi's taste.",
+            'Thank you so much!',
+            "I'll be back tomorrow. I'll be back every day."] },
+        ch_popular: { title: 'A Line Out the Door', lines: [
+            "Master! There's a line outside!",
+            'What? Why?',
+            'I told the whole town about you, that is why.',
+            "Good business is a blessing. But don't you ever change the taste."] },
+        ch_city: { title: 'Soba Town', lines: [
+            'I am with the tourism office. We want to promote this place as "Soba Town"!',
+            'Dinosaurs, Tojinbo, crab... and Echizen soba. Fukui has so much to offer!',
+            'Every new shop seems to bring the town a little more life.',
+            'If you open branches, I can show you anywhere in the prefecture.'] },
+        ch_robot: { title: 'Sobataro', lines: [
+            'GREETINGS. I AM AI NOODLE ROBOT "SOBATARO". OPTIMAL WATER RATIO: 47.3%.',
+            "Master, the robot's going to take our jobs...",
+            'I STILL LACK ONE THING. IT IS CALLED "HEART". PLEASE TEACH ME.',
+            "Then start by eating. You can't make good food if you don't know good food."] },
+        ch_dream: { title: 'In a Dream', lines: [
+            "...You've come a long way, haven't you.",
+            'Grandma? Where is this...?',
+            'A buckwheat plant is made, boiled, eaten, and returns to the field again. Shops and people are no different.',
+            'Let go of everything once. Whatever stays in your hands, that is your true Echizen Soul.'] },
+        ch_reborn: { title: 'Reborn', lines: [
+            '...Back to a tiny shop again.',
+            'Master, are your hands faster than before?',
+            "My body doesn't remember, but it's like my soul does.",
+            "Don't know what you did, but it's good. That's enough for me."] },
+        ch_world: { title: 'To the World', lines: [
+            "Big news! Bookings from overseas won't stop!",
+            'There are "ECHIZEN SOBA" signs in Paris and New York!',
+            'My local haunt became the whole world’s local haunt.',
+            "Wherever people eat it, I want them to taste Fukui's water and wind."] },
+        ch_space: { title: 'The Space Soba Age', lines: [
+            'REPORT. ZERO-GRAVITY FLOUR: AROMA +12%. I JUDGE THIS TO BE "DELICIOUS".',
+            'Sobataro, you understand "delicious" now!',
+            "YES. I HAVE EATEN FUMI'S SOBA EVERY DAY.",
+            'Is that so. Well, good for you.'] },
+        ch_god: { title: 'The Spirit of Soba', lines: [
+            'You have come far, maker of soba.',
+            'Who... are you?',
+            'I am the Spirit of Soba. I dwell in every bowl, and I have watched every bowl.',
+            'Yet one piece is missing. The last one, you must find yourself.'] },
+        ch_you: { title: 'The Last Piece', lines: [
+            'So you have found it. The last piece of production is...',
+            '...Me. It was me all along.',
+            'I told you from the start. Make every bowl with your whole heart.',
+            "Master! There's a line again today!",
+            'All right, let us make soba. Starting with the first bowl.'] },
+        ch_divine: { title: 'A Soba Shop of the Gods', lines: [
+            'You offered everything. Your soul is no longer that of a mortal.',
+            "Even as a god, you'll still stand behind the counter, won't you?",
+            'Of course. Customers are waiting.',
+            "I'll come every day. ...Even if it's a god's shop."] }
+    },
     customers: {
         0: { name: 'Tourist from out of town' },
         1: { name: 'Neighborhood regular' },
@@ -778,6 +851,35 @@ I18N.en.text = {
     '神格の儀が行えるようになった': 'The Rite of Divinity is available',
     '越前魂が1000個に達しました。「転生」タブの「神格の儀」では、越前魂と天界の力も含めて全てを捧げる代わりに「神徳」を得られます。<br>神徳1つにつき全生産+100%(1000個なら神徳10)。急ぐ必要はありません。': 'You have 1,000 Echizen Souls. The Rite of Divinity on the Prestige tab offers everything, souls and heavenly powers included, for divine virtue.<br>Each point gives +100% production (1,000 souls give 10). There is no rush.',
 
+    // --- production breakdown & shop ---
+    'だし猫': 'Dashi cats',
+    '祭壇の精霊': 'Altar spirits',
+    '季節': 'Season',
+    '隠された熟練の力': 'Hidden Mastery',
+    '職人ポイント': 'Artisan points',
+    '⏱ 回収 {0}': '⏱ pays off in {0}',
+    '⭐おすすめ': '⭐Best value',
+    '1つあたり: {0}/秒': 'Each: {0}/s',
+    '{0}個で {1}/秒 (全体の{2}%)': '{0} owned: {1}/s ({2}% of buildings)',
+    '元が取れるまで: {0}': 'Pays for itself in: {0}',
+    '▲ たたむ': '▲ Fold',
+    '▼ すべて表示 ({0})': '▼ Show all ({0})',
+    '🔍 生産の内訳': '🔍 Production breakdown',
+    '施設ごとの生産の割合(上位8つ)と、その上にかかっている倍率です。': "Each building's share of production (top 8), and the multipliers on top.",
+    '施設の生産(倍率なし)': 'Buildings (before multipliers)',
+    '{0}/秒': '{0}/s',
+    '合計': 'Total',
+    '✅ このままで間に合う': '✅ on pace',
+    '👆 クリックで追い込もう': '👆 click to catch up',
+
+    // --- story ---
+    '📜 物語': '📜 Story',
+    '第{0}話': 'Chapter {0}',
+    'つづける': 'Continue',
+    '物語が読めるようになった': 'The story has begun',
+    'お店の成長に合わせて、少しずつお話が進みます。<br>「記録 → 物語」で、これまでのお話をいつでも読み返せます。': 'The story moves on bit by bit as your shop grows.<br>Reread past chapters any time in Records → Story.',
+    'お店の成長に合わせて、少しずつお話が進みます。読んだお話はここからいつでも読み返せます。': 'The story moves on bit by bit as your shop grows. Reread any chapter you have reached here.',
+
     // --- late-game challenges ---
     '？？？': '???',
     'この挑戦ではアップグレードを買えません。': 'Upgrades cannot be bought in this challenge.',
@@ -785,7 +887,7 @@ I18N.en.text = {
     '転生を{0}回すると挑戦できるようになる。': 'Unlocks after {0} prestiges.',
 
     // --- page ---
-    '越前そばクリッカー Pro v2.6 - 究極版': 'Echizen Soba Clicker Pro v2.6',
+    '越前そばクリッカー Pro v2.7 - 究極版': 'Echizen Soba Clicker Pro v2.7',
     'そばクリッカー': 'Soba Clicker',
     '越前そばの歴史は深い... 最初のそばを打とう！': 'Echizen soba has a long history... Make your first bowl!',
     '🍲 だし Lv.': '🍲 Dashi Lv.',
