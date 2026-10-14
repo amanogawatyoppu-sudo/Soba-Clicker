@@ -353,7 +353,7 @@ test('English mode leaves no Japanese on screen', async () => {
         state.regions = ['katsuyama', 'ono']; state.spirits = ['spirit_speed']; state.lumps = 3; state.heavenlyUpgrades = ['heav_1', 'heav_3'];
         state.farm.discovered = ['common', 'maruoka']; state.farm.plots[0] = { crop: 'common', plantedAt: 0 };
         state.achievements = ACHIEVEMENTS.slice(0, 30).map(a => a.id); buffMult = 7; buffTimer = 30; clickBuffMult = 777; clickBuffTimer = 5;
-        state.nextOrderTime = 1; orderTick(Date.now()); calculateCps(); render();
+        state.nextOrderTime = 1; orderTick(Date.now()); dailyTick(); calculateCps(); render();
         scan('main');
         TAB_GROUPS.forEach(g => g.views.forEach(v => { switchTab(v.id); render(); scan(v.id); }));
         setShopMode('sell'); switchTab('shop'); render(); scan('sell'); setShopMode('buy');
@@ -362,6 +362,9 @@ test('English mode leaves no Japanese on screen', async () => {
         state.seenHints = []; checkHints(); scan('hint'); closeModal();
         state.eventsSeen = []; checkEventAnnounce(); scan('event'); while (isModalOpen()) closeModal();
         openShareDialog(); scan('share'); closeModal();
+        // every hint and daily task, not just the ones this state happens to show
+        HINTS.forEach(h => { if (t(h.title) === h.title || t(h.text) === h.text) found.add(`hint: ${h.id}`); });
+        DAILY_MISSIONS.forEach(m => { if (t(m.text) === m.text) found.add(`daily: ${m.id}`); });
         document.querySelectorAll('.building-item, .upgrade-item, .ach-icon-small').forEach(el => {
             if (!el.onmouseenter) return;
             el.onmouseenter({ clientX: 10, clientY: 10 });
@@ -382,4 +385,125 @@ test('number formats: Japanese myriads and English short scale', async () => {
     assert.deepEqual(await ja.page.evaluate(sample), ['999', '1.23万', '1.50億', '2.50兆']);
     assert.deepEqual(await en.page.evaluate(sample), ['999', '12.35K', '150M', '2.5T']);
     await ja.close(); await en.close();
+});
+
+test('daily tasks: same three for a date, progress, rewards and a new set the next day', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        state.allTimeSoba = state.totalSoba = 1e6; state.soba = 0; calculateCps();
+        const a = rollDailyMissions('2026-10-14').missions.map(m => m.id).join();
+        const b = rollDailyMissions('2026-10-14').missions.map(m => m.id).join();
+        const other = ['2026-10-15', '2026-10-16', '2026-10-17'].some(d => rollDailyMissions(d).missions.map(m => m.id).join() !== a);
+        dailyTick();
+        const today = state.daily.day;
+        // force a known set to drive each kind of progress
+        state.daily.missions = [{ id: 'click', target: 3, progress: 0 }, { id: 'buy', target: 5, progress: 0 }, { id: 'produce', target: 5000, progress: 0 }];
+        const lumps = state.lumps;
+        clickBowl({ clientX: 0, clientY: 0 }); clickBowl({ clientX: 0, clientY: 0 }); clickBowl({ clientX: 0, clientY: 0 });
+        const afterClicks = state.soba;
+        buyAmount = 1; state.soba += 1e9; for (let i = 0; i < 5; i++) buyBuilding('student');
+        const beforeProduce = state.daily.missions[2].progress;
+        state.totalSoba += 2000; dailyTick();
+        const partial = state.daily.missions[2].progress;
+        state.totalSoba += 4000; dailyTick();
+        const full = state.daily.missions.every(m => m.progress >= m.target);
+        checkAchievements();
+        // a new day brings new tasks
+        state.daily.day = '2000-01-01'; dailyTick();
+        return { a, b, other, count: a.split(',').length, today, afterClicks, beforeProduce, partial, full,
+                 lumpGain: state.lumps - lumps, fullDays: state.dailyFullDays, ach: state.achievements.includes('ach_daily_1'),
+                 newDay: state.daily.day === today && state.daily.missions.every(m => m.progress === 0) };
+    });
+    assert.equal(r.a, r.b);
+    assert.ok(r.other, 'different dates give different tasks');
+    assert.equal(r.count, 3);
+    assert.ok(r.afterClicks >= 1000, 'a finished task pays at least the minimum reward');
+    assert.equal(r.beforeProduce, 0, 'rewards are not counted as production');
+    assert.ok(r.partial >= 2000 && r.partial < 2100, `produce progress ${r.partial}`); // plus a moment of idle production
+    assert.ok(r.full);
+    assert.equal(r.lumpGain, 1);
+    assert.equal(r.fullDays, 1);
+    assert.ok(r.ach);
+    assert.ok(r.newDay);
+    assert.deepEqual(errors, []);
+    await close();
+});
+
+test('divinity: offers souls and heavenly powers for lasting virtue', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        state.souls = 999; state.prestigeCount = 5;
+        const tooFew = getDivinityToGet();
+        state.souls = 1000; state.allTimeSoba = 3e17; state.heavenlyUpgrades = ['heav_1', 'heav_8', 'heav_3'];
+        state.spirits = ['spirit_speed', 'spirit_harvest', 'spirit_guardian'];
+        state.achievements = ['ach_1']; state.buildingLevels.student = 4; state.reputation = 20;
+        BUILDINGS.forEach(b => { state.buildings[b.id] = 10; }); calculateCps();
+        const gain = getDivinityToGet();
+        const prodBefore = getDivinityProdMult();
+        performDivinity();
+        checkAchievements();
+        // virtue follows the record: offering fewer souls again adds nothing, beating it adds the difference
+        state.souls = 1000; const repeat = getDivinityToGet();
+        state.souls = 8000; const record = getDivinityToGet();
+        const nextNeeded = (state.souls = 0, getNextDivinitySouls());
+        state.allTimeSoba = 3e8 * 1001; // a little over 10 souls' worth
+        return { tooFew, gain, prodBefore, prod: getDivinityProdMult(), souls: state.souls, heavenly: state.heavenlyUpgrades.length,
+                 spirits: state.spirits.length, ach: state.achievements.includes('ach_1') && state.achievements.includes('ach_divine_1'),
+                 level: state.buildingLevels.student, rep: state.reputation, buildings: getTotalBuildings(), soba: state.soba,
+                 past: state.pastSoba, soulsToGet: getSoulsToGet(), prestiges: state.prestigeCount, repeat, record, nextNeeded };
+    });
+    assert.equal(r.tooFew, 0);
+    assert.equal(r.gain, 10);
+    assert.equal(r.prodBefore, 1);
+    assert.equal(r.prod, 11);
+    assert.equal(r.souls, 0);
+    assert.equal(r.heavenly, 0);
+    assert.equal(r.spirits, 2, 'spirits beyond the base slots are released');
+    assert.ok(r.ach);
+    assert.equal(r.level, 4);
+    assert.equal(r.rep, 20);
+    assert.equal(r.buildings, 0);
+    assert.equal(r.soba, 0);
+    assert.equal(r.past, 3e17);
+    assert.equal(r.soulsToGet, 10, 'souls start over from the new all-time total');
+    assert.equal(r.prestiges, 5);
+    assert.equal(r.repeat, 0);
+    assert.equal(r.record, 10);
+    assert.equal(r.nextNeeded, 1331);
+    assert.deepEqual(errors, []);
+    await close();
+});
+
+test('late-game challenges: locked early, no upgrades, and the time limit fails the run', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        const speed = CHALLENGES.find(c => c.id === 'speedrun');
+        state.prestigeCount = 1; state.souls = 50; state.allTimeSoba = 5e12;
+        const lockedEarly = !isChallengeUnlocked(speed);
+        startChallenge('speedrun');
+        const notStarted = state.isChallengeRun === null;
+        state.prestigeCount = 3; saveGame(true);
+        startChallenge('no_upgrade');
+        const inRun = state.isChallengeRun;
+        state.soba = 1e12; state.totalSoba = 1e6;
+        const u = UPGRADES[0]; buyUpgrade(u.id);
+        const blocked = !state.upgrades.includes(u.id);
+        abandonChallenge();
+        startChallenge('speedrun');
+        const unlockedInRun = isChallengeUnlocked(speed);
+        state.challengeStartTime = Date.now() - 61 * 60 * 1000;
+        checkChallengeProgress();
+        return { lockedEarly, notStarted, inRun, blocked, unlockedInRun, after: state.isChallengeRun, souls: state.souls,
+                 cleared: state.challengesCompleted.includes('speedrun') };
+    });
+    assert.ok(r.lockedEarly);
+    assert.ok(r.notStarted);
+    assert.equal(r.inRun, 'no_upgrade');
+    assert.ok(r.blocked);
+    assert.ok(r.unlockedInRun);
+    assert.equal(r.after, null, 'time limit sends the player back');
+    assert.equal(r.souls, 50);
+    assert.equal(r.cleared, false);
+    assert.deepEqual(errors, []);
+    await close();
 });

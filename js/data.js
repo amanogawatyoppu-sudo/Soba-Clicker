@@ -329,7 +329,12 @@ const ACHIEVEMENTS = [
     { id: 'ach_login_7', name: '皆勤賞', icon: '🗓️', desc: '7日連続で遊ぶ。', req: { loginStreak: 7 } },
     { id: 'ach_login_30', name: '越前の常連', icon: '🎖️', desc: '30日連続で遊ぶ。', req: { loginStreak: 30 } },
     { id: 'ach_sell_1', name: '店じまい', icon: '💸', desc: '施設を売却する。', req: { buildingsSold: 1 } },
-    { id: 'ach_event_all', name: '越前の一年', icon: '🗓️', desc: '全ての期間限定イベントで限定のお客さんの注文を3回ずつ達成する。', req: { eventsAll: 1 } }
+    { id: 'ach_event_all', name: '越前の一年', icon: '🗓️', desc: '全ての期間限定イベントで限定のお客さんの注文を3回ずつ達成する。', req: { eventsAll: 1 } },
+    { id: 'ach_daily_1', name: '今日のお題', icon: '📅', desc: 'その日のお題を3つ全て達成する。', req: { dailyFullDays: 1 } },
+    { id: 'ach_daily_7', name: 'お題の常連', icon: '📆', desc: 'その日のお題を全て達成した日が7日になる。', req: { dailyFullDays: 7 } },
+    { id: 'ach_daily_30', name: 'お題の名人', icon: '🗒️', desc: 'その日のお題を全て達成した日が30日になる。', req: { dailyFullDays: 30 } },
+    { id: 'ach_divine_1', name: '神の座へ', icon: '✨', desc: '神格の儀を行う。', req: { divinityCount: 1 } },
+    { id: 'ach_divine_3', name: '三度目の神格', icon: '🌠', desc: '神格の儀を3回行う。', req: { divinityCount: 3 } }
 ];
 localizeList(ACHIEVEMENTS, 'achievements');
 
@@ -363,7 +368,10 @@ localizeList(SHADOW_ACHIEVEMENTS, 'shadow');
 const CHALLENGES = [
     { id: 'no_click', name: '不動の一杯', icon: '🧘', desc: 'クリックせずに施設の力だけで累計1000万杯を目指す。挑戦中はクリックパワーが常に0になる。', goal: 1e7, modifier: 'noClick' },
     { id: 'no_golden', name: '幸運を捨てし者', icon: '🚫', desc: 'ゴールデンそば・呪われしそば・季節限定そばが一切出現しない状態で累計1億杯を目指す。', goal: 1e8, modifier: 'noGolden' },
-    { id: 'expensive', name: '高騰の時代', icon: '📈', desc: '施設のコストが常に1.5倍の状態で累計1000万杯を目指す。', goal: 1e7, modifier: 'expensiveBuildings' }
+    { id: 'expensive', name: '高騰の時代', icon: '📈', desc: '施設のコストが常に1.5倍の状態で累計1000万杯を目指す。', goal: 1e7, modifier: 'expensiveBuildings' },
+    // Late-game challenges: shown after a few prestiges
+    { id: 'no_upgrade', name: '素材の味', icon: '🌾', desc: 'アップグレードを一切買えない状態で累計1億杯を目指す。', goal: 1e8, modifier: 'noUpgrades', minPrestige: 3 },
+    { id: 'speedrun', name: '一刻千金', icon: '⏱️', desc: '60分以内(実時間)に累計1億杯を目指す。時間切れになると挑戦は失敗し、元の進行状況に戻る。', goal: 1e8, modifier: 'timeLimit', timeLimitSec: 60 * 60, minPrestige: 3 }
 ];
 localizeList(CHALLENGES, 'challenges');
 
@@ -474,6 +482,27 @@ const REPUTATION_MAX = 100; // raised to 150 by the heavenly upgrade 老舗の�
 const REPUTATION_BONUS = 0.005; // +0.5% production per reputation point
 const SELL_REFUND_RATE = 0.25;
 
+// --- Daily missions: three a day, drawn from this pool by the date ---
+// produceMinutes: the target is that many minutes of base production at the moment the day's missions are drawn
+const DAILY_MISSIONS = [
+    { id: 'click', icon: '👆', text: 'そばを{0}回打つ', target: 300 },
+    { id: 'golden', icon: '🌟', text: 'ゴールデンそばを{0}回つかまえる', target: 2 },
+    { id: 'order', icon: '📋', text: 'お客さんの注文を{0}回達成する', target: 2 },
+    { id: 'buy', icon: '🏗️', text: '施設を{0}個買う', target: 25 },
+    { id: 'upgrade', icon: '⭐', text: 'アップグレードを{0}個買う', target: 3 },
+    { id: 'harvest', icon: '🧺', text: 'そば畑で{0}回収穫する', target: 3 },
+    { id: 'artisan', icon: '🔪', text: '手打ちそば道場に{0}回挑む', target: 2 },
+    { id: 'produce', icon: '🍜', text: 'そばを{0}杯作る', produceMinutes: 30 }
+];
+const DAILY_MISSION_COUNT = 3;
+const DAILY_REWARD_SECONDS = 900;   // each mission: 15 minutes of base production
+const DAILY_MIN_REWARD = 1000;
+
+// --- Divinity: the second-tier prestige, offering souls and heavenly powers for divine virtue ---
+const DIVINITY_MIN_SOULS = 1000;
+const DIVINITY_PROD_PER_POINT = 1;   // +100% production per point (production only: a soul bonus fed back into itself)
+const DIVINITY_PER_CBRT = 10;        // virtue = 10 x cube root of (best souls offered / 1000)
+
 const GLOSSARY = [
     { category: '基本', term: 'そば', icon: '🍜', desc: 'このゲームの基本通貨。クリックや施設で増える。' },
     { category: '基本', term: '毎秒(CPS)', icon: '⏱️', desc: '1秒間に自動で生産されるそばの量。施設やアップグレードで伸ばせる。' },
@@ -503,7 +532,9 @@ const GLOSSARY = [
     { category: '基本', term: '売却', icon: '💸', desc: 'ショップの「売却」モードで施設を売れる。購入額の25%が戻る。' },
     { category: '基本', term: 'ログインボーナス', icon: '🎁', desc: '1日1回、その日最初に遊んだときにそばがもらえる。連続で遊ぶほど増え、7日目にはそば粉の塊ももらえる。' },
     { category: '基本', term: '設定・引き継ぎ', icon: '⚙️', desc: '「設定」タブで効果音・演出・数字の表示を変えられる。セーブデータを文字列やファイルで書き出し、別の端末で読み込むこともできる。' },
-    { category: '隠し要素', term: '裏実績', icon: '🌑', desc: '通常の実績数にはカウントされない、少し変わった条件で解除される隠し実績。統計タブで確認できる。' }
+    { category: '隠し要素', term: '裏実績', icon: '🌑', desc: '通常の実績数にはカウントされない、少し変わった条件で解除される隠し実績。統計タブで確認できる。' },
+    { category: '基本', term: '今日のお題', icon: '📅', desc: '毎日3つ出る日替わりのお題。達成すると報酬のそばがもらえ、3つ全て達成するとそば粉の塊もおまけでもらえる。日付が変わると新しいお題になる。挑戦モード中は進まない。' },
+    { category: '転生システム', term: '神格・神徳', icon: '✨', desc: '越前魂を1000個以上集めると行える、転生のさらに上の段階。越前魂と天界の力も含めて全てを捧げる代わりに「神徳」を得る。神徳1つにつき全生産+100%で、ずっと残る。神徳は捧げた越前魂の最高記録で決まり(1000個で10、8000個で20、100万個で100)、記録を超えた分だけ増える。実績・熟成・そば畑・評判・支店・挑戦の報酬は残る。' }
 ];
 localizeList(GLOSSARY, 'glossary', (g, i) => i);
 

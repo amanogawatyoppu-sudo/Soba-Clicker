@@ -9,7 +9,10 @@ function getTotalBuildings() {
 }
 
 const TAB_GROUPS = [
-    { id: 'shop', icon: '🏪', label: 'ショップ', views: [{ id: 'shop', label: 'ショップ' }] },
+    { id: 'shop', icon: '🏪', label: 'ショップ', views: [
+        { id: 'shop', label: 'ショップ' },
+        { id: 'daily', label: '📅 今日のお題', unlocked: () => state.allTimeSoba + state.pastSoba >= 1000 || state.dailyFullDays > 0, badge: () => getDailyBadge() }
+    ] },
     { id: 'grow', icon: '🌱', label: '育成', views: [
         { id: 'farm', label: '🌾 そば畑', unlocked: () => state.allTimeSoba >= FARM_UNLOCK_SOBA || state.farm.discovered.length > 1 },
         { id: 'lump', label: '🍡 熟成' },
@@ -35,6 +38,7 @@ const VIEW_RENDERERS = {
     farm: () => renderFarm(),
     lump: () => renderLumpList(),
     prestige: () => renderPrestigeView(),
+    daily: () => renderDaily(),
     settings: () => renderSettings()
 };
 
@@ -52,7 +56,7 @@ function findGroupOfView(viewId) {
 
 function renderTabs() {
     // Only rebuild when something visible changed; render() runs 10 times a second
-    const signature = TAB_GROUPS.map(g => g.views.map(v => isViewUnlocked(v) ? 1 : 0).join('')).join('|') + ':' + activeView;
+    const signature = TAB_GROUPS.map(g => g.views.map(v => (isViewUnlocked(v) ? 1 : 0) + (v.badge ? v.badge() : '')).join('')).join('|') + ':' + activeView;
     if (signature === tabSignature) return;
     tabSignature = signature;
 
@@ -79,7 +83,7 @@ function renderTabs() {
     views.forEach(v => {
         const btn = document.createElement('button');
         btn.className = `sub-tab ${v.id === activeView ? 'active' : ''}`;
-        btn.textContent = v.label;
+        btn.textContent = v.label + (v.badge ? ` ${v.badge()}` : '');
         btn.onclick = () => switchTab(v.id);
         sub.appendChild(btn);
     });
@@ -110,6 +114,133 @@ function renderPrestigeView() {
     document.getElementById('pv-available').textContent = t('{0} 個', fmt(getAvailableSouls()));
     document.getElementById('pv-gain').textContent = t('{0} 個', fmt(soulsToGet));
     document.getElementById('pv-count').textContent = t('{0} 回', state.prestigeCount);
+
+    const divGain = getDivinityToGet();
+    document.getElementById('dv-current').textContent = t('✨ {0} (全生産+{1}%)', state.divinity, fmt(state.divinity * DIVINITY_PROD_PER_POINT * 100));
+    document.getElementById('dv-gain').textContent = divGain > 0 ? `+${divGain}` : t('越前魂 {0} / {1} 個', fmt(state.souls), fmt(getNextDivinitySouls()));
+    const btn = document.getElementById('divinity-btn');
+    btn.disabled = divGain <= 0 || !!state.isChallengeRun;
+    btn.textContent = divGain > 0 ? t('✨ 神格の儀を行い、神徳 {0} を得る', divGain) : t('✨ 神格の儀 (越前魂{0}個から)', fmt(getNextDivinitySouls()));
+}
+
+// ===================================================================
+// Daily missions: three small goals a day, the same for everyone on that date
+// ===================================================================
+function seededRandom(text) {
+    let h = 2166136261;
+    for (let i = 0; i < text.length; i++) h = Math.imul(h ^ text.charCodeAt(i), 16777619);
+    return () => {
+        h = (h + 0x6D2B79F5) | 0;
+        let x = Math.imul(h ^ (h >>> 15), 1 | h);
+        x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+        return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+    };
+}
+
+function isDailyMissionAvailable(m) {
+    if (m.id === 'harvest') return viewUnlocked('farm');
+    if (m.id === 'upgrade') return UPGRADES.filter(u => !state.upgrades.includes(u.id)).length >= 10;
+    return true;
+}
+
+function rollDailyMissions(day) {
+    const rand = seededRandom(day);
+    const pool = DAILY_MISSIONS.filter(isDailyMissionAvailable);
+    const picked = [];
+    while (picked.length < DAILY_MISSION_COUNT && pool.length) picked.push(pool.splice(Math.floor(rand() * pool.length), 1)[0]);
+    return {
+        day,
+        missions: picked.map(m => ({
+            id: m.id,
+            target: m.produceMinutes ? Math.max(1000, Math.ceil(getBaseCps() * 60 * m.produceMinutes)) : m.target,
+            progress: 0
+        })),
+        lastTotal: state.totalSoba
+    };
+}
+
+function getDailyMissionDef(m) {
+    return DAILY_MISSIONS.find(d => d.id === m.id);
+}
+
+function getDailyMissionText(m) {
+    const def = getDailyMissionDef(m);
+    return t(def.text, def.produceMinutes ? fmt(m.target) : m.target);
+}
+
+function getDailyReward() {
+    return Math.max(DAILY_MIN_REWARD, getBaseCps() * DAILY_REWARD_SECONDS);
+}
+
+function dailyTick() {
+    if (state.isChallengeRun || isResetting) return;
+    const today = localDateStr(new Date());
+    if (!state.daily || state.daily.day !== today) state.daily = rollDailyMissions(today);
+    // Production counts by this life's total, which restarts at a prestige (then only the new total counts)
+    const delta = state.totalSoba - state.daily.lastTotal;
+    if (delta > 0) progressDaily('produce', delta);
+    state.daily.lastTotal = state.totalSoba;
+}
+
+function progressDaily(type, amount = 1) {
+    const daily = state.daily;
+    if (!daily || state.isChallengeRun || daily.day !== localDateStr(new Date())) return;
+    daily.missions.forEach(m => {
+        if (m.id !== type || m.progress >= m.target) return;
+        m.progress = Math.min(m.target, m.progress + amount);
+        if (m.progress < m.target) return;
+        const reward = getDailyReward();
+        state.soba += reward;
+        state.totalSoba += reward;
+        state.allTimeSoba += reward;
+        daily.lastTotal += reward; // the reward itself doesn't count toward the produce mission
+        notify(t('今日のお題を達成！「{0}」 報酬 {1} 杯', getDailyMissionText(m), fmt(reward)), "📅", true);
+        playSound('achieve');
+        if (daily.missions.every(x => x.progress >= x.target)) {
+            state.lumps++;
+            state.totalLumps++;
+            state.dailyFullDays++;
+            notify(t('今日のお題を全て達成！おまけに 🍡 そば粉の塊を1個もらった。'), "🎊", true);
+        }
+    });
+}
+
+function getDailyBadge() {
+    const daily = state.daily;
+    if (!daily || state.isChallengeRun) return '';
+    const done = daily.missions.filter(m => m.progress >= m.target).length;
+    return done === daily.missions.length ? '✅' : `${done}/${daily.missions.length}`;
+}
+
+function renderDaily() {
+    if (activeView !== 'daily') return;
+    const list = document.getElementById('daily-list');
+    const note = document.getElementById('daily-note');
+    if (state.isChallengeRun || !state.daily) {
+        setHTMLIfChanged(list, `<div class="view-desc">${t('挑戦モード中はお題は進みません。')}</div>`);
+        note.textContent = '';
+        return;
+    }
+    const html = state.daily.missions.map(m => {
+        const def = getDailyMissionDef(m);
+        const done = m.progress >= m.target;
+        const pct = Math.min(100, m.progress / m.target * 100);
+        const progressText = def.produceMinutes ? `${fmt(m.progress)} / ${fmt(m.target)}` : `${m.progress} / ${m.target}`;
+        return `<div class="daily-item ${done ? 'done' : ''}">
+            <div class="daily-icon">${done ? '✅' : def.icon}</div>
+            <div class="daily-body">
+                <div class="daily-text">${getDailyMissionText(m)}</div>
+                <div class="daily-bar"><div class="daily-bar-fill" style="width:${pct}%"></div></div>
+                <div class="daily-progress">${done ? t('達成！') : progressText}</div>
+            </div>
+        </div>`;
+    }).join('');
+    setHTMLIfChanged(list, html);
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const allDone = state.daily.missions.every(m => m.progress >= m.target);
+    note.textContent = (allDone ? t('今日のお題は全て達成しました！') + ' ' : '')
+        + t('次のお題まで {0}', formatDuration(midnight - now)) + ' / ' + t('全達成した日: {0} 日', state.dailyFullDays);
 }
 
 // ===================================================================
@@ -528,6 +659,7 @@ function completeOrder() {
     state.totalSoba += order.reward;
     state.allTimeSoba += order.reward;
     state.ordersCompleted++;
+    progressDaily('order');
     const repUp = state.reputation < getReputationMax();
     state.reputation = Math.min(getReputationMax(), state.reputation + 1);
     state.activeOrder = null;
@@ -776,6 +908,7 @@ function harvestPlot(i, silent) {
     state.allTimeSoba += gain;
     state.farm.plots[i] = null;
     state.farm.harvests++;
+    progressDaily('harvest');
     if (!silent) {
         notify(t('{0}を収穫！{1} 杯を獲得。', crop.name, fmt(gain)), crop.icon);
         playSound('harvest');
@@ -923,7 +1056,7 @@ function renderFarm() {
         div.className = 'dex-item';
         div.innerHTML = `
             <div class="dex-icon" style="${found ? '' : 'filter:grayscale(1) brightness(0.4)'}">${found ? crop.icon : '❓'}</div>
-            <div><div class="dex-name">${found ? crop.name : '？？？'}</div><div class="dex-desc">${desc}</div></div>
+            <div><div class="dex-name">${found ? crop.name : t('？？？')}</div><div class="dex-desc">${desc}</div></div>
         `;
         dex.appendChild(div);
     });
@@ -1078,7 +1211,9 @@ const HINTS = [
     { id: 'shrine', view: 'shrine', icon: '⛩️', title: 'そばの祭壇が解放された', text: '「育成 → 祭壇」で、そばの精霊を2柱まで祀れます。<br>精霊は強い恩恵と引き換えにデメリットも持つので、組み合わせを考えよう。', when: () => viewUnlocked('shrine') },
     { id: 'map', view: 'map', icon: '🗾', title: '福井ご当地MAPが解放された', text: '「育成 → 地図」で、福井県内の各地に支店を出せます。<br>支店ごとに、その土地ならではの永続ボーナスがもらえます。', when: () => viewUnlocked('map') },
     { id: 'prestige', view: 'prestige', icon: '☁️', title: '転生できるようになった', text: '累計1兆杯に到達しました。転生すると施設やそばはリセットされますが、「越前魂」を得て全生産がずっと強化されます。<br>越前魂は多く貯めてから転生するほど多くもらえるので、急がなくても大丈夫です。', when: () => viewUnlocked('prestige') },
-    { id: 'challenge', view: 'challenge', icon: '⚔️', title: '挑戦モードが解放された', text: '「転生 → 挑戦」で、特殊なルールのもとで目標を目指せます。今の進行状況は安全に退避されます。<br>クリアするごとに恒久ボーナス+3%。', when: () => viewUnlocked('challenge') }
+    { id: 'challenge', view: 'challenge', icon: '⚔️', title: '挑戦モードが解放された', text: '「転生 → 挑戦」で、特殊なルールのもとで目標を目指せます。今の進行状況は安全に退避されます。<br>クリアするごとに恒久ボーナス+3%。', when: () => viewUnlocked('challenge') },
+    { id: 'daily', view: 'daily', icon: '📅', title: '今日のお題が登場', text: '「ショップ → 今日のお題」に、毎日3つのお題が出ます。<br>達成するとそばがもらえ、3つ全て達成するとそば粉の塊もおまけでもらえます。', when: () => viewUnlocked('daily') && !!state.daily },
+    { id: 'divinity', view: 'prestige', icon: '✨', title: '神格の儀が行えるようになった', text: '越前魂が1000個に達しました。「転生」タブの「神格の儀」では、越前魂と天界の力も含めて全てを捧げる代わりに「神徳」を得られます。<br>神徳1つにつき全生産+100%(1000個なら神徳10)。急ぐ必要はありません。', when: () => state.souls >= DIVINITY_MIN_SOULS }
 ];
 
 function checkHints() {
