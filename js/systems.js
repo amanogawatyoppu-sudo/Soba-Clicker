@@ -217,16 +217,28 @@ function checkStory() {
     showStoryChapter(chapter.id);
 }
 
+// Main chapters are numbered; side stories (events, spirits, branches) are labelled by kind
+const STORY_SIDE_LABELS = { event: '季節のお話', spirit: '精霊のお話', region: '支店のお話' };
+
+function getStoryLabel(chapter) {
+    if (chapter.side) return t(STORY_SIDE_LABELS[chapter.side]);
+    return t('第{0}話', STORY.filter(c => !c.side).indexOf(chapter) + 1);
+}
+
+function getStoryCharacter(who) {
+    const spirit = SPIRITS.find(s => s.id === who);
+    return STORY_CHARACTERS[who] || (spirit && { icon: spirit.icon, name: spirit.name });
+}
+
 function showStoryChapter(id) {
-    const idx = STORY.findIndex(c => c.id === id);
-    const chapter = STORY[idx];
+    const chapter = STORY.find(c => c.id === id);
     const lines = chapter.lines.map(([who, text]) => {
-        const ch = STORY_CHARACTERS[who];
+        const ch = getStoryCharacter(who);
         return `<div class="story-line ${who === 'you' ? 'mine' : ''}"><div class="story-face">${ch.icon}</div>
             <div class="story-bubble"><div class="story-who">${ch.name}</div><div class="story-text">${text}</div></div></div>`;
     }).join('');
     showModal(`
-        <div class="story-chapter">${t('第{0}話', idx + 1)}</div>
+        <div class="story-chapter">${getStoryLabel(chapter)}</div>
         <div class="modal-title">📜 ${chapter.title}</div>
         <div class="story-lines">${lines}</div>
         <button class="action-btn" style="background:var(--accent); color:#1a0f00; border-color:var(--accent); min-width:140px" onclick="closeModal()">${t('つづける')}</button>
@@ -237,10 +249,15 @@ function renderStory() {
     if (activeView !== 'story') return;
     const list = document.getElementById('story-list');
     if (!hasChanged('story', state.storySeen.join())) return;
-    list.innerHTML = STORY.map((c, i) => state.storySeen.includes(c.id)
-        ? `<button class="story-item" onclick="showStoryChapter('${c.id}')"><span class="story-num">${t('第{0}話', i + 1)}</span>${c.title}</button>`
-        : `<div class="story-item locked"><span class="story-num">${t('第{0}話', i + 1)}</span>${t('？？？')}</div>`).join('');
-    document.getElementById('story-count').textContent = `${state.storySeen.length}/${STORY.length}`;
+    const item = (c) => state.storySeen.includes(c.id)
+        ? `<button class="story-item" onclick="showStoryChapter('${c.id}')"><span class="story-num">${getStoryLabel(c)}</span>${c.title}</button>`
+        : `<div class="story-item locked"><span class="story-num">${getStoryLabel(c)}</span>${t('？？？')}</div>`;
+    const main = STORY.filter(c => !c.side), side = STORY.filter(c => c.side);
+    const seen = (list) => list.filter(c => state.storySeen.includes(c.id)).length;
+    list.innerHTML = main.map(item).join('')
+        + `<div class="section-label" style="margin-top:18px">${t('寄り道のお話')} ${seen(side)}/${side.length}</div>`
+        + side.map(item).join('');
+    document.getElementById('story-count').textContent = `${seen(main)}/${main.length}`;
 }
 
 function getDailyBadge() {
@@ -334,6 +351,34 @@ const BGM_STYLES = [
     { tempo: 62, root: 175, scale: [0, 2, 4, 6, 9], wave: 'sine', vol: 0.035, rest: 0.5, pad: true },       // 宇宙
     { tempo: 52, root: 165, scale: [0, 1, 5, 7, 8], wave: 'sine', vol: 0.035, rest: 0.55, pad: true }       // 概念
 ];
+// Limited-time events get their own tune: festival drums, a Bon dance, quiet autumn, a temple bell at year's end
+const EVENT_BGM_STYLES = {
+    golden_week: { tempo: 112, root: 262, scale: [0, 2, 5, 7, 9], wave: 'square', vol: 0.012, rest: 0.25, drum: 'festival' },
+    obon: { tempo: 96, root: 233, scale: [0, 2, 5, 7, 9], wave: 'triangle', vol: 0.03, rest: 0.3, drum: 'bon' },
+    koyo: { tempo: 68, root: 220, scale: [0, 1, 5, 7, 8], wave: 'triangle', vol: 0.03, rest: 0.45 },
+    shinsoba: { tempo: 108, root: 247, scale: [0, 2, 5, 7, 9], wave: 'triangle', vol: 0.03, rest: 0.25, drum: 'festival' },
+    toshikoshi: { tempo: 58, root: 196, scale: [0, 2, 5, 7, 9], wave: 'sine', vol: 0.035, rest: 0.5, pad: true, bell: true }
+};
+
+function getBgmStyle() {
+    const event = getActiveEvent();
+    return (event && EVENT_BGM_STYLES[event.id]) || BGM_STYLES[Math.max(0, currentStageIdx)] || BGM_STYLES[0];
+}
+
+// A taiko-like thump: a sine that drops quickly in pitch
+function bgmDrum(ctx, start, freq, vol) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, start);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.5, start + 0.15);
+    gain.gain.setValueAtTime(vol, start);
+    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.25);
+    osc.connect(gain).connect(bgm.gain);
+    osc.start(start);
+    osc.stop(start + 0.3);
+}
+
 const bgm = { timer: null, gain: null, nextTime: 0, step: 0, degree: 5, waitingForGesture: false };
 
 function bgmNote(ctx, freq, start, dur, wave, vol) {
@@ -367,14 +412,23 @@ function scheduleBgmStep(ctx, style, time, stepLen) {
     if (style.pad && bgm.step % 16 === 0) {
         [1, 1.5, 2].forEach(m => bgmNote(ctx, style.root * m, time, stepLen * 15, 'sine', style.vol * 0.35));
     }
+    // Drums: festival "don-don-doko" or a Bon dance "don, don-ka"
+    if (style.drum === 'festival' && [0, 2, 3, 6].includes(bgm.step % 8)) bgmDrum(ctx, time, 110, 0.09);
+    if (style.drum === 'bon' && [0, 3, 4].includes(bgm.step % 8)) bgmDrum(ctx, time, bgm.step % 8 === 4 ? 180 : 95, 0.08);
+    // The year-end temple bell: a low tone with an inharmonic overtone, every two bars
+    if (style.bell && bgm.step % 32 === 0) {
+        bgmNote(ctx, style.root / 2, time, stepLen * 24, 'sine', style.vol * 1.6);
+        bgmNote(ctx, style.root * 1.41, time, stepLen * 12, 'sine', style.vol * 0.5);
+    }
     bgm.step++;
 }
 
 function bgmTick() {
     if (!audioCtx || document.hidden) return; // pause while the tab is hidden
     const ctx = audioCtx;
-    const style = BGM_STYLES[Math.max(0, currentStageIdx)] || BGM_STYLES[0];
-    const stepLen = 60 / style.tempo / 2;
+    const style = getBgmStyle();
+    // Fever Time quickens the music
+    const stepLen = 60 / style.tempo / 2 / (buffMult > 1 ? 1.25 : 1);
     if (bgm.nextTime < ctx.currentTime) bgm.nextTime = ctx.currentTime + 0.05;
     while (bgm.nextTime < ctx.currentTime + 0.25) {
         scheduleBgmStep(ctx, style, bgm.nextTime, stepLen);
@@ -1177,13 +1231,14 @@ function closeModal() {
 // ===================================================================
 // Visual growth: scenery stages, buff display, purchase pops
 // ===================================================================
+// Each stage has its own backdrop, a glow behind the bowl and a row of scenery along the bottom
 const SHOP_STAGES = [
-    { min: 0, name: '🏮 小さなそば屋', bg: 'radial-gradient(circle at center, #2a1800 0%, #1a0f00 100%)' },
-    { min: 1e6, name: '🏘️ 越前の人気店', bg: 'radial-gradient(circle at 50% 40%, #3d2206 0%, #1a0f00 100%)' },
-    { min: 1e9, name: '🏙️ そばの街', bg: 'radial-gradient(circle at 50% 40%, #243240 0%, #120d08 100%)' },
-    { min: 1e15, name: '🌍 世界に広がるそば', bg: 'radial-gradient(circle at 50% 40%, #0f2b45 0%, #07121f 100%)', stars: true },
-    { min: 1e21, name: '🌌 宇宙そば時代', bg: 'radial-gradient(circle at 50% 40%, #2a1450 0%, #0a0518 100%)', stars: true },
-    { min: 1e27, name: '♾️ 概念のそば', bg: 'radial-gradient(circle at 50% 40%, #4a0f3a 0%, #12030e 100%)', stars: true }
+    { min: 0, name: '🏮 小さなそば屋', bg: 'radial-gradient(circle at center, #2a1800 0%, #1a0f00 100%)', halo: 'rgba(245,200,66,0.18)', scenery: ['🌾', '🏮', '🏠', '🏮', '🌾'] },
+    { min: 1e6, name: '🏘️ 越前の人気店', bg: 'radial-gradient(circle at 50% 40%, #3d2206 0%, #1a0f00 100%)', halo: 'rgba(255,170,60,0.24)', scenery: ['🎏', '🏮', '🏠', '🏯', '🏠', '🏮', '🎏'] },
+    { min: 1e9, name: '🏙️ そばの街', bg: 'radial-gradient(circle at 50% 40%, #243240 0%, #120d08 100%)', halo: 'rgba(120,200,255,0.2)', scenery: ['🏠', '🏢', '🏬', '🏯', '🏢', '🏬', '🏠'] },
+    { min: 1e15, name: '🌍 世界に広がるそば', bg: 'radial-gradient(circle at 50% 40%, #0f2b45 0%, #07121f 100%)', stars: true, halo: 'rgba(80,200,255,0.24)', scenery: ['🗼', '🗽', '🏰', '🕌', '🗿', '🌉'] },
+    { min: 1e21, name: '🌌 宇宙そば時代', bg: 'radial-gradient(circle at 50% 40%, #2a1450 0%, #0a0518 100%)', stars: true, halo: 'rgba(190,120,255,0.26)', scenery: ['🛰️', '🪐', '🌙', '🚀', '⭐', '🛸'] },
+    { min: 1e27, name: '♾️ 概念のそば', bg: 'radial-gradient(circle at 50% 40%, #4a0f3a 0%, #12030e 100%)', stars: true, halo: 'rgba(255,110,200,0.28)', scenery: ['✨', '🌀', '♾️', '💫', '🌀', '✨'] }
 ];
 SHOP_STAGES.forEach(st => { st.name = t(st.name); });
 let currentStageIdx = -1;
@@ -1197,11 +1252,45 @@ function renderStage() {
     const stage = SHOP_STAGES[idx];
     const panel = document.getElementById('left-panel');
     panel.style.setProperty('--stage-bg', stage.bg);
+    panel.style.setProperty('--stage-halo', stage.halo);
     panel.classList.toggle('starry', !!stage.stars);
     document.getElementById('stage-label').textContent = stage.name;
+    document.getElementById('stage-scenery').innerHTML = stage.scenery
+        .map((s, i) => `<span style="animation-delay:${(i * 0.37).toFixed(2)}s">${s}</span>`).join('');
     if (grew) {
         notify(t('お店が成長した！「{0}」', stage.name), "🎊", true);
+        showCelebration('🎊', t('お店が成長した！'), stage.name, 'stage');
         playSound('achieve');
+    }
+}
+
+// A short full-screen moment for big milestones (shop stage, prestige, divinity); skipped with reduced effects
+function showCelebration(icon, title, sub, kind) {
+    if (settings.reduceEffects) return;
+    const el = document.createElement('div');
+    el.className = `celebration ${kind}`;
+    el.innerHTML = `<div class="celebration-icon">${icon}</div><div class="celebration-title">${title}</div><div class="celebration-sub">${sub}</div>`;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 2800);
+    const rect = document.getElementById('left-panel').getBoundingClientRect();
+    spawnBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, kind === 'divine' ? ['✨', '🌟', '💫'] : ['🎊', '✨', '🍜'], 18);
+}
+
+// Emoji bursting outward from a point (golden soba catches, celebrations)
+function spawnBurst(x, y, emojis, count = 10) {
+    if (settings.reduceEffects) return;
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'burst-particle';
+        p.textContent = emojis[i % emojis.length];
+        const angle = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+        const dist = 60 + Math.random() * 70;
+        p.style.left = x + 'px';
+        p.style.top = y + 'px';
+        p.style.setProperty('--dx', (Math.cos(angle) * dist).toFixed(0) + 'px');
+        p.style.setProperty('--dy', (Math.sin(angle) * dist).toFixed(0) + 'px');
+        document.body.appendChild(p);
+        setTimeout(() => p.remove(), 900);
     }
 }
 

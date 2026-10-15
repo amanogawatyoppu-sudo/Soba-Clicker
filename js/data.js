@@ -506,7 +506,8 @@ const STORY_CHARACTERS = {
     gen: { icon: '👨‍🦳', name: '常連の源さん' },
     mayumi: { icon: '👩‍💼', name: '観光協会の真由美さん' },
     sobataro: { icon: '🤖', name: 'ソバ太郎' },
-    spirit: { icon: '👁️', name: 'そばの神髄' }
+    spirit: { icon: '👁️', name: 'そばの神髄' },
+    hinata: { icon: '👧', name: '源さんの孫・ひなた' }
 };
 const STORY = [
     { id: 'ch_open', title: '店を継ぐ日', when: () => state.clicks >= 5, lines: [
@@ -575,8 +576,94 @@ const STORY = [
         ['spirit', '全てを捧げたか。その魂、もはや人のものではない。'],
         ['grandma', '神さんになっても、店に立つんやろ？'],
         ['you', 'もちろん。お客さんが待ってますから。'],
-        ['gen', 'わしは毎日来るでの。……神さんの店でもな。']] }
+        ['gen', 'わしは毎日来るでの。……神さんの店でもな。']] },
+
+    // --- Side stories: limited-time events (after the event's first special order, while it runs) ---
+    { id: 'ev_golden_week', side: 'event', title: 'GWの大行列', when: () => isEventStoryReady('golden_week'), lines: [
+        ['mayumi', 'GWの観光客、去年の三倍です！'],
+        ['kenta', '師匠、県外ナンバーの車が駐車場からあふれてます！'],
+        ['gen', 'わしの席だけは空けといてくれや。'],
+        ['you', '源さんの席は、いつもの窓際ですね。']] },
+    { id: 'ev_obon', side: 'event', title: 'お盆の帰り道', when: () => isEventStoryReady('obon'), lines: [
+        ['gen', '孫が東京から帰ってきての。ここのそばが食べたいって言うんや。'],
+        ['hinata', '東京にもおそば屋さんはあるけど、おろしそばはここが一番！'],
+        ['you', '来年も、その次も、待ってるね。'],
+        ['grandma', 'ふるさとの味っちゅうのは、帰ってくる場所のことなんやざ。']] },
+    { id: 'ev_koyo', side: 'event', title: '紅葉とそば', when: () => isEventStoryReady('koyo'), lines: [
+        ['mayumi', '紅葉の名所めぐりの帰りに、みんなここへ寄ってくれるんです。'],
+        ['sobataro', '葉ノ色、赤、黄、橙。そばノ香リト、相性ガ良イト判断シマス。'],
+        ['kenta', 'ソバ太郎、もう詩人じゃん……']] },
+    { id: 'ev_shinsoba', side: 'event', title: '新そばの香り', when: () => isEventStoryReady('shinsoba'), lines: [
+        ['grandma', '今年の新そばや。香りをかいでみ。'],
+        ['you', '……青くて、草みたいな、いい香り。'],
+        ['grandma', 'この香りを一年じゅうお客さんに届けるのが、そば屋の仕事や。'],
+        ['gen', '新そばの季節は、毎日二杯食べるでの。']] },
+    { id: 'ev_toshikoshi', side: 'event', title: '年越しそばの夜', when: () => isEventStoryReady('toshikoshi'), lines: [
+        ['kenta', '師匠、今年最後のお客さんです！'],
+        ['gen', '今年も一年、うまいそばをおおきにな。'],
+        ['grandma', '細く長く。来年も、みんなが元気でありますように。'],
+        ['you', 'よいお年を！']] },
+
+    // --- Side stories: shrine spirits (when first enshrined) ---
+    { id: 'sp_speed', side: 'spirit', title: '疾風の精霊', when: () => state.spirits.includes('spirit_speed'), lines: [
+        ['spirit_speed', '急げ急げ！ 茹で時間は短く、お客は待たせず！'],
+        ['you', 'でも、急ぎすぎると福が逃げるって……'],
+        ['spirit_speed', '細かいことは気にするな！ 風のように打て！']] },
+    { id: 'sp_harvest', side: 'spirit', title: '豊穣の精霊', when: () => state.spirits.includes('spirit_harvest'), lines: [
+        ['spirit_harvest', '実りに感謝を。お客さんの「ごちそうさま」も、立派な実りですよ。'],
+        ['kenta', 'なんか、優しい精霊さんですね。']] },
+    { id: 'sp_guardian', side: 'spirit', title: '守護の精霊', when: () => state.spirits.includes('spirit_guardian'), lines: [
+        ['spirit_guardian', '呪いからは私が守ります。ただし、守ってばかりでは店は大きくなりませんよ。'],
+        ['you', '頼りにしてます。']] },
+    { id: 'sp_wisdom', side: 'spirit', title: '知恵の精霊', when: () => state.spirits.includes('spirit_wisdom'), lines: [
+        ['spirit_wisdom', 'そばの打ち方には千の流儀がある。考えなさい、なぜその一手なのか。'],
+        ['kenta', '……頭が痛くなってきました。']] },
+    { id: 'sp_commerce', side: 'spirit', title: '商いの精霊', when: () => state.spirits.includes('spirit_commerce'), lines: [
+        ['spirit_commerce', '仕入れは安く、味は落とさず！ これぞ商いの極意でございます。'],
+        ['gen', '値上げせんのは、ありがたいのう。']] },
+    { id: 'sp_chaos', side: 'spirit', title: '混沌の精霊', when: () => state.spirits.includes('spirit_chaos'), lines: [
+        ['spirit_chaos', 'ふははは！ 力が欲しいか？ ならば呪いごと受け入れよ！'],
+        ['grandma', 'えらいもんを祀ったのう……。ほやけど、使いこなすのも腕のうちや。']] },
+
+    // --- Side stories: Fukui branches (when established) ---
+    { id: 'rg_katsuyama', side: 'region', title: '勝山支店', when: () => state.regions.includes('katsuyama'), lines: [
+        ['mayumi', '勝山といえば恐竜博物館！'],
+        ['kenta', '恐竜も、そばを食べたんですかね？'],
+        ['sobataro', '推定。草食恐竜ガそば粉ヲ好ンダ可能性、3%。']] },
+    { id: 'rg_ono', side: 'region', title: '大野支店', when: () => state.regions.includes('ono'), lines: [
+        ['mayumi', '大野は名水の町。御清水の水でそばを打つと、のどごしが違うんです。'],
+        ['grandma', '水がええと、そばは正直に応えてくれる。']] },
+    { id: 'rg_eiheiji', side: 'region', title: '永平寺支店', when: () => state.regions.includes('eiheiji'), lines: [
+        ['you', '永平寺のお坊さんたちは、食事も修行なんですね。'],
+        ['mayumi', '一杯のそばにも、心を込めていただくんです。'],
+        ['grandma', 'そば屋も、おんなじや。']] },
+    { id: 'rg_tsuruga', side: 'region', title: '敦賀支店', when: () => state.regions.includes('tsuruga'), lines: [
+        ['mayumi', '敦賀は昔からの港町。全国から人と物が集まってきたんです。'],
+        ['gen', '港の男はよう食べるでの。大盛りにしたってくれや。']] },
+    { id: 'rg_sabae', side: 'region', title: '鯖江支店', when: () => state.regions.includes('sabae'), lines: [
+        ['kenta', '鯖江はメガネの町！ メガネをかけたら、ゴールデンそばがよく見えます！'],
+        ['you', 'それ、気のせいじゃない？']] },
+    { id: 'rg_obama', side: 'region', title: '小浜支店', when: () => state.regions.includes('obama'), lines: [
+        ['mayumi', '小浜は御食国(みけつくに)。昔、都へ食べ物を届けていた町なんです。'],
+        ['grandma', 'そばのだしにも、ここの海の恵みが活きとる。']] },
+    { id: 'rg_tojinbo', side: 'region', title: '東尋坊支店', when: () => state.regions.includes('tojinbo'), lines: [
+        ['kenta', '東尋坊の崖、すごい迫力でした……！'],
+        ['gen', 'あの崖を見た後は、そばの温かさが身にしみるでの。']] },
+    { id: 'rg_takefu', side: 'region', title: '武生支店', when: () => state.regions.includes('takefu'), lines: [
+        ['mayumi', '武生は越前打刃物と和紙の町です。'],
+        ['you', 'よく切れる包丁は、そばの角をきれいに立たせてくれる。'],
+        ['grandma', '道具を大事にする人は、そばも大事にするもんや。']] },
+    { id: 'rg_echizen_coast', side: 'region', title: '越前海岸支店', when: () => state.regions.includes('echizen_coast'), lines: [
+        ['gen', '冬の越前海岸いうたら、越前ガニや！'],
+        ['kenta', 'カニそば……作りましょうよ、師匠！'],
+        ['you', '……アリかも。']] }
 ];
+
+// Event side stories wait for the event's first special order, and only while that event runs
+function isEventStoryReady(eventId) {
+    const event = getActiveEvent();
+    return !!event && event.id === eventId && (state.eventOrders[eventId] || 0) >= 1;
+}
 (function localizeStory() {
     const data = I18N[LANG] && I18N[LANG].data;
     if (!data || !data.story) return;
