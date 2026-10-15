@@ -561,3 +561,43 @@ test('production breakdown and payback times add up', async () => {
     assert.deepEqual(errors, []);
     await close();
 });
+
+test('side stories, event music and celebrations', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        while (isModalOpen()) closeModal();
+        state.storySeen = STORY.filter(c => !c.side).map(c => c.id);
+        state.regions = ['katsuyama']; checkStory();
+        const region = isModalOpen() && document.getElementById('modal-box').innerText.includes(STORY.find(c => c.id === 'rg_katsuyama').title);
+        closeModal();
+        state.spirits = ['spirit_chaos']; checkStory();
+        const spiritSpeaker = document.getElementById('modal-box').innerText.includes(SPIRITS.find(s => s.id === 'spirit_chaos').name);
+        closeModal();
+        // a save from v2.7 (story but no side stories yet): reached ones unlock quietly
+        const old = JSON.parse(JSON.stringify(state)); delete old.storyVersion;
+        old.storySeen = ['ch_open']; old.regions = ['katsuyama', 'ono']; old.spirits = [];
+        normalizeStateObject(old);
+        // event music follows the running event
+        const realEvent = getActiveEvent;
+        getActiveEvent = () => EVENTS.find(e => e.id === 'obon');
+        const eventStyle = getBgmStyle() === EVENT_BGM_STYLES.obon;
+        getActiveEvent = () => null;
+        const stageStyle = BGM_STYLES.includes(getBgmStyle());
+        getActiveEvent = realEvent;
+        settings.reduceEffects = false;
+        showCelebration('♻️', 'test', 'sub', 'prestige');
+        const celebrating = document.querySelectorAll('.celebration').length === 1 && document.querySelectorAll('.burst-particle').length > 0;
+        return { region, spiritSpeaker, oldSeen: old.storySeen, oldVersion: old.storyVersion, eventStyle, stageStyle, celebrating,
+                 scenery: document.getElementById('stage-scenery').children.length };
+    });
+    assert.ok(r.region);
+    assert.ok(r.spiritSpeaker);
+    assert.deepEqual(r.oldSeen, ['ch_open', 'rg_katsuyama', 'rg_ono']);
+    assert.equal(r.oldVersion, 2);
+    assert.ok(r.eventStyle);
+    assert.ok(r.stageStyle);
+    assert.ok(r.celebrating);
+    assert.ok(r.scenery >= 5);
+    assert.deepEqual(errors, []);
+    await close();
+});

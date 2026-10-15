@@ -98,6 +98,11 @@ function normalizeState() {
     if (state.pastSoba === undefined) state.pastSoba = 0;
     // Saves from before the story: chapters already reached are unlocked quietly, to read under Records
     if (state.storySeen === undefined) state.storySeen = STORY.filter(c => c.when()).map(c => c.id);
+    // Side stories arrived in story version 2: ones already reached unlock quietly instead of popping up one by one
+    if (!state.storyVersion) {
+        STORY.filter(c => c.side && c.when() && !state.storySeen.includes(c.id)).forEach(c => state.storySeen.push(c.id));
+        state.storyVersion = 2;
+    }
     if (state.seenHints === undefined) {
         // Saves from before hints existed: only explain features the player hasn't reached yet
         state.seenHints = HINTS.filter(h => h.id !== 'welcome' && h.when()).map(h => h.id);

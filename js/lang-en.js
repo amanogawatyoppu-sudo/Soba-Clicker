@@ -307,7 +307,8 @@ I18N.en.data = {
     },
     storyCharacters: {
         you: 'You', grandma: 'Grandma Fumi', kenta: 'Kenta the apprentice', gen: 'Gen, the regular',
-        mayumi: 'Mayumi from the tourism office', sobataro: 'Sobataro', spirit: 'The Spirit of Soba'
+        mayumi: 'Mayumi from the tourism office', sobataro: 'Sobataro', spirit: 'The Spirit of Soba',
+        hinata: "Hinata, Gen's granddaughter"
     },
     story: {
         ch_open: { title: 'Taking Over the Shop', lines: [
@@ -376,7 +377,81 @@ I18N.en.data = {
             'You offered everything. Your soul is no longer that of a mortal.',
             "Even as a god, you'll still stand behind the counter, won't you?",
             'Of course. Customers are waiting.',
-            "I'll come every day. ...Even if it's a god's shop."] }
+            "I'll come every day. ...Even if it's a god's shop."] },
+        ev_golden_week: { title: 'The Golden Week Line', lines: [
+            'Golden Week tourists are up threefold from last year!',
+            'Master, out-of-town cars are overflowing the parking lot!',
+            'Just keep my seat free, would you.',
+            'Your usual seat by the window, Gen-san.'] },
+        ev_obon: { title: 'Home for Obon', lines: [
+            'My granddaughter came home from Tokyo. Says she wants soba from here.',
+            "Tokyo has soba shops too, but oroshi soba is best here!",
+            "We'll be waiting for you next year, and the year after.",
+            'A taste of home is really a place to come back to, you know.'] },
+        ev_koyo: { title: 'Autumn Leaves and Soba', lines: [
+            'Everyone stops by here on the way back from the maple spots.',
+            'LEAF COLORS: RED, YELLOW, ORANGE. I JUDGE THEM COMPATIBLE WITH THE AROMA OF SOBA.',
+            "Sobataro, you're basically a poet now..."] },
+        ev_shinsoba: { title: 'The Scent of New Soba', lines: [
+            "This year's new soba. Go on, smell it.",
+            '...Green, grassy, wonderful.',
+            "Bringing this scent to customers all year long, that's a soba maker's job.",
+            'In new soba season I eat two bowls a day.'] },
+        ev_toshikoshi: { title: "New Year's Eve Soba", lines: [
+            "Master, it's the last customer of the year!",
+            'Thanks for another year of good soba.',
+            'Long and thin. May everyone stay well next year too.',
+            'Happy New Year!'] },
+        sp_speed: { title: 'Gale Spirit', lines: [
+            'Hurry, hurry! Boil it fast and never keep a customer waiting!',
+            "But they say if you rush, good luck slips away...",
+            "Don't sweat the details! Make soba like the wind!"] },
+        sp_harvest: { title: 'Harvest Spirit', lines: [
+            'Give thanks for the harvest. A customer saying "thank you for the meal" is a harvest too.',
+            'What a gentle spirit.'] },
+        sp_guardian: { title: 'Guardian Spirit', lines: [
+            "I'll protect you from curses. But a shop that only defends never grows.",
+            "I'm counting on you."] },
+        sp_wisdom: { title: 'Wisdom Spirit', lines: [
+            'There are a thousand ways to make soba. Think: why this move, and not another?',
+            '...My head is starting to hurt.'] },
+        sp_commerce: { title: 'Commerce Spirit', lines: [
+            'Buy cheap, never cut quality! That is the secret of trade.',
+            'No price rises? Much appreciated.'] },
+        sp_chaos: { title: 'Chaos Spirit', lines: [
+            'Hahaha! You want power? Then take the curses with it!',
+            "Quite a thing you've enshrined... Well, mastering it is part of the craft."] },
+        rg_katsuyama: { title: 'Katsuyama Branch', lines: [
+            'Katsuyama means the dinosaur museum!',
+            'Did dinosaurs eat soba too, I wonder?',
+            'ESTIMATE: PROBABILITY THAT PLANT-EATING DINOSAURS ENJOYED BUCKWHEAT, 3%.'] },
+        rg_ono: { title: 'Ono Branch', lines: [
+            'Ono is the town of pure water. Soba made with Oshozu spring water goes down differently.',
+            'With good water, soba answers you honestly.'] },
+        rg_eiheiji: { title: 'Eiheiji Branch', lines: [
+            'For the monks at Eiheiji, even eating is practice.',
+            'Even a bowl of soba is received with a whole heart.',
+            "A soba shop's no different."] },
+        rg_tsuruga: { title: 'Tsuruga Branch', lines: [
+            'Tsuruga has been a port town for ages. People and goods came from all over Japan.',
+            'Harbor folk eat plenty. Give them a large serving.'] },
+        rg_sabae: { title: 'Sabae Branch', lines: [
+            "Sabae is the eyeglasses town! With glasses on, I can spot golden soba so much better!",
+            'Are you sure that is not just your imagination?'] },
+        rg_obama: { title: 'Obama Branch', lines: [
+            'Obama was a "miketsukuni", a province that sent food to the capital long ago.',
+            "The sea's gifts from here live on in our soba broth too."] },
+        rg_tojinbo: { title: 'Tojinbo Branch', lines: [
+            'The cliffs at Tojinbo were breathtaking...!',
+            'After those cliffs, a warm bowl of soba really sinks in.'] },
+        rg_takefu: { title: 'Takefu Branch', lines: [
+            'Takefu is the town of Echizen blades and washi paper.',
+            'A sharp knife gives soba nice clean edges.',
+            'People who care for their tools care for their soba too.'] },
+        rg_echizen_coast: { title: 'Echizen Coast Branch', lines: [
+            'Winter on the Echizen Coast means Echizen crab!',
+            "Crab soba... let's make it, Master!",
+            '...Not a bad idea.'] }
     },
     customers: {
         0: { name: 'Tourist from out of town' },
@@ -875,6 +950,15 @@ I18N.en.text = {
     // --- story ---
     '📜 物語': '📜 Story',
     '第{0}話': 'Chapter {0}',
+    '季節のお話': 'Seasonal story',
+    '精霊のお話': 'Spirit story',
+    '支店のお話': 'Branch story',
+    '寄り道のお話': 'Side stories',
+    '輪廻転生': 'Reborn',
+    '越前魂 +{0}': 'Echizen Souls +{0}',
+    '神格の儀': 'Rite of Divinity',
+    '神徳 {0}': 'Divine virtue {0}',
+    'お店が成長した！': 'Your shop grew!',
     'つづける': 'Continue',
     '物語が読めるようになった': 'The story has begun',
     'お店の成長に合わせて、少しずつお話が進みます。<br>「記録 → 物語」で、これまでのお話をいつでも読み返せます。': 'The story moves on bit by bit as your shop grows.<br>Reread past chapters any time in Records → Story.',
@@ -887,7 +971,7 @@ I18N.en.text = {
     '転生を{0}回すると挑戦できるようになる。': 'Unlocks after {0} prestiges.',
 
     // --- page ---
-    '越前そばクリッカー Pro v2.7 - 究極版': 'Echizen Soba Clicker Pro v2.7',
+    '越前そばクリッカー Pro v2.8 - 究極版': 'Echizen Soba Clicker Pro v2.8',
     'そばクリッカー': 'Soba Clicker',
     '越前そばの歴史は深い... 最初のそばを打とう！': 'Echizen soba has a long history... Make your first bowl!',
     '🍲 だし Lv.': '🍲 Dashi Lv.',

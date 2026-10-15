@@ -55,7 +55,8 @@ function createFreshState() {
         divinity: 0,
         divinityCount: 0,
         pastSoba: 0,
-        storySeen: []
+        storySeen: [],
+        storyVersion: 2
     };
 }
 
@@ -1645,6 +1646,7 @@ function prestige() {
         calculateCps();
         closeAscensionScreen();
         switchTab('shop');
+        showCelebration('♻️', t('輪廻転生'), t('越前魂 +{0}', fmt(soulsToGet)), 'prestige');
         notify(t('輪廻転生しました。新たな人生の始まりです。'), "♻️");
     }
 }
@@ -1688,6 +1690,7 @@ function performDivinity() {
     closeAscensionScreen();
     switchTab('shop');
     saveGame(true);
+    showCelebration('✨', t('神格の儀'), t('神徳 {0}', state.divinity), 'divine');
     notify(t('神格の儀を終えました。神徳が{0}になり、全生産が{1}倍になりました。', state.divinity, getDivinityProdMult()), "✨", true);
     render();
 }
@@ -1735,6 +1738,7 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
     const type = this.dataset.type || 'golden';
     this.style.display = 'none';
     if (goldenHideTimer) { clearTimeout(goldenHideTimer); goldenHideTimer = null; }
+    spawnBurst(e.clientX, e.clientY, type === 'wrath' ? ['💀', '🌑', '💢'] : (type === 'season' ? ['🌸', '✨', '💜'] : ['✨', '🌟', '💰']));
 
     if (type === 'wrath') {
         state.wrathClicks++;
