@@ -29,12 +29,12 @@ const BUILDINGS = [
     { id: 'origin', name: '起源のそば', icon: '🌱', baseCost: 500000000000000000000000, baseCps: 3.3e14, desc: '全てのそばの始まりに触れる。' },
     { id: 'eternity', name: '永劫の一杯', icon: '🕰️', baseCost: 8e25, baseCps: 2e16, desc: '茹で上がることも冷めることもない、永遠の一杯。' },
     { id: 'omniscience', name: '全知のそば', icon: '🧠', baseCost: 1e28, baseCps: 1e18, desc: 'そばを打つという行為そのものを理解し尽くした境地。' },
-    { id: 'you', name: 'あなた', icon: '🧑‍🍳', baseCost: 1.5e30, baseCps: 5.8e19, desc: 'もはや誰が誰にそばを打たせているのかは分からない。生産の最後のピースは、あなた自身だった。' },
-    // Beyond "you": four more for the very late game (added with the 2.9 rebalance)
-    { id: 'ryujin', late: true, name: 'そばの龍神', icon: '🐉', baseCost: 2.5e32, baseCps: 3.2e21, desc: '九頭竜川の龍神が、あなたのそばを気に入ったらしい。' },
-    { id: 'kokuu', late: true, name: '虚空の麺打ち場', icon: '🌫️', baseCost: 4e34, baseCps: 1.8e23, desc: '何もない場所で、何もないそば粉から、全てのそばを打つ。' },
-    { id: 'rinne', late: true, name: '輪廻の水車', icon: '🎡', baseCost: 7e36, baseCps: 1e25, desc: '回るたびに、生まれ変わったそばが流れてくる。' },
-    { id: 'owarinaki', late: true, name: '終わりなき一杯', icon: '🌠', baseCost: 1.2e39, baseCps: 6e26, desc: '食べ終わることのない一杯。そして、また最初の一杯へ。' }
+    // Four more between 全知のそば and "you" for the very late game (added in 2.9); "you" stays last
+    { id: 'ryujin', late: true, name: 'そばの龍神', icon: '🐉', baseCost: 1.5e30, baseCps: 5.8e19, desc: '九頭竜川の龍神が、あなたのそばを気に入ったらしい。' },
+    { id: 'kokuu', late: true, name: '虚空の麺打ち場', icon: '🌫️', baseCost: 2.5e32, baseCps: 3.2e21, desc: '何もない場所で、何もないそば粉から、全てのそばを打つ。' },
+    { id: 'rinne', late: true, name: '輪廻の水車', icon: '🎡', baseCost: 4e34, baseCps: 1.8e23, desc: '回るたびに、生まれ変わったそばが流れてくる。' },
+    { id: 'owarinaki', late: true, name: '終わりなき一杯', icon: '🌠', baseCost: 7e36, baseCps: 1e25, desc: '食べ終わることのない一杯。そして、また最初の一杯へ。' },
+    { id: 'you', name: 'あなた', icon: '🧑‍🍳', baseCost: 1.2e39, baseCps: 6e26, desc: 'もはや誰が誰にそばを打たせているのかは分からない。生産の最後のピースは、あなた自身だった。' }
 ];
 localizeList(BUILDINGS, 'buildings');
 
@@ -85,11 +85,11 @@ const UPGRADES = [
     { id: 'upg_origin_1', name: '始原への回帰', icon: '🌱', cost: 1.5e25, type: 'building', target: 'origin', mult: 4, desc: '起源のそばの効率4倍。', req: { buildings: { origin: 10 } } },
     { id: 'upg_eternity_1', name: '不変の一瞬', icon: '🕰️', cost: 2.5e27, type: 'building', target: 'eternity', mult: 4, desc: '永劫の一杯の効率4倍。', req: { buildings: { eternity: 10 } } },
     { id: 'upg_omniscience_1', name: '全知の到達点', icon: '🧠', cost: 3e29, type: 'building', target: 'omniscience', mult: 4, desc: '全知のそばの効率4倍。', req: { buildings: { omniscience: 10 } } },
-    { id: 'upg_you_1', name: '自己複製のパラドックス', icon: '🪞', cost: 4.5e31, type: 'building', target: 'you', mult: 4, desc: 'あなたの効率4倍。', req: { buildings: { you: 10 } } },
-    { id: 'upg_ryujin_1', name: '九頭竜の加護', icon: '🐉', cost: 7.5e33, type: 'building', target: 'ryujin', mult: 4, desc: 'そばの龍神の効率4倍。', req: { buildings: { ryujin: 10 } } },
-    { id: 'upg_kokuu_1', name: '無の手ごたえ', icon: '🌫️', cost: 1.2e36, type: 'building', target: 'kokuu', mult: 4, desc: '虚空の麺打ち場の効率4倍。', req: { buildings: { kokuu: 10 } } },
-    { id: 'upg_rinne_1', name: '千年の水流', icon: '🎡', cost: 2.1e38, type: 'building', target: 'rinne', mult: 4, desc: '輪廻の水車の効率4倍。', req: { buildings: { rinne: 10 } } },
-    { id: 'upg_owarinaki_1', name: 'おかわりの奇跡', icon: '🌠', cost: 3.6e40, type: 'building', target: 'owarinaki', mult: 4, desc: '終わりなき一杯の効率4倍。', req: { buildings: { owarinaki: 10 } } },
+    { id: 'upg_you_1', name: '自己複製のパラドックス', icon: '🪞', cost: 3.6e40, type: 'building', target: 'you', mult: 4, desc: 'あなたの効率4倍。', req: { buildings: { you: 10 } } },
+    { id: 'upg_ryujin_1', name: '九頭竜の加護', icon: '🐉', cost: 4.5e31, type: 'building', target: 'ryujin', mult: 4, desc: 'そばの龍神の効率4倍。', req: { buildings: { ryujin: 10 } } },
+    { id: 'upg_kokuu_1', name: '無の手ごたえ', icon: '🌫️', cost: 7.5e33, type: 'building', target: 'kokuu', mult: 4, desc: '虚空の麺打ち場の効率4倍。', req: { buildings: { kokuu: 10 } } },
+    { id: 'upg_rinne_1', name: '千年の水流', icon: '🎡', cost: 1.2e36, type: 'building', target: 'rinne', mult: 4, desc: '輪廻の水車の効率4倍。', req: { buildings: { rinne: 10 } } },
+    { id: 'upg_owarinaki_1', name: 'おかわりの奇跡', icon: '🌠', cost: 2.1e38, type: 'building', target: 'owarinaki', mult: 4, desc: '終わりなき一杯の効率4倍。', req: { buildings: { owarinaki: 10 } } },
     { id: 'upg_click_6', name: '悟りの一撃', icon: '🕊️', cost: 1e21, type: 'click', power: 10, desc: 'クリックが悟りの境地に達する。', req: { clicks: 50000 } },
     { id: 'upg_global_7', name: '概念そのものの生産', icon: '💭', cost: 1e30, type: 'global', mult: 2, desc: '全生産2倍。', req: { totalSoba: 1e29 } },
     { id: 'upg_global_b1', name: '越前の地酒', icon: '🍶', cost: 1e11, type: 'global', mult: 1.3, desc: '全生産30%アップ。', req: { totalSoba: 1e10 } },
@@ -183,7 +183,7 @@ const HEAVENLY_UPGRADES = [
     { id: 'heav_39', name: '昇段の心得', icon: '🧘', cost: 200, desc: '昇段試験の時間が30秒から45秒になる。', effect: 'danTime', requires: 'heav_38' },
     { id: 'heav_40', name: '清めの塩', icon: '🧂', cost: 60, desc: '呪われしそばの呪い・しびれの時間が半分になる。', effect: 'curseTime', requires: 'heav_12' },
     { id: 'heav_41', name: '目利きの棟梁', icon: '🪚', cost: 90, desc: 'お店の飾りつけの値段が半分になる。', effect: 'decorCost', requires: 'heav_16' },
-    { id: 'heav_42', name: '龍神の導き', icon: '🐉', cost: 2000, desc: '「あなた」より先の4つの施設の効率が3倍になる。', effect: 'lateBuildings', requires: 'heav_31' },
+    { id: 'heav_42', name: '龍神の導き', icon: '🐉', cost: 2000, desc: '「全知のそば」と「あなた」の間にある4つの施設の効率が3倍になる。', effect: 'lateBuildings', requires: 'heav_31' },
     { id: 'heav_43', name: '魂の泉', icon: '⛲', cost: 6000, desc: '全生産が永続的にさらに1.5倍になる。', effect: 'globalMult', mult: 1.5, requires: 'heav_42' }
 ];
 localizeList(HEAVENLY_UPGRADES, 'heavenly');

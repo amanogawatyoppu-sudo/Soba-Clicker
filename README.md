@@ -23,7 +23,7 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 3. アップグレードで効率を上げ、累計1兆杯を超えたら「転生」して、ずっと続く強化「越前魂」を手に入れます。
 
 ### おもな要素
-- **施設28種・アップグレード**: そば打ち見習いから宇宙そば農場、「あなた」、そしてその先の「終わりなき一杯」まで。
+- **施設28種・アップグレード**: そば打ち見習いから宇宙そば農場、そばの龍神、「終わりなき一杯」、そして最後は「あなた」。
 - **転生と天界の力**: 越前魂で買える、43項目のスキルツリー。
 - **神格**: 越前魂を1000個集めると行える、転生のさらに上の段階。全てを捧げて「神徳」を得る、終盤の目標です。
 - **今日のお題**: 毎日3つ出る日替わりのお題。全部達成するとおまけつき。
@@ -53,7 +53,7 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 3. Buy upgrades, and once you pass 1 trillion bowls, prestige for Echizen Souls, a bonus that lasts forever.
 
 ### Features
-- **28 buildings and upgrades**, from a soba apprentice to a space soba farm, "you", and beyond to "the endless bowl".
+- **28 buildings and upgrades**, from a soba apprentice to a space soba farm, a soba dragon god, "the endless bowl", and finally "you".
 - **Prestige and heavenly powers**: a 43-node skill tree bought with Echizen Souls.
 - **Divinity**: a step beyond prestige at 1,000 souls. Offer everything for divine virtue, a late-game goal.
 - **Today's tasks**: three new tasks every day, with a bonus for finishing them all.

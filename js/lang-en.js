@@ -136,7 +136,7 @@ I18N.en.data = {
         heav_39: { name: 'Exam Composure', desc: 'Dan exams last 45 seconds instead of 30.' },
         heav_40: { name: 'Purifying Salt', desc: 'Cursed soba curses and numbness last half as long.' },
         heav_41: { name: 'Master Carpenter', desc: 'Shop decorations cost half as much.' },
-        heav_42: { name: 'Guided by the Dragon', desc: 'The four buildings beyond "You" are 3x as efficient.' },
+        heav_42: { name: 'Guided by the Dragon', desc: 'The four buildings between Omniscient Soba and "You" are 3x as efficient.' },
         heav_43: { name: 'Spring of Souls', desc: 'All production permanently 1.5x again.' },
         heav_29: { name: "Master's Hands", desc: 'Dojo artisan points cap at 50% instead of 25%, and you earn 1.5x as many.' },
         heav_30: { name: 'Four-Pillar Kagura', desc: 'Enshrine one more spirit (up to 4).' },
