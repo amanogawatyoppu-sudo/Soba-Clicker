@@ -46,6 +46,7 @@ function createFreshState() {
         titles: ['t_rookie'],
         title: 't_rookie',
         decorations: [],
+        pendingRebirth: false,
         reputation: 0,
         ordersCompleted: 0,
         ordersFailed: 0,
@@ -1334,7 +1335,8 @@ function renderSkillTree(available) {
         div.appendChild(label);
 
         if (!owned && prereqMet) {
-            div.onpointerdown = (e) => { e.preventDefault(); buyHeavenly(h.id); };
+            // A click, not a press, so dragging the sky from a node doesn't buy it
+            div.onclick = () => { if (!treeDrag.moved) buyHeavenly(h.id); };
         }
         let tipDesc = h.desc;
         if (!prereqMet) {
@@ -1350,21 +1352,131 @@ function renderSkillTree(available) {
 }
 
 
-function openAscensionScreen() {
-    document.getElementById('ascension-screen').style.display = 'flex';
-    renderAscensionScreen();
-    // The tree grows outward from the center of a large canvas: start the view there
-    const wrap = document.getElementById('skill-tree-wrap');
-    wrap.scrollLeft = (wrap.scrollWidth - wrap.clientWidth) / 2;
-    wrap.scrollTop = (wrap.scrollHeight - wrap.clientHeight) / 2;
+// --- The heavenly sky: a full-screen tree you can drag around and zoom ---
+const treeView = { x: 0, y: 0, scale: 1 };
+const treeDrag = { pointers: new Map(), moved: false, startDist: 0, startScale: 1, last: null };
+const TREE_MIN_SCALE = 0.35, TREE_MAX_SCALE = 1.8;
+
+function applyTreeView() {
+    document.getElementById('skill-tree-canvas').style.transform = `translate(${treeView.x}px, ${treeView.y}px) scale(${treeView.scale})`;
 }
 
-function closeAscensionScreen() {
+// Fit the whole tree on screen (but not larger than 1:1), centered under the header
+function centerSkillTree(fit) {
+    const wrap = document.getElementById('skill-tree-wrap');
+    const canvas = document.getElementById('skill-tree-canvas');
+    const size = parseFloat(canvas.style.width) || 1400;
+    const hud = document.getElementById('ascension-header-box').getBoundingClientRect();
+    const top = Math.min(hud.bottom, wrap.clientHeight * 0.4);
+    const w = wrap.clientWidth, h = wrap.clientHeight - top;
+    if (fit) treeView.scale = Math.max(TREE_MIN_SCALE, Math.min(1, Math.min(w, h) / size * 2));
+    treeView.x = w / 2 - size * treeView.scale / 2;
+    treeView.y = top + h / 2 - size * treeView.scale / 2;
+    applyTreeView();
+}
+
+function zoomSkillTree(factor, cx, cy) {
+    const wrap = document.getElementById('skill-tree-wrap');
+    if (cx === undefined) { cx = wrap.clientWidth / 2; cy = wrap.clientHeight / 2; }
+    const next = Math.max(TREE_MIN_SCALE, Math.min(TREE_MAX_SCALE, treeView.scale * factor));
+    const k = next / treeView.scale;
+    treeView.x = cx - (cx - treeView.x) * k;
+    treeView.y = cy - (cy - treeView.y) * k;
+    treeView.scale = next;
+    applyTreeView();
+}
+
+function setupSkillTreeControls() {
+    const wrap = document.getElementById('skill-tree-wrap');
+    if (wrap.dataset.ready) return;
+    wrap.dataset.ready = '1';
+    const center = () => {
+        const pts = [...treeDrag.pointers.values()];
+        return { x: pts.reduce((s, p) => s + p.x, 0) / pts.length, y: pts.reduce((s, p) => s + p.y, 0) / pts.length };
+    };
+    const spread = () => {
+        const [a, b] = [...treeDrag.pointers.values()];
+        return Math.hypot(a.x - b.x, a.y - b.y);
+    };
+    wrap.addEventListener('pointerdown', (e) => {
+        treeDrag.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (treeDrag.pointers.size === 1) treeDrag.moved = false;
+        treeDrag.last = center();
+        if (treeDrag.pointers.size === 2) { treeDrag.startDist = spread(); treeDrag.startScale = treeView.scale; }
+        wrap.classList.add('dragging');
+    });
+    wrap.addEventListener('pointermove', (e) => {
+        if (!treeDrag.pointers.has(e.pointerId)) return;
+        treeDrag.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        const c = center();
+        const dx = c.x - treeDrag.last.x, dy = c.y - treeDrag.last.y;
+        if (Math.abs(dx) + Math.abs(dy) > 0) {
+            treeView.x += dx; treeView.y += dy;
+            if (!treeDrag.moved && treeDrag.pointers.size === 1) {
+                const start = treeDrag.downAt || c;
+                if (Math.hypot(c.x - start.x, c.y - start.y) > 6) treeDrag.moved = true;
+            }
+        }
+        treeDrag.last = c;
+        if (treeDrag.pointers.size === 2 && treeDrag.startDist > 0) {
+            treeDrag.moved = true;
+            zoomSkillTree(treeDrag.startScale * spread() / treeDrag.startDist / treeView.scale, c.x, c.y);
+        } else applyTreeView();
+        hideTooltip();
+    });
+    const end = (e) => {
+        treeDrag.pointers.delete(e.pointerId);
+        treeDrag.last = treeDrag.pointers.size ? center() : null;
+        if (treeDrag.pointers.size < 2) treeDrag.startDist = 0;
+        if (!treeDrag.pointers.size) { wrap.classList.remove('dragging'); setTimeout(() => { treeDrag.moved = false; }, 0); }
+    };
+    wrap.addEventListener('pointerup', end);
+    wrap.addEventListener('pointercancel', end);
+    wrap.addEventListener('pointerdown', (e) => { treeDrag.downAt = { x: e.clientX, y: e.clientY }; }, true);
+    wrap.addEventListener('wheel', (e) => { e.preventDefault(); zoomSkillTree(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX, e.clientY); }, { passive: false });
+
+    // Stars, scattered once
+    const sky = document.getElementById('heaven-sky');
+    let stars = '';
+    for (let i = 0; i < 160; i++) {
+        const size = Math.random() < 0.1 ? 3 : Math.random() < 0.4 ? 2 : 1;
+        stars += `<span class="heaven-star" style="left:${(Math.random() * 100).toFixed(2)}%;top:${(Math.random() * 100).toFixed(2)}%;width:${size}px;height:${size}px;--o:${(0.4 + Math.random() * 0.6).toFixed(2)};--tw:${(2 + Math.random() * 5).toFixed(1)}s;animation-delay:-${(Math.random() * 5).toFixed(1)}s"></span>`;
+    }
+    sky.innerHTML = stars;
+}
+
+function openAscensionScreen() {
+    const screen = document.getElementById('ascension-screen');
+    screen.style.display = 'block';
+    screen.classList.toggle('limbo', !!state.pendingRebirth);
+    setupSkillTreeControls();
+    renderAscensionScreen();
+    centerSkillTree(true);
+}
+
+// While between lives (after prestige, before starting again) the sky can't be left
+function closeAscensionScreen(force) {
+    if (state.pendingRebirth && !force) return;
     document.getElementById('ascension-screen').style.display = 'none';
 }
 
+// Leave the sky after a prestige: the starter kit follows the heavenly powers chosen up there
+function finishRebirth() {
+    if (!state.pendingRebirth) return;
+    state.pendingRebirth = false;
+    applyStarterKit();
+    scheduleNextOrder();
+    calculateCps();
+    closeAscensionScreen(true);
+    document.getElementById('ascension-screen').classList.remove('limbo');
+    switchTab('shop');
+    saveGame(true);
+    notify(t('輪廻転生しました。新たな人生の始まりです。'), "♻️");
+    render();
+}
+
 function renderAscensionScreen() {
-    if (document.getElementById('ascension-screen').style.display !== 'flex') return;
+    if (document.getElementById('ascension-screen').style.display !== 'block') return;
     const btn = document.getElementById('ascension-transcend-btn');
     const soulsToGet = getSoulsToGet();
     const canPrestige = soulsToGet > 0;
@@ -1495,6 +1607,7 @@ document.getElementById('bowl').onpointerdown = (e) => { e.preventDefault(); cli
 
 document.addEventListener('keydown', (e) => {
     if (e.code !== 'Space' || e.repeat) return;
+    if (document.getElementById('ascension-screen').style.display === 'block') return;
     // Let Space type into text fields and press focused buttons as usual
     const t = e.target;
     if (t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(t.tagName))) return;
@@ -1689,14 +1802,14 @@ function prestige() {
         state.souls += soulsToGet;
         state.prestigeCount++;
         resetState();
-        applyStarterKit();
         state.activeOrder = null;
-        scheduleNextOrder();
+        danExam = null;
+        // Into the sky: choose heavenly powers first, then start the new life with finishRebirth()
+        state.pendingRebirth = true;
         calculateCps();
-        closeAscensionScreen();
-        switchTab('shop');
+        saveGame(true);
         showCelebration('♻️', t('輪廻転生'), t('越前魂 +{0}', fmt(soulsToGet)), 'prestige');
-        notify(t('輪廻転生しました。新たな人生の始まりです。'), "♻️");
+        openAscensionScreen();
     }
 }
 

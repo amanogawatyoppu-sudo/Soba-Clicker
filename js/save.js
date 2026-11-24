@@ -88,6 +88,7 @@ function normalizeState() {
     if (!state.titles.includes('t_rookie')) state.titles.unshift('t_rookie');
     if (typeof state.title !== 'string') state.title = 't_rookie';
     if (!Array.isArray(state.decorations)) state.decorations = [];
+    if (typeof state.pendingRebirth !== 'boolean') state.pendingRebirth = false;
     if (typeof state.pantry.finds !== 'number') state.pantry.finds = 0;
     if (state.reputation === undefined) state.reputation = 0;
     if (state.ordersCompleted === undefined) state.ordersCompleted = 0;
@@ -174,3 +175,5 @@ if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('sw.js').catch(() => { /* offline support is optional */ });
 }
 checkLoginBonus();
+// Closed the game in the sky after a prestige: go back there to finish choosing
+if (state.pendingRebirth) openAscensionScreen();

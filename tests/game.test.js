@@ -123,9 +123,19 @@ test('prestige grants souls and keeps permanent progress', async () => {
         state.allTimeSoba = 1e12; state.totalSoba = 1e12;
         const expected = getSoulsToGet();
         prestige();
-        return { expected, souls: state.souls, level: state.buildingLevels.student, students: state.buildings.student,
+        // Between lives: in the sky, nothing built yet, and the sky can't be closed until a new life starts
+        const limbo = { pending: state.pendingRebirth, open: document.getElementById('ascension-screen').style.display, students: state.buildings.student };
+        closeAscensionScreen();
+        limbo.stillOpen = document.getElementById('ascension-screen').style.display;
+        state.heavenlyUpgrades.push('heav_17'); // taken in the sky, so its starter kit applies to this life
+        finishRebirth();
+        return { limbo, mills: state.buildings.mill, closed: document.getElementById('ascension-screen').style.display, pendingAfter: state.pendingRebirth, expected, souls: state.souls, level: state.buildingLevels.student, students: state.buildings.student,
                  kitchens: state.buildings.kitchen, regions: state.regions, soba: state.soba, upgrades: state.upgrades.length };
     });
+    assert.deepEqual(r.limbo, { pending: true, open: 'block', students: 0, stillOpen: 'block' });
+    assert.equal(r.mills, 10, 'starter kit from a power bought in the sky');
+    assert.equal(r.closed, 'none');
+    assert.equal(r.pendingAfter, false);
     assert.equal(r.souls, 5 + r.expected);
     assert.ok(r.expected >= 5, 'first prestige at 1e12 should give a useful number of souls');
     assert.equal(r.level, 2, 'aging levels are permanent');

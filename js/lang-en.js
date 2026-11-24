@@ -1076,6 +1076,16 @@ I18N.en.text = {
     '時間切れ…「{0}」は失敗しました。元の進行状況に戻りました。': 'Time is up... "{0}" failed. Your progress is back.',
     '転生を{0}回すると挑戦できるようになる。': 'Unlocks after {0} prestiges.',
 
+    // --- the heavenly sky ---
+    '☁️ 天界': '☁️ Heaven',
+    '越前魂のボーナス': 'Soul bonus',
+    '使える越前魂': 'Souls to spend',
+    '天界の力を選んでから、新しい人生を始めましょう。': 'Choose your heavenly powers, then begin your new life.',
+    '🍜 新しい人生を始める': '🍜 Begin a new life',
+    '✨ 取得できる': '✨ Can be learned',
+    '🔒 前の力が必要': '🔒 Needs the one before',
+    'ドラッグで動かす・ホイールやピンチで拡大縮小': 'Drag to move, wheel or pinch to zoom',
+
     // --- dan exams, titles, decorations ---
     '🥋 段位': '🥋 Dan',
     '🎏 飾りつけ': '🎏 Decor',

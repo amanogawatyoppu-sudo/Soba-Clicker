@@ -704,6 +704,7 @@ function getOrderProgress(order) {
 }
 
 function orderTick(now) {
+    if (state.pendingRebirth) return; // between lives, in the sky
     if (state.activeOrder) {
         const order = state.activeOrder;
         // Deadline first: production credited in one lump after it (time away, a background tab)
