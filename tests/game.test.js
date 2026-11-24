@@ -787,3 +787,23 @@ test('golden soba is modest at the start and cursed soba is mostly bad', async (
     assert.deepEqual(errors, []);
     await close();
 });
+
+test('buildings, upgrades and tabs show hand-drawn pictures instead of emoji', async () => {
+    const { page, errors, close } = await openGame();
+    const result = await page.evaluate(() => {
+        state.allTimeSoba = state.totalSoba = state.soba = 1e13; state.prestigeCount = 1;
+        BUILDINGS.slice(0, 8).forEach(b => { state.buildings[b.id] = 30; });
+        calculateCps(); render();
+        const imgOk = el => !!el && el.querySelector('img.ico') !== null;
+        return {
+            missingArt: BUILDINGS.filter(b => !ICON_ART[b.id]).map(b => b.id),
+            missingUpgradeArt: UPGRADES.filter(u => !upgradeIconHTML(u).includes('<img')).map(u => u.id),
+            shopRows: [...document.querySelectorAll('#buildings-list .building-item')].filter(el => el.style.display !== 'none' && !el.textContent.includes('???')).every(imgOk),
+            upgrades: [...document.querySelectorAll('.upgrade-item')].every(imgOk),
+            mainTabs: [...document.querySelectorAll('.main-tab')].every(imgOk)
+        };
+    });
+    assert.deepEqual(result, { missingArt: [], missingUpgradeArt: [], shopRows: true, upgrades: true, mainTabs: true });
+    assert.deepEqual(errors, []);
+    await close();
+});
