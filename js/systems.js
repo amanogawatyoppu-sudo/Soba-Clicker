@@ -11,10 +11,13 @@ function getTotalBuildings() {
 const TAB_GROUPS = [
     { id: 'shop', icon: '🏪', label: 'ショップ', views: [
         { id: 'shop', label: 'ショップ' },
-        { id: 'daily', label: '📅 今日のお題', unlocked: () => state.allTimeSoba + state.pastSoba >= 1000 || state.dailyFullDays > 0, badge: () => getDailyBadge() }
+        { id: 'daily', label: '📅 今日のお題', unlocked: () => state.allTimeSoba + state.pastSoba >= 1000 || state.dailyFullDays > 0, badge: () => getDailyBadge() },
+        { id: 'dan', label: '🥋 段位', unlocked: () => state.allTimeSoba + state.pastSoba >= 500 || state.dan > 0 },
+        { id: 'decor', label: '🎏 飾りつけ', unlocked: () => state.allTimeSoba + state.pastSoba >= 5000 || state.decorations.length > 0 }
     ] },
     { id: 'grow', icon: '🌱', label: '育成', views: [
         { id: 'farm', label: '🌾 そば畑', unlocked: () => state.allTimeSoba >= FARM_UNLOCK_SOBA || state.farm.discovered.length > 1 },
+        { id: 'pantry', label: '🍤 お品書き', unlocked: () => state.pantry.found.length > 0, badge: () => getPantryBadge() },
         { id: 'lump', label: '🍡 熟成' },
         { id: 'shrine', label: '⛩️ 祭壇', unlocked: () => getTotalBuildings() >= 50 || state.spirits.length > 0 },
         { id: 'map', label: '🗾 地図', unlocked: () => getTotalBuildings() >= 350 || state.regions.length > 0 }
@@ -23,7 +26,7 @@ const TAB_GROUPS = [
         { id: 'prestige', label: '☁️ 転生', unlocked: () => state.allTimeSoba >= 1e12 || state.prestigeCount > 0 },
         { id: 'challenge', label: '⚔️ 挑戦', unlocked: () => state.prestigeCount >= 1 || !!state.isChallengeRun }
     ] },
-    { id: 'record', icon: '📊', label: '記録', views: [{ id: 'stats', label: '📊 統計' }, { id: 'story', label: '📜 物語', unlocked: () => state.storySeen.length > 0 }, { id: 'glossary', label: '📖 用語集' }] },
+    { id: 'record', icon: '📊', label: '記録', views: [{ id: 'stats', label: '📊 統計' }, { id: 'titles', label: '📛 称号', badge: () => getTitleBadge() }, { id: 'story', label: '📜 物語', unlocked: () => state.storySeen.length > 0 }, { id: 'glossary', label: '📖 用語集' }] },
     { id: 'settings', icon: '⚙️', label: '設定', views: [{ id: 'settings', label: '設定' }] }
 ];
 
@@ -36,6 +39,10 @@ const VIEW_RENDERERS = {
     map: () => renderMap(),
     glossary: () => renderGlossary(),
     farm: () => renderFarm(),
+    pantry: () => renderPantry(),
+    dan: () => renderDan(),
+    titles: () => renderTitles(),
+    decor: () => renderDecor(),
     lump: () => renderLumpList(),
     prestige: () => renderPrestigeView(),
     daily: () => renderDaily(),
@@ -736,7 +743,8 @@ function startOrder(now) {
     // Idle production alone falls a little short: steady clicking (about 3 per second), buying
     // buildings or a golden soba closes the gap. Tuned with a simulation to succeed most of the time.
     const target = Math.max(200, baseCps * duration * (1 + Math.random() * 0.15) + baseClick * duration * 1.5);
-    const reward = Math.max(500, baseCps * duration * 2) * (state.heavenlyUpgrades.includes('heav_23') ? 2 : 1) * (eventOrder ? 2 : 1);
+    // Was 2x the time limit's production with a floor of 500, worth far more than the shop at the start
+    const reward = Math.max(50, baseCps * duration * ORDER_REWARD_MULT) * (state.heavenlyUpgrades.includes('heav_23') ? 2 : 1) * (eventOrder ? 2 : 1);
     state.activeOrder = { customer: customerIdx, target, reward, startTotal: state.totalSoba, deadline: now + duration * 1000 };
     if (eventOrder) state.activeOrder.event = event.id;
     notify(t('{0}から注文！{1}秒以内に{2}杯を作ろう。', customer.name, duration, fmt(target)), customer.icon, true);
@@ -752,6 +760,7 @@ function completeOrder() {
     state.allTimeSoba += order.reward;
     state.ordersCompleted++;
     progressDaily('order');
+    rollTopping('order');
     const repUp = state.reputation < getReputationMax();
     state.reputation = Math.min(getReputationMax(), state.reputation + 1);
     state.activeOrder = null;
@@ -1004,6 +1013,7 @@ function harvestPlot(i, silent) {
     state.farm.plots[i] = null;
     state.farm.harvests++;
     progressDaily('harvest');
+    if (Math.random() < TOPPING_HARVEST_CHANCE) rollTopping('harvest');
     if (!silent) {
         notify(t('{0}を収穫！{1} 杯を獲得。', crop.name, fmt(gain)), crop.icon);
         playSound('harvest');
@@ -1182,7 +1192,7 @@ function checkLoginBonus() {
     state.bestLoginStreak = Math.max(state.bestLoginStreak, state.loginStreak);
 
     const day = ((state.loginStreak - 1) % 7) + 1;
-    const reward = Math.max(1000 * day, getBaseCps() * 600 * day);
+    const reward = Math.max(100 * day, getBaseCps() * 600 * day);
     state.soba += reward;
     state.totalSoba += reward;
     state.allTimeSoba += reward;
@@ -1298,6 +1308,9 @@ function renderBuffBar() {
     let html = '';
     if (buffMult > 1 && buffTimer > 0) html += `<span class="buff-chip">🔥 FEVER ×${buffMult} ${t('残り{0}秒', Math.ceil(buffTimer))}</span>`;
     if (clickBuffMult > 1 && clickBuffTimer > 0) html += `<span class="buff-chip click">👆 ${t('クリック')}×${clickBuffMult} ${t('残り{0}秒', Math.ceil(clickBuffTimer))}</span>`;
+    if (buffMult < 1 && buffTimer > 0) html += `<span class="buff-chip curse">😈 ${t('呪い')} ×${buffMult} ${t('残り{0}秒', Math.ceil(buffTimer))}</span>`;
+    if (danExam) html += `<span class="buff-chip dan">🥋 ${t('昇段試験')} ${Math.min(100, Math.floor(getDanExamMade() / danExam.goal * 100))}% ${t('残り{0}秒', Math.max(0, Math.ceil((danExam.endsAt - Date.now()) / 1000)))}</span>`;
+    if (clickBuffMult < 1 && clickBuffTimer > 0) html += `<span class="buff-chip curse">🫨 ${t('しびれ')} ×${clickBuffMult} ${t('残り{0}秒', Math.ceil(clickBuffTimer))}</span>`;
     setHTMLIfChanged(document.getElementById('buff-bar'), html);
     document.getElementById('fever-overlay').classList.toggle('on', buffMult > 1);
 }
@@ -1371,4 +1384,428 @@ function goToView(viewId) {
     switchTab(viewId);
     // On phones the panels are stacked, so bring the tab into view
     if (window.innerWidth <= 900) document.getElementById('right-panel').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===================================================================
+// Toppings and the menu (お品書き)
+// ===================================================================
+
+function getTopping(id) {
+    return TOPPINGS.find(x => x.id === id);
+}
+
+function getToppingRarity(topping) {
+    return TOPPING_RARITIES.find(r => r.id === topping.rarity);
+}
+
+function getDishLevel(id) {
+    return state.pantry.dishes[id] || 0;
+}
+
+// Sum of every cooked dish's effect of one type (value per level x level)
+function getDishEffectBonus(type) {
+    const power = state.heavenlyUpgrades.includes('heav_37') ? 1.5 : 1;
+    return DISHES.reduce((sum, d) => sum + (d.effect.type === type ? d.effect.value * getDishLevel(d.id) : 0), 0) * power;
+}
+
+function getPantryCpsMult() {
+    return (1 + state.pantry.found.length * TOPPING_FIND_BONUS) * (1 + getDishEffectBonus('cps'));
+}
+
+// Ingredients needed to cook a dish up to its next level
+function getDishCost(dish) {
+    const next = getDishLevel(dish.id) + 1;
+    const cost = {};
+    Object.entries(dish.needs).forEach(([id, n]) => { cost[id] = n * next; });
+    return cost;
+}
+
+function isDishVisible(dish) {
+    // The secret dish shows once every other dish has been cooked at least once
+    return !dish.secret || DISHES.every(d => d.secret || getDishLevel(d.id) > 0);
+}
+
+function canCookDish(dish) {
+    if (!isDishVisible(dish) || getDishLevel(dish.id) >= DISH_MAX_LEVEL) return false;
+    return Object.entries(getDishCost(dish)).every(([id, n]) => (state.pantry.items[id] || 0) >= n);
+}
+
+function getPantryBadge() {
+    return DISHES.some(canCookDish) ? '🔥' : '';
+}
+
+function pickTopping(lucky) {
+    const weights = TOPPING_RARITIES.map(r => lucky ? r.luckyWeight : r.weight);
+    let roll = Math.random() * weights.reduce((a, b) => a + b, 0);
+    let rarity = TOPPING_RARITIES[TOPPING_RARITIES.length - 1];
+    for (let i = 0; i < weights.length; i++) {
+        if (roll < weights[i]) { rarity = TOPPING_RARITIES[i]; break; }
+        roll -= weights[i];
+    }
+    const pool = TOPPINGS.filter(x => x.rarity === rarity.id);
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
+// source: 'click' (small chance), or 'golden' / 'order' / 'harvest' (always one, with better odds except harvest)
+function getToppingFindMult() {
+    return (1 + getDishEffectBonus('find')) * (state.heavenlyUpgrades.includes('heav_36') ? 1.5 : 1);
+}
+
+function rollTopping(source, e) {
+    if (source === 'click' && Math.random() >= TOPPING_CLICK_CHANCE * getToppingFindMult()) return null;
+    const topping = pickTopping(source === 'golden' || source === 'order');
+    giveTopping(topping.id, 1);
+    const isNew = !state.pantry.found.includes(topping.id);
+    if (isNew) {
+        state.pantry.found.push(topping.id);
+        calculateCps();
+    }
+    const rarity = getToppingRarity(topping);
+    if (isNew) notify(t('新しい具材「{0}」を見つけた！({1})', topping.name, rarity.name), topping.icon, true);
+    else notify(t('具材「{0}」を見つけた！(所持 {1})', topping.name, state.pantry.items[topping.id]), topping.icon);
+    if (e && !settings.reduceEffects) {
+        const pop = document.createElement('div');
+        pop.className = 'topping-pop';
+        pop.textContent = topping.icon;
+        pop.style.left = (e.clientX + 10) + 'px';
+        pop.style.top = (e.clientY - 50) + 'px';
+        document.body.appendChild(pop);
+        setTimeout(() => pop.remove(), 1200);
+    }
+    if (activeView === 'pantry') renderPantry();
+    return topping;
+}
+
+function giveTopping(id, n) {
+    state.pantry.items[id] = (state.pantry.items[id] || 0) + n;
+    state.pantry.finds += n;
+}
+
+function cookDish(id) {
+    const dish = DISHES.find(d => d.id === id);
+    if (!dish || !canCookDish(dish)) return false;
+    Object.entries(getDishCost(dish)).forEach(([tid, n]) => { state.pantry.items[tid] -= n; });
+    state.pantry.dishes[id] = getDishLevel(id) + 1;
+    calculateCps();
+    playSound('order');
+    const lv = getDishLevel(id);
+    notify(t('「{0}」を作った！Lv.{1}になりました。', dish.name, lv), dish.icon, true);
+    if (lv === 1 && !settings.reduceEffects) showCelebration(dish.icon, t('新しいお品書き'), dish.name);
+    checkAchievements();
+    render();
+    renderPantry();
+    return true;
+}
+
+function getDishEffectText(dish, level) {
+    const pct = Math.round(dish.effect.value * level * 100 * (state.heavenlyUpgrades.includes('heav_37') ? 1.5 : 1));
+    const label = {
+        cps: t('全生産 +{0}%', pct),
+        click: t('クリックパワー +{0}%', pct),
+        golden: t('ゴールデンそば等の報酬 +{0}%', pct),
+        find: t('具材の見つかりやすさ +{0}%', pct)
+    }[dish.effect.type];
+    return label;
+}
+
+// After a challenge run: toppings found and dishes cooked there join the main save
+function mergePantryInto(target, run) {
+    if (!run) return;
+    Object.entries(run.items).forEach(([id, n]) => { target.items[id] = (target.items[id] || 0) + n; });
+    run.found.forEach(id => { if (!target.found.includes(id)) target.found.push(id); });
+    Object.entries(run.dishes).forEach(([id, lv]) => { target.dishes[id] = Math.min(DISH_MAX_LEVEL, (target.dishes[id] || 0) + lv); });
+    target.finds += run.finds;
+}
+
+function renderPantry() {
+    if (activeView !== 'pantry') return;
+    const p = state.pantry;
+    const sig = JSON.stringify([p.items, p.found, p.dishes]);
+    if (!hasChanged('pantry', sig)) return;
+
+    document.getElementById('pantry-dex-count').textContent = `${p.found.length}/${TOPPINGS.length}`;
+    document.getElementById('pantry-bonus').textContent = t('見つけた具材の種類ボーナス: 全生産 +{0}%', Math.round(p.found.length * TOPPING_FIND_BONUS * 100));
+    const dex = document.getElementById('pantry-dex');
+    dex.innerHTML = '';
+    TOPPINGS.forEach(tp => {
+        const found = p.found.includes(tp.id);
+        const rarity = getToppingRarity(tp);
+        const div = document.createElement('div');
+        div.className = 'topping-card' + (found ? '' : ' unknown');
+        div.style.borderColor = found ? rarity.color : '';
+        div.innerHTML = `<div class="topping-icon">${found ? tp.icon : '❓'}</div>
+            <div class="topping-name">${found ? tp.name : t('？？？')}</div>
+            <div class="topping-count" style="color:${rarity.color}">${found ? '×' + (p.items[tp.id] || 0) : rarity.name}</div>`;
+        div.onmouseenter = (e) => showTooltip(e, found ? tp.name : t('？？？'), found ? `${tp.desc}<br><span style="color:${rarity.color}">${rarity.name}</span>` : t('まだ見つけていない具材。({0})', rarity.name), 0);
+        div.onmouseleave = hideTooltip;
+        dex.appendChild(div);
+    });
+
+    const cooked = DISHES.filter(d => getDishLevel(d.id) > 0).length;
+    document.getElementById('pantry-menu-count').textContent = `${cooked}/${DISHES.length}`;
+    const menu = document.getElementById('pantry-menu');
+    menu.innerHTML = '';
+    DISHES.forEach(dish => {
+        const visible = isDishVisible(dish);
+        const lv = getDishLevel(dish.id);
+        const maxed = lv >= DISH_MAX_LEVEL;
+        const div = document.createElement('div');
+        div.className = 'dish-item' + (lv > 0 ? ' cooked' : '');
+        if (!visible) {
+            div.innerHTML = `<div class="dish-icon">❓</div><div class="dish-body"><div class="dish-name">${t('？？？')}</div>
+                <div class="dish-desc">${t('他の料理を全て作ると現れる、幻のお品書き。')}</div></div>`;
+            menu.appendChild(div);
+            return;
+        }
+        const cost = getDishCost(dish);
+        const needs = maxed ? '' : Object.entries(cost).map(([id, n]) => {
+            const tp = getTopping(id);
+            const have = p.items[id] || 0;
+            const known = p.found.includes(id);
+            return `<span class="dish-need ${have >= n ? 'ok' : ''}">${known ? tp.icon : '❓'} ${have}/${n}</span>`;
+        }).join('');
+        const effectNow = lv > 0 ? getDishEffectText(dish, lv) : t('まだ作っていません');
+        const effectNext = maxed ? t('これ以上は上げられません') : t('次のLv: {0}', getDishEffectText(dish, lv + 1));
+        div.innerHTML = `<div class="dish-icon">${dish.icon}</div>
+            <div class="dish-body">
+                <div class="dish-name">${dish.name} <span class="dish-lv">Lv.${lv}/${DISH_MAX_LEVEL}</span></div>
+                <div class="dish-desc">${dish.desc}</div>
+                <div class="dish-effect">${effectNow}<span class="dish-next">${effectNext}</span></div>
+                <div class="dish-needs">${needs}</div>
+            </div>`;
+        if (!maxed) {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn dish-cook';
+            btn.textContent = lv > 0 ? t('作り直す') : t('作る');
+            btn.disabled = !canCookDish(dish);
+            btn.onclick = () => cookDish(dish.id);
+            div.appendChild(btn);
+        }
+        menu.appendChild(div);
+    });
+}
+
+// ===================================================================
+// Dan exams (そば打ち段位): make the goal within the time limit for a lasting bonus; no upper limit
+// ===================================================================
+let danExam = null; // { dan, goal, startTotal, endsAt } while an exam runs (not saved: a reload cancels it)
+
+const KANJI_DIGITS = ['', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+function toKanjiNumber(n) {
+    if (n >= 100) return String(n);
+    const tens = Math.floor(n / 10), ones = n % 10;
+    return (tens ? (tens > 1 ? KANJI_DIGITS[tens] : '') + '十' : '') + KANJI_DIGITS[ones];
+}
+
+function getDanName(dan) {
+    if (dan <= 0) return t('無段');
+    if (LANG !== 'ja') return t('{0}段', dan);
+    return dan === 1 ? '初段' : toKanjiNumber(dan) + '段';
+}
+
+function getDanBonusPerDan() {
+    return DAN_BONUS * (state.heavenlyUpgrades.includes('heav_38') ? 1.5 : 1);
+}
+
+function getDanMult() {
+    return 1 + state.dan * getDanBonusPerDan();
+}
+
+function getDanExamSec() {
+    return state.heavenlyUpgrades.includes('heav_39') ? 45 : DAN_EXAM_SEC;
+}
+
+function getDanRetryLeft() {
+    return Math.max(0, DAN_RETRY_MS - (Date.now() - (state.lastDanFail || 0)));
+}
+
+function getDanExamMade() {
+    return danExam ? Math.max(0, state.allTimeSoba - danExam.startTotal) : 0;
+}
+
+function startDanExam() {
+    if (danExam) return false;
+    if (state.isChallengeRun) { notify(t('挑戦モード中は昇段試験を受けられません。'), "🥋"); return false; }
+    const wait = getDanRetryLeft();
+    if (wait > 0) { notify(t('次の試験まであと{0}です。', formatDuration(wait)), "🥋"); return false; }
+    const dan = state.dan + 1;
+    danExam = { dan, goal: getDanGoal(dan), startTotal: state.allTimeSoba, endsAt: Date.now() + getDanExamSec() * 1000 };
+    state.danExams++;
+    notify(t('{0}の昇段試験、はじめ！{1}秒で{2}杯を打とう。', getDanName(dan), getDanExamSec(), fmt(danExam.goal)), "🥋", true);
+    renderDan(true);
+    return true;
+}
+
+function danTick(now) {
+    if (!danExam) return;
+    if (getDanExamMade() >= danExam.goal) {
+        state.dan = Math.max(state.dan, danExam.dan);
+        const name = getDanName(state.dan);
+        danExam = null;
+        calculateCps();
+        playSound('order');
+        showCelebration('🥋', t('昇段'), name);
+        notify(t('合格！{0}になりました。全生産+{1}%', name, Math.round((getDanMult() - 1) * 1000) / 10), "🎖️", true);
+        renderDan(true);
+    } else if (now >= danExam.endsAt) {
+        danExam = null;
+        state.lastDanFail = now;
+        playSound('fail');
+        notify(t('不合格…。{0}後にまた挑戦できます。', formatDuration(DAN_RETRY_MS)), "🥋");
+        renderDan(true);
+    }
+}
+
+function renderDan(force) {
+    if (activeView !== 'dan') return;
+    const next = state.dan + 1;
+    const wait = getDanRetryLeft();
+    const made = getDanExamMade();
+    const sig = [state.dan, !!danExam, danExam ? Math.floor(made / danExam.goal * 100) + ':' + Math.ceil((danExam.endsAt - Date.now()) / 1000) : '', Math.ceil(wait / 1000), state.heavenlyUpgrades.length, LANG].join('|');
+    if (!force && !hasChanged('dan', sig)) return;
+    document.getElementById('dan-current').textContent = getDanName(state.dan);
+    document.getElementById('dan-bonus').textContent = t('全生産 +{0}%', Math.round((getDanMult() - 1) * 1000) / 10);
+    document.getElementById('dan-next').textContent = t('{0}の試験: {1}秒以内に{2}杯', getDanName(next), getDanExamSec(), fmt(getDanGoal(next)));
+    const btn = document.getElementById('dan-btn');
+    const bar = document.getElementById('dan-bar');
+    const fill = document.getElementById('dan-bar-fill');
+    const label = document.getElementById('dan-progress');
+    if (danExam) {
+        btn.disabled = true;
+        btn.textContent = t('試験中…');
+        bar.style.display = 'block';
+        fill.style.width = Math.min(100, made / danExam.goal * 100) + '%';
+        label.textContent = t('{0} / {1} 杯・残り{2}秒', fmt(made), fmt(danExam.goal), Math.max(0, Math.ceil((danExam.endsAt - Date.now()) / 1000)));
+    } else {
+        bar.style.display = 'none';
+        label.textContent = '';
+        btn.disabled = wait > 0 || !!state.isChallengeRun;
+        btn.textContent = wait > 0 ? t('休憩中 ({0})', formatDuration(wait)) : t('🥋 受験する');
+    }
+}
+
+// ===================================================================
+// Titles (称号)
+// ===================================================================
+function getTitleMult() {
+    return 1 + Math.max(0, state.titles.length - 1) * TITLE_BONUS;
+}
+
+function checkTitles() {
+    let added = false;
+    TITLES.forEach(tt => {
+        if (state.titles.includes(tt.id) || !tt.when()) return;
+        state.titles.push(tt.id);
+        added = true;
+        notify(t('称号「{0}」を手に入れた！', tt.name), tt.icon, true);
+    });
+    if (added) { calculateCps(); if (activeView === 'titles') renderTitles(); }
+}
+
+let titlesSeenCount = null;
+function getTitleBadge() {
+    if (titlesSeenCount === null) titlesSeenCount = state.titles.length;
+    return state.titles.length > titlesSeenCount ? '🆕' : '';
+}
+
+function getCurrentTitle() {
+    return TITLES.find(tt => tt.id === state.title && state.titles.includes(tt.id)) || TITLES[0];
+}
+
+function setTitle(id) {
+    if (!state.titles.includes(id)) return;
+    state.title = id;
+    renderTitleDisplay();
+    renderTitles();
+}
+
+function renderTitleDisplay() {
+    const tt = getCurrentTitle();
+    setHTMLIfChanged(document.getElementById('title-display'), `${tt.icon} ${t('【{0}】', tt.name)}`);
+}
+
+function renderTitles() {
+    if (activeView !== 'titles') return;
+    titlesSeenCount = state.titles.length;
+    const sig = state.titles.join() + '|' + state.title;
+    if (!hasChanged('titles', sig)) return;
+    document.getElementById('titles-count').textContent = `${state.titles.length}/${TITLES.length}`;
+    document.getElementById('titles-bonus').textContent = t('称号ボーナス: 全生産 +{0}%', Math.round((getTitleMult() - 1) * 100));
+    const list = document.getElementById('titles-list');
+    list.innerHTML = '';
+    TITLES.forEach(tt => {
+        const have = state.titles.includes(tt.id);
+        const div = document.createElement('div');
+        div.className = 'title-item' + (have ? ' have' : '') + (state.title === tt.id ? ' selected' : '');
+        div.innerHTML = `<div class="title-icon">${have ? tt.icon : '🔒'}</div>
+            <div class="title-body"><div class="title-name">${have ? tt.name : t('？？？')}</div><div class="title-desc">${tt.desc}</div></div>
+            ${have ? `<div class="title-state">${state.title === tt.id ? t('使用中') : t('つける')}</div>` : ''}`;
+        if (have) div.onclick = () => setTitle(tt.id);
+        list.appendChild(div);
+    });
+}
+
+// ===================================================================
+// Shop decorations (お店の飾りつけ)
+// ===================================================================
+function getDecorCost(d) {
+    return d.cost * (state.heavenlyUpgrades.includes('heav_41') ? 0.5 : 1);
+}
+
+function getDecorMult() {
+    return 1 + state.decorations.length * DECOR_BONUS;
+}
+
+function buyDecoration(id) {
+    const d = DECORATIONS.find(x => x.id === id);
+    if (!d || state.decorations.includes(id)) return false;
+    if (state.isChallengeRun) { notify(t('挑戦モード中は飾りを買えません。'), "🎏"); return false; }
+    const cost = getDecorCost(d);
+    if (state.soba < cost) return false;
+    state.soba -= cost;
+    state.decorations.push(id);
+    calculateCps();
+    playSound('buy');
+    notify(t('「{0}」を飾った！全生産+{1}%', d.name, Math.round(DECOR_BONUS * 100)), d.icon, true);
+    checkAchievements();
+    render();
+    renderDecor();
+    return true;
+}
+
+function renderShopDecor() {
+    const icons = DECORATIONS.filter(d => state.decorations.includes(d.id)).map(d => `<span title="${d.name}">${d.icon}</span>`).join('');
+    setHTMLIfChanged(document.getElementById('shop-decor'), icons);
+}
+
+function renderDecor() {
+    if (activeView !== 'decor') return;
+    const sig = state.decorations.join() + '|' + DECORATIONS.map(d => state.soba >= getDecorCost(d) ? 1 : 0).join('') + state.heavenlyUpgrades.includes('heav_41');
+    if (!hasChanged('decor', sig)) return;
+    document.getElementById('decor-count').textContent = `${state.decorations.length}/${DECORATIONS.length}`;
+    document.getElementById('decor-bonus').textContent = t('飾りのボーナス: 全生産 +{0}%', Math.round((getDecorMult() - 1) * 100));
+    const list = document.getElementById('decor-list');
+    list.innerHTML = '';
+    DECORATIONS.forEach(d => {
+        const have = state.decorations.includes(d.id);
+        const cost = getDecorCost(d);
+        const div = document.createElement('div');
+        div.className = 'decor-item' + (have ? ' have' : '');
+        div.innerHTML = `<div class="decor-icon">${d.icon}</div>
+            <div class="decor-body"><div class="decor-name">${d.name}</div><div class="decor-desc">${d.desc}</div></div>`;
+        if (have) {
+            const tag = document.createElement('div');
+            tag.className = 'decor-state';
+            tag.textContent = t('飾り済み');
+            div.appendChild(tag);
+        } else {
+            const btn = document.createElement('button');
+            btn.className = 'action-btn decor-buy';
+            btn.textContent = `🍜 ${fmt(cost)}`;
+            btn.disabled = state.soba < cost;
+            btn.onclick = () => buyDecoration(d.id);
+            div.appendChild(btn);
+        }
+        list.appendChild(div);
+    });
 }
