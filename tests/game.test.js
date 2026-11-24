@@ -253,7 +253,7 @@ test('limited-time events follow the calendar and count event orders', async () 
     await close();
 });
 
-test('workshop critical hit pays five minutes of base production', async () => {
+test('workshop critical hit pays 90 seconds of base production', async () => {
     const { page, close } = await openGame();
     const r = await page.evaluate(() => {
         state.buildings.student = 1000; calculateCps();
@@ -263,10 +263,10 @@ test('workshop critical hit pays five minutes of base production', async () => {
         document.getElementById('workshop-marker').style.left = '50%';
         const s0 = state.soba;
         stopArtisanChallenge();
-        return { ratio: (state.soba - s0) / (base * 300), points: state.artisanPoints, crits: state.artisanCrits };
+        return { ratio: (state.soba - s0) / (base * 90), points: state.artisanPoints, crits: state.artisanCrits };
     });
-    assert.ok(Math.abs(r.ratio - 1) < 0.01, `paid ${r.ratio}x of 5 minutes`);
-    assert.equal(r.points, 1.5);
+    assert.ok(Math.abs(r.ratio - 1) < 0.01, `paid ${r.ratio}x of 90 seconds`);
+    assert.equal(r.points, 0.5);
     assert.equal(r.crits, 1);
     await close();
 });
@@ -420,7 +420,7 @@ test('daily tasks: same three for a date, progress, rewards and a new set the ne
     assert.equal(r.a, r.b);
     assert.ok(r.other, 'different dates give different tasks');
     assert.equal(r.count, 3);
-    assert.ok(r.afterClicks >= 1000, 'a finished task pays at least the minimum reward');
+    assert.ok(r.afterClicks >= 100, 'a finished task pays at least the minimum reward');
     assert.equal(r.beforeProduce, 0, 'rewards are not counted as production');
     assert.ok(r.partial >= 2000 && r.partial < 2100, `produce progress ${r.partial}`); // plus a moment of idle production
     assert.ok(r.full);
@@ -598,6 +598,182 @@ test('side stories, event music and celebrations', async () => {
     assert.ok(r.stageStyle);
     assert.ok(r.celebrating);
     assert.ok(r.scenery >= 5);
+    assert.deepEqual(errors, []);
+    await close();
+});
+
+test('toppings: found from clicks and golden soba, cooked into lasting dishes', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        const out = {};
+        out.hiddenAtStart = !isViewUnlocked(TAB_GROUPS.flatMap(g => g.views).find(v => v.id === 'pantry'));
+        // a click finds a topping only on a lucky roll
+        const realRandom = Math.random;
+        Math.random = () => 0.5;
+        const bowl = document.getElementById('bowl').getBoundingClientRect();
+        clickBowl({ clientX: bowl.left, clientY: bowl.top });
+        out.afterUnluckyClick = state.pantry.finds;
+        Math.random = () => 0;
+        clickBowl({ clientX: bowl.left, clientY: bowl.top });
+        out.afterLuckyClick = { finds: state.pantry.finds, found: [...state.pantry.found] };
+        Math.random = realRandom;
+        out.unlocked = isViewUnlocked(TAB_GROUPS.flatMap(g => g.views).find(v => v.id === 'pantry'));
+        // golden soba always gives one
+        const before = state.pantry.finds;
+        rollTopping('golden');
+        out.goldenGives = state.pantry.finds - before;
+
+        // cooking: needs ingredients x level, raises production
+        const dish = DISHES.find(d => d.id === 'oroshi_soba');
+        state.pantry.items = {};
+        out.cantCookEmpty = !cookDish('oroshi_soba');
+        state.buildings.student = 10; calculateCps();
+        const cpsBefore = cps;
+        Object.entries(dish.needs).forEach(([id, n]) => { state.pantry.items[id] = n; if (!state.pantry.found.includes(id)) state.pantry.found.push(id); });
+        calculateCps();
+        const cpsFound = cps;
+        const multFound = getPantryCpsMult();
+        out.cooked = cookDish('oroshi_soba');
+        out.level = getDishLevel('oroshi_soba');
+        out.itemsLeft = Object.keys(dish.needs).map(id => state.pantry.items[id]);
+        out.cpsRatio = getPantryCpsMult() / multFound;
+        out.foundRaised = cpsFound > cpsBefore;
+        out.nextCost = getDishCost(dish).oroshi;
+        out.secretHidden = !isDishVisible(DISHES.find(d => d.secret));
+        DISHES.filter(d => !d.secret).forEach(d => { state.pantry.dishes[d.id] = 1; });
+        out.secretShown = isDishVisible(DISHES.find(d => d.secret));
+        checkAchievements();
+        out.allBeforeSecret = state.achievements.includes('ach_dish_all');
+        state.pantry.dishes.kiwami = 1;
+        checkAchievements();
+        out.achievements = ['ach_topping_1', 'ach_dish_1', 'ach_dish_all'].filter(id => state.achievements.includes(id));
+        switchTab('pantry'); render();
+        out.cards = document.querySelectorAll('#pantry-dex .topping-card').length;
+        out.dishes = document.querySelectorAll('#pantry-menu .dish-item').length;
+        out.counts = [TOPPINGS.length, DISHES.length];
+
+        // kept through prestige
+        state.allTimeSoba = state.totalSoba = 1e13;
+        prestige();
+        out.keptLevel = getDishLevel('oroshi_soba');
+        return out;
+    });
+    assert.equal(r.hiddenAtStart, true);
+    assert.equal(r.afterUnluckyClick, 0);
+    assert.equal(r.afterLuckyClick.finds, 1);
+    assert.equal(r.afterLuckyClick.found.length, 1);
+    assert.equal(r.unlocked, true);
+    assert.equal(r.goldenGives, 1);
+    assert.equal(r.cantCookEmpty, true);
+    assert.equal(r.foundRaised, true);
+    assert.equal(r.cooked, true);
+    assert.equal(r.level, 1);
+    assert.deepEqual(r.itemsLeft, [0, 0, 0]);
+    assert.ok(Math.abs(r.cpsRatio - 1.03) < 1e-9, `cps ratio ${r.cpsRatio}`);
+    assert.equal(r.nextCost, 6);
+    assert.equal(r.secretHidden, true);
+    assert.equal(r.secretShown, true);
+    assert.equal(r.allBeforeSecret, false, 'the secret dish counts toward the full menu');
+    assert.deepEqual(r.achievements, ['ach_topping_1', 'ach_dish_1', 'ach_dish_all']);
+    assert.deepEqual([r.cards, r.dishes], r.counts);
+    assert.equal(r.keptLevel, 1);
+    assert.deepEqual(errors, []);
+    await close();
+});
+
+test('dan exams, titles and shop decorations', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        const out = {};
+        switchTab('dan');
+        out.started = startDanExam();
+        out.goal = danExam.goal;
+        state.allTimeSoba += 999; danTick(Date.now());
+        out.stillRunning = !!danExam;
+        state.allTimeSoba += 1; danTick(Date.now());
+        out.dan = state.dan;
+        out.danMult = getDanMult();
+        out.names = [0, 1, 2, 10, 11, 20, 35].map(getDanName);
+        // a failed exam waits before the next try
+        startDanExam(); danTick(Date.now() + 60 * 1000);
+        out.afterFail = { dan: state.dan, running: !!danExam, canRetry: startDanExam() };
+
+        state.clicks = 1000; checkTitles();
+        out.titles = [...state.titles];
+        setTitle('t_clicker');
+        out.shown = document.getElementById('title-display').textContent;
+        out.titleMult = getTitleMult();
+
+        state.soba = 2e4;
+        out.bought = buyDecoration('noren');
+        out.boughtAgain = buyDecoration('noren');
+        out.tooPoor = buyDecoration('chochin');
+        out.decorMult = getDecorMult();
+        render();
+        out.decorShown = document.getElementById('shop-decor').textContent;
+        // all kept through prestige
+        state.allTimeSoba = state.totalSoba = 1e13; prestige();
+        out.kept = { dan: state.dan, titles: state.titles.length, decor: state.decorations.length };
+        TAB_GROUPS.forEach(g => g.views.forEach(v => switchTab(v.id)));
+        return out;
+    });
+    assert.equal(r.started, true);
+    assert.equal(r.goal, 1000);
+    assert.equal(r.stillRunning, true);
+    assert.equal(r.dan, 1);
+    assert.ok(Math.abs(r.danMult - 1.02) < 1e-9);
+    assert.deepEqual(r.names, ['無段', '初段', '二段', '十段', '十一段', '二十段', '三十五段']);
+    assert.deepEqual(r.afterFail, { dan: 1, running: false, canRetry: false });
+    assert.deepEqual(r.titles, ['t_rookie', 't_clicker', 't_dan1']);
+    assert.ok(r.shown.includes('そば好き'));
+    assert.ok(Math.abs(r.titleMult - 1.02) < 1e-9);
+    assert.deepEqual([r.bought, r.boughtAgain, r.tooPoor], [true, false, false]);
+    assert.ok(Math.abs(r.decorMult - 1.02) < 1e-9);
+    assert.ok(r.decorShown.includes('🎌'));
+    assert.deepEqual(r.kept, { dan: 1, titles: 3, decor: 1 });
+    assert.deepEqual(errors, []);
+    await close();
+});
+
+test('golden soba is modest at the start and cursed soba is mostly bad', async () => {
+    const { page, errors, close } = await openGame();
+    const r = await page.evaluate(() => {
+        const out = {};
+        // fresh game: 0.5 bowls/s and 20 bowls on hand. Lucky used to pay at least 777.
+        state.buildings.student = 1; state.soba = 20; calculateCps();
+        out.lucky = getLuckyAmount(0.15, 900);
+        // click fever does not appear before 1 million bowls
+        const gs = document.getElementById('golden-soba');
+        const realRandom = Math.random;
+        Math.random = () => 0.7; // the click-fever roll
+        gs.dataset.type = 'golden'; gs.onpointerdown.call(gs, { preventDefault() {}, clientX: 0, clientY: 0 });
+        out.clickFeverEarly = clickBuffMult;
+        state.allTimeSoba = 2e6;
+        gs.dataset.type = 'golden'; gs.onpointerdown.call(gs, { preventDefault() {}, clientX: 0, clientY: 0 });
+        out.clickFeverLater = clickBuffMult;
+        Math.random = realRandom;
+        clickBuffMult = 1; clickBuffTimer = 0;
+
+        // cursed soba outcomes
+        state.soba = 1000; calculateCps();
+        out.curse = applyWrath(0.1); out.curseMult = buffMult; out.curseTime = buffTimer;
+        calculateCps(); out.cursedCpsHalf = Math.abs(cps / getBaseCps() - 0.5) < 1e-9;
+        buffMult = 1; buffTimer = 0;
+        out.loss = applyWrath(0.5); out.sobaAfterLoss = state.soba;
+        out.numb = applyWrath(0.7); out.numbMult = clickBuffMult;
+        clickBuffMult = 1; clickBuffTimer = 0;
+        out.bonus = applyWrath(0.9);
+        return out;
+    });
+    assert.ok(r.lucky < 20, `lucky paid ${r.lucky}`);
+    assert.equal(r.clickFeverEarly, 1);
+    assert.equal(r.clickFeverLater, 77);
+    assert.deepEqual([r.curse, r.curseMult, r.curseTime], ['curse', 0.5, 66]);
+    assert.equal(r.cursedCpsHalf, true);
+    assert.equal(r.loss, 'loss');
+    assert.ok(r.sobaAfterLoss < 1000 * 0.8 + 1e-9);
+    assert.deepEqual([r.numb, r.numbMult], ['numb', 0.1]);
+    assert.equal(r.bonus, 'bonus');
     assert.deepEqual(errors, []);
     await close();
 });

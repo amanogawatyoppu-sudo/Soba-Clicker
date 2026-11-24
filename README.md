@@ -12,6 +12,8 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 |---|---|
 | ![ショップと紅葉イベント](docs/shop.jpg) | ![天界のスキルツリー](docs/skill-tree.jpg) |
 | ![Soba farm (English)](docs/farm-en.jpg) | ![スマホ版・今日のお題](docs/phone.jpg) |
+| ![具材とお品書き](docs/pantry.jpg) | ![そば打ち段位](docs/dan.jpg) |
+| ![お店の飾りつけ](docs/decor.jpg) | ![称号](docs/titles.jpg) |
 
 ## 日本語
 
@@ -21,14 +23,18 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 3. アップグレードで効率を上げ、累計1兆杯を超えたら「転生」して、ずっと続く強化「越前魂」を手に入れます。
 
 ### おもな要素
-- **施設24種・アップグレード**: そば打ち見習いから宇宙そば農場、そして「あなた」まで。
-- **転生と天界の力**: 越前魂で買える、35項目のスキルツリー。
+- **施設28種・アップグレード**: そば打ち見習いから宇宙そば農場、そばの龍神、「終わりなき一杯」、そして最後は「あなた」。
+- **転生と天界の力**: 越前魂で買える、43項目のスキルツリー。
 - **神格**: 越前魂を1000個集めると行える、転生のさらに上の段階。全てを捧げて「神徳」を得る、終盤の目標です。
 - **今日のお題**: 毎日3つ出る日替わりのお題。全部達成するとおまけつき。
 - **物語**: お店の成長に合わせて進む全13話のお話。ふみ婆ちゃん、見習いの健太、常連の源さん、AI製麺ロボのソバ太郎たちと、小さなそば屋から宇宙の果てまで。期間限定イベント・精霊・福井の支店ごとの「寄り道のお話」も20話あります。
 - **見た目と音**: お店の成長に合わせて変わる景色、成長・転生・神格の演出、イベントごとのBGM(祭りの太鼓、盆踊り、除夜の鐘など)。
 - **遊びやすさ**: 施設ごとに「元が取れるまでの時間」と「おすすめ」を表示。統計タブで生産の内訳(どの施設・どの倍率が効いているか)が見られます。
-- **ゴールデンそば・フィーバー**: ときどき現れる幸運のそば。
+- **具材とお品書き**: そばを打つとまれに具材(ねぎ・えび天・ソースカツ・越前ガニなど11種)が見つかります。集めた具材で「越前おろしそば」「天ぷらそば」などの料理を作ると、ずっと続くボーナス。料理はLv.10まで育てられ、全部作ると幻の「極みの一杯」が現れます。
+- **そば打ち段位**: 30秒で目標の杯数を打つ昇段試験。初段から上限なしで、1段ごとに全生産+2%。
+- **称号**: 遊んでいると手に入る21種の称号。好きなものをお店の名前の下に飾れます(1つごとに全生産+1%)。
+- **お店の飾りつけ**: のれん・赤ちょうちん・越前焼の壺・東尋坊の屏風など12種。どんぶりのまわりに並びます(1つごとに全生産+2%)。
+- **ゴールデンそば・フィーバー**: ときどき現れる幸運のそば。呪われしそばは触ると多くの場合わるいこと(生産半減・そばを失う・手のしびれ)が起きます。
 - **お客さんの注文**: 制限時間内に注文の杯数を作ると、報酬と評判がもらえます。
 - **そば畑**: 現実の時間で育つそば畑。丸岡在来・大野在来など、福井の在来種を交配で見つけよう。
 - **福井ご当地MAP**: 勝山・大野・敦賀などに支店を出して、土地ごとのボーナスを獲得。
@@ -47,14 +53,18 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 3. Buy upgrades, and once you pass 1 trillion bowls, prestige for Echizen Souls, a bonus that lasts forever.
 
 ### Features
-- **24 buildings and upgrades**, from a soba apprentice to a space soba farm, and finally "you".
-- **Prestige and heavenly powers**: a 35-node skill tree bought with Echizen Souls.
+- **28 buildings and upgrades**, from a soba apprentice to a space soba farm, a soba dragon god, "the endless bowl", and finally "you".
+- **Prestige and heavenly powers**: a 43-node skill tree bought with Echizen Souls.
 - **Divinity**: a step beyond prestige at 1,000 souls. Offer everything for divine virtue, a late-game goal.
 - **Today's tasks**: three new tasks every day, with a bonus for finishing them all.
 - **Story**: 13 chapters that unfold as your shop grows, with Grandma Fumi, Kenta the apprentice, Gen the regular and Sobataro the noodle robot, from a tiny shop to the edge of the universe. Plus 20 side stories for events, spirits and Fukui branches.
 - **Sights and sounds**: scenery that changes as the shop grows, celebrations for growth, prestige and divinity, and event music (festival drums, a Bon dance, a temple bell at year's end).
 - **Easy to read**: each building shows how long it takes to pay for itself and which one is the best value; Stats breaks down where your production comes from.
-- **Golden soba and Fever Time**: lucky soba that shows up now and then.
+- **Toppings and the menu**: now and then you find a topping (11 kinds, from green onion to Echizen crab). Cook them into dishes for lasting bonuses, level dishes up to Lv.10, and unlock the secret "Ultimate Bowl".
+- **Soba dan exams**: make the goal amount in 30 seconds to rank up. No top rank; each dan is +2% production.
+- **Titles**: 21 titles earned as you play. Show your favorite under the shop name (+1% production each).
+- **Shop decorations**: 12 decorations, from a noren curtain to a Tojinbo folding screen, shown around the bowl (+2% production each).
+- **Golden soba and Fever Time**: lucky soba that shows up now and then. Cursed soba usually brings bad luck (half production, lost soba or numb hands).
 - **Customer orders**: make the ordered amount in time for a reward and reputation.
 - **Soba farm**: crops that grow in real time. Cross-breed them to discover Fukui heirloom strains.
 - **Fukui map**: open branches in Katsuyama, Ono, Tsuruga and more, each with its own bonus.

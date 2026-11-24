@@ -29,7 +29,12 @@ const BUILDINGS = [
     { id: 'origin', name: '起源のそば', icon: '🌱', baseCost: 500000000000000000000000, baseCps: 3.3e14, desc: '全てのそばの始まりに触れる。' },
     { id: 'eternity', name: '永劫の一杯', icon: '🕰️', baseCost: 8e25, baseCps: 2e16, desc: '茹で上がることも冷めることもない、永遠の一杯。' },
     { id: 'omniscience', name: '全知のそば', icon: '🧠', baseCost: 1e28, baseCps: 1e18, desc: 'そばを打つという行為そのものを理解し尽くした境地。' },
-    { id: 'you', name: 'あなた', icon: '🧑‍🍳', baseCost: 1.5e30, baseCps: 5.8e19, desc: 'もはや誰が誰にそばを打たせているのかは分からない。生産の最後のピースは、あなた自身だった。' }
+    // Four more between 全知のそば and "you" for the very late game (added in 2.9); "you" stays last
+    { id: 'ryujin', late: true, name: 'そばの龍神', icon: '🐉', baseCost: 1.5e30, baseCps: 5.8e19, desc: '九頭竜川の龍神が、あなたのそばを気に入ったらしい。' },
+    { id: 'kokuu', late: true, name: '虚空の麺打ち場', icon: '🌫️', baseCost: 2.5e32, baseCps: 3.2e21, desc: '何もない場所で、何もないそば粉から、全てのそばを打つ。' },
+    { id: 'rinne', late: true, name: '輪廻の水車', icon: '🎡', baseCost: 4e34, baseCps: 1.8e23, desc: '回るたびに、生まれ変わったそばが流れてくる。' },
+    { id: 'owarinaki', late: true, name: '終わりなき一杯', icon: '🌠', baseCost: 7e36, baseCps: 1e25, desc: '食べ終わることのない一杯。そして、また最初の一杯へ。' },
+    { id: 'you', name: 'あなた', icon: '🧑‍🍳', baseCost: 1.2e39, baseCps: 6e26, desc: 'もはや誰が誰にそばを打たせているのかは分からない。生産の最後のピースは、あなた自身だった。' }
 ];
 localizeList(BUILDINGS, 'buildings');
 
@@ -80,7 +85,11 @@ const UPGRADES = [
     { id: 'upg_origin_1', name: '始原への回帰', icon: '🌱', cost: 1.5e25, type: 'building', target: 'origin', mult: 4, desc: '起源のそばの効率4倍。', req: { buildings: { origin: 10 } } },
     { id: 'upg_eternity_1', name: '不変の一瞬', icon: '🕰️', cost: 2.5e27, type: 'building', target: 'eternity', mult: 4, desc: '永劫の一杯の効率4倍。', req: { buildings: { eternity: 10 } } },
     { id: 'upg_omniscience_1', name: '全知の到達点', icon: '🧠', cost: 3e29, type: 'building', target: 'omniscience', mult: 4, desc: '全知のそばの効率4倍。', req: { buildings: { omniscience: 10 } } },
-    { id: 'upg_you_1', name: '自己複製のパラドックス', icon: '🪞', cost: 4.5e31, type: 'building', target: 'you', mult: 4, desc: 'あなたの効率4倍。', req: { buildings: { you: 10 } } },
+    { id: 'upg_you_1', name: '自己複製のパラドックス', icon: '🪞', cost: 3.6e40, type: 'building', target: 'you', mult: 4, desc: 'あなたの効率4倍。', req: { buildings: { you: 10 } } },
+    { id: 'upg_ryujin_1', name: '九頭竜の加護', icon: '🐉', cost: 4.5e31, type: 'building', target: 'ryujin', mult: 4, desc: 'そばの龍神の効率4倍。', req: { buildings: { ryujin: 10 } } },
+    { id: 'upg_kokuu_1', name: '無の手ごたえ', icon: '🌫️', cost: 7.5e33, type: 'building', target: 'kokuu', mult: 4, desc: '虚空の麺打ち場の効率4倍。', req: { buildings: { kokuu: 10 } } },
+    { id: 'upg_rinne_1', name: '千年の水流', icon: '🎡', cost: 1.2e36, type: 'building', target: 'rinne', mult: 4, desc: '輪廻の水車の効率4倍。', req: { buildings: { rinne: 10 } } },
+    { id: 'upg_owarinaki_1', name: 'おかわりの奇跡', icon: '🌠', cost: 2.1e38, type: 'building', target: 'owarinaki', mult: 4, desc: '終わりなき一杯の効率4倍。', req: { buildings: { owarinaki: 10 } } },
     { id: 'upg_click_6', name: '悟りの一撃', icon: '🕊️', cost: 1e21, type: 'click', power: 10, desc: 'クリックが悟りの境地に達する。', req: { clicks: 50000 } },
     { id: 'upg_global_7', name: '概念そのものの生産', icon: '💭', cost: 1e30, type: 'global', mult: 2, desc: '全生産2倍。', req: { totalSoba: 1e29 } },
     { id: 'upg_global_b1', name: '越前の地酒', icon: '🍶', cost: 1e11, type: 'global', mult: 1.3, desc: '全生産30%アップ。', req: { totalSoba: 1e10 } },
@@ -136,7 +145,7 @@ const HEAVENLY_UPGRADES = [
     { id: 'heav_7', name: '究極の悟り', icon: '☯️', cost: 100, desc: '全生産が永続的に1.5倍になる。', effect: 'globalMult', mult: 1.5, requires: 'heav_5' },
     { id: 'heav_10', name: '慈悲の解脱', icon: '🕊️', cost: 150, desc: '転生に必要な累計そば量が緩和され、越前魂が少し得やすくなる。', effect: 'prestigeBoost', requires: 'heav_7' },
     { id: 'heav_11', name: 'まどろみの生産', icon: '😴', cost: 10, desc: 'タブを閉じている間・離れている間もそばが生産されるようになる(オフライン生産解放)。', effect: 'offlineUnlock', requires: null },
-    { id: 'heav_12', name: '厄除けの護符', icon: '🧿', cost: 35, desc: '呪われしそばで失うそばの量がさらに半分になる(精霊の効果と重複可)。', effect: 'wrathSafety', value: 0.5, requires: 'heav_2' },
+    { id: 'heav_12', name: '厄除けの護符', icon: '🧿', cost: 35, desc: '呪われしそばの悪い効果(失うそば・呪いの時間)がさらに半分になる(精霊の効果と重複可)。', effect: 'wrathSafety', value: 0.5, requires: 'heav_2' },
     { id: 'heav_13', name: '越前の記憶', icon: '📿', cost: 45, desc: '隠された熟練の力の効果が実績10個ごとに+3%になる(通常は+2%)。', effect: 'masteryBoost', requires: 'heav_3' },
     { id: 'heav_14', name: '天界の慈雨', icon: '🌧️', cost: 70, desc: 'そば粉の塊がたまる速度がさらに1.5倍になる(熟成の秘技と重複)。', effect: 'lumpSpeed2', requires: 'heav_9' },
     { id: 'heav_15', name: '悟りの果て', icon: '🌌', cost: 300, desc: '全生産が永続的にさらに2倍になる。天界の頂点。', effect: 'globalMult', mult: 2, requires: 'heav_10' },
@@ -159,14 +168,23 @@ const HEAVENLY_UPGRADES = [
     { id: 'heav_27', name: '黄金の余韻', icon: '🎐', cost: 50, desc: 'フィーバータイムとクリックフィーバーが1.5倍長く続く。', effect: 'feverTime', requires: 'heav_2' },
     { id: 'heav_28', name: '招福の鈴', icon: '🔔', cost: 180, desc: 'ゴールデンそば・季節限定そばの報酬が1.5倍になる。', effect: 'goldenReward', requires: 'heav_27' },
     // --- Workshop / shrine ---
-    { id: 'heav_29', name: '名人の手', icon: '🙌', cost: 100, desc: '手打ちそば道場の職人ポイントの上限が50%から100%になり、獲得量も1.5倍になる。', effect: 'artisanMaster', requires: 'heav_9' },
+    { id: 'heav_29', name: '名人の手', icon: '🙌', cost: 100, desc: '手打ちそば道場の職人ポイントの上限が25%から50%になり、獲得量も1.5倍になる。', effect: 'artisanMaster', requires: 'heav_9' },
     { id: 'heav_30', name: '四柱の神楽', icon: '🪭', cost: 400, desc: '祭壇に祀れる精霊がさらに1柱増える(最大4柱)。', effect: 'extraSpiritSlot2', requires: 'heav_8' },
     { id: 'heav_35', name: '挑戦者の誇り', icon: '⚔️', cost: 250, desc: '挑戦モードのクリア報酬が1つにつき+3%から+6%になる。', effect: 'challengeBonus', requires: 'heav_10' },
     // --- Late game ---
     { id: 'heav_31', name: '輪廻の果ての一杯', icon: '🍵', cost: 1000, desc: '全生産が永続的にさらに1.5倍になる。', effect: 'globalMult', mult: 1.5, requires: 'heav_15' },
     { id: 'heav_34', name: '天地開闢', icon: '🌅', cost: 20000, desc: '全生産が永続的にさらに2倍になる。天界の真の頂点。', effect: 'globalMult', mult: 2, requires: 'heav_31' },
     { id: 'heav_32', name: '越前魂の極致', icon: '💎', cost: 500, desc: '越前魂1個あたりの生産ボーナスが+2%になる。', effect: 'soulPower2', requires: 'heav_18' },
-    { id: 'heav_33', name: '魂の器', icon: '🏺', cost: 3000, desc: '越前魂の効果がゆるやかになり始める個数が1000個から5000個になる。', effect: 'soulCap', requires: 'heav_32' }
+    { id: 'heav_33', name: '魂の器', icon: '🏺', cost: 3000, desc: '越前魂の効果がゆるやかになり始める個数が1000個から5000個になる。', effect: 'soulCap', requires: 'heav_32' },
+    // --- Added in 2.9: toppings, dan exams, decorations, cursed soba and the late game ---
+    { id: 'heav_36', name: '具材の目利き', icon: '🔍', cost: 20, desc: '具材が1.5倍見つかりやすくなる。', effect: 'toppingFind', requires: null },
+    { id: 'heav_37', name: '秘伝の献立', icon: '📖', cost: 120, desc: 'お品書きの料理の効果が1.5倍になる。', effect: 'dishPower', requires: 'heav_36' },
+    { id: 'heav_38', name: '段位の誉れ', icon: '🥋', cost: 80, desc: 'そば打ち段位のボーナスが1.5倍になる。', effect: 'danPower', requires: 'heav_4' },
+    { id: 'heav_39', name: '昇段の心得', icon: '🧘', cost: 200, desc: '昇段試験の時間が30秒から45秒になる。', effect: 'danTime', requires: 'heav_38' },
+    { id: 'heav_40', name: '清めの塩', icon: '🧂', cost: 60, desc: '呪われしそばの呪い・しびれの時間が半分になる。', effect: 'curseTime', requires: 'heav_12' },
+    { id: 'heav_41', name: '目利きの棟梁', icon: '🪚', cost: 90, desc: 'お店の飾りつけの値段が半分になる。', effect: 'decorCost', requires: 'heav_16' },
+    { id: 'heav_42', name: '龍神の導き', icon: '🐉', cost: 2000, desc: '「全知のそば」と「あなた」の間にある4つの施設の効率が3倍になる。', effect: 'lateBuildings', requires: 'heav_31' },
+    { id: 'heav_43', name: '魂の泉', icon: '⛲', cost: 6000, desc: '全生産が永続的にさらに1.5倍になる。', effect: 'globalMult', mult: 1.5, requires: 'heav_42' }
 ];
 localizeList(HEAVENLY_UPGRADES, 'heavenly');
 
@@ -282,7 +300,7 @@ const ACHIEVEMENTS = [
     { id: 'ach_season_all', name: '四季を制覇', icon: '🌗', desc: '春夏秋冬すべての季節を体験する。', req: { seasonsAll: 1 } },
     { id: 'ach_artisan_1', name: '初めての手打ち', icon: '🥢', desc: '手打ちそば道場に1回挑戦する。', req: { artisanAttempts: 1 } },
     { id: 'ach_artisan_crit', name: '会心の一撃', icon: '✨', desc: '手打ちそば道場で会心の一撃を出す。', req: { artisanCrits: 1 } },
-    { id: 'ach_artisan_master', name: '職人の頂', icon: '🏔️', desc: '職人ポイントを上限(50%)まで極める。', req: { artisanPoints: 50 } },
+    { id: 'ach_artisan_master', name: '職人の頂', icon: '🏔️', desc: '職人ポイントを上限(25%)まで極める。', req: { artisanPoints: 25 } },
     { id: 'ach_11', name: '数字を超えた者', icon: '🌠', desc: 'そばを1𥝱杯打つ。', req: { totalSoba: 1e24 } },
     { id: 'ach_12', name: '想像を絶する蓄積', icon: '🔆', desc: 'そばを1穣杯打つ。', req: { totalSoba: 1e28 } },
     { id: 'ach_13', name: '数の彼方', icon: '🕳️', desc: 'そばを1溝杯打つ。', req: { totalSoba: 1e32 } },
@@ -334,7 +352,22 @@ const ACHIEVEMENTS = [
     { id: 'ach_daily_7', name: 'お題の常連', icon: '📆', desc: 'その日のお題を全て達成した日が7日になる。', req: { dailyFullDays: 7 } },
     { id: 'ach_daily_30', name: 'お題の名人', icon: '🗒️', desc: 'その日のお題を全て達成した日が30日になる。', req: { dailyFullDays: 30 } },
     { id: 'ach_divine_1', name: '神の座へ', icon: '✨', desc: '神格の儀を行う。', req: { divinityCount: 1 } },
-    { id: 'ach_divine_3', name: '三度目の神格', icon: '🌠', desc: '神格の儀を3回行う。', req: { divinityCount: 3 } }
+    { id: 'ach_divine_3', name: '三度目の神格', icon: '🌠', desc: '神格の儀を3回行う。', req: { divinityCount: 3 } },
+    { id: 'ach_topping_1', name: 'はじめての具材', icon: '🌿', desc: '具材を1つ見つける。', req: { toppingsFound: 1 } },
+    { id: 'ach_topping_all', name: '具材図鑑コンプリート', icon: '📗', desc: '全ての具材を見つける。', req: { toppingsAll: 1 } },
+    { id: 'ach_topping_kani', name: '冬の王様', icon: '🦀', desc: '越前ガニを見つける。', req: { toppingFound: 'kani' } },
+    { id: 'ach_topping_100', name: '具材ハンター', icon: '🧺', desc: '具材を合計100個見つける。', req: { toppingFinds: 100 } },
+    { id: 'ach_dish_1', name: 'お品書きの一品目', icon: '📜', desc: 'お品書きの料理を1つ作る。', req: { dishesCooked: 1 } },
+    { id: 'ach_dish_all', name: 'お品書き制覇', icon: '🏮', desc: 'お品書きの料理を全て1回以上作る。', req: { dishesAll: 1 } },
+    { id: 'ach_dish_max', name: '看板メニュー', icon: '⭐', desc: 'お品書きの料理を1つLv.10まで極める。', req: { dishMax: 1 } },
+    { id: 'ach_dan_1', name: '初段合格', icon: '🥋', desc: 'そば打ち段位で初段になる。', req: { dan: 1 } },
+    { id: 'ach_dan_5', name: '五段の腕前', icon: '🥋', desc: 'そば打ち段位で五段になる。', req: { dan: 5 } },
+    { id: 'ach_dan_10', name: '十段の境地', icon: '🎖️', desc: 'そば打ち段位で十段になる。', req: { dan: 10 } },
+    { id: 'ach_dan_20', name: '段位の向こう側', icon: '🐉', desc: 'そば打ち段位で二十段になる。', req: { dan: 20 } },
+    { id: 'ach_decor_1', name: 'はじめての飾り', icon: '🎌', desc: 'お店の飾りを1つ買う。', req: { decorCount: 1 } },
+    { id: 'ach_decor_6', name: '趣のある店', icon: '🪴', desc: 'お店の飾りを6つ買う。', req: { decorCount: 6 } },
+    { id: 'ach_decor_all', name: '越前一の名店', icon: '🌊', desc: 'お店の飾りを全てそろえる。', req: { decorCount: 12 } },
+    { id: 'ach_title_10', name: '肩書きの多い人', icon: '📛', desc: '称号を10個手に入れる。', req: { titlesCount: 10 } }
 ];
 localizeList(ACHIEVEMENTS, 'achievements');
 
@@ -413,6 +446,104 @@ const CROP_RECIPES = [
     { parents: ['common', 'common'], child: 'maruoka', chance: 0.006 }
 ];
 
+// --- Toppings and the menu: rare finds from clicks, golden soba, orders and harvests, cooked into lasting dishes ---
+// rarity: weight of each tier when a topping is found (common → legendary)
+const TOPPING_RARITIES = [
+    { id: 'common', name: 'ふつう', color: '#c8b89a', weight: 60, luckyWeight: 40 },
+    { id: 'uncommon', name: 'ちょっと珍しい', color: '#7ec8e3', weight: 28, luckyWeight: 34 },
+    { id: 'rare', name: '珍しい', color: '#d59bff', weight: 10, luckyWeight: 20 },
+    { id: 'legendary', name: '幻', color: '#ffb347', weight: 2, luckyWeight: 6 }
+];
+localizeList(TOPPING_RARITIES, 'toppingRarities');
+const TOPPINGS = [
+    { id: 'negi', name: 'ねぎ', icon: '🌿', rarity: 'common', desc: '刻みたての青ねぎ。どのそばにも合う名脇役。' },
+    { id: 'oroshi', name: '大根おろし', icon: '❄️', rarity: 'common', desc: '辛み大根をたっぷり。越前おろしそばには欠かせない。' },
+    { id: 'katsuo', name: 'かつお節', icon: '🐟', rarity: 'common', desc: 'ふわりと踊る削りたてのかつお節。' },
+    { id: 'nameko', name: 'なめこ', icon: '🍄', rarity: 'uncommon', desc: 'つるりとした山のなめこ。おろしと相性抜群。' },
+    { id: 'sansai', name: '山菜', icon: '🥬', rarity: 'uncommon', desc: '奥越の山で摘んだわらびやぜんまい。' },
+    { id: 'tamago', name: '温泉たまご', icon: '🥚', rarity: 'uncommon', desc: 'とろとろの温泉たまご。月見そばにどうぞ。' },
+    { id: 'naruto', name: 'なると', icon: '🍥', rarity: 'uncommon', desc: 'うずまき模様がかわいい、かまぼこの仲間。' },
+    { id: 'ebiten', name: 'えび天', icon: '🍤', rarity: 'rare', desc: '揚げたてサクサクの大えびの天ぷら。' },
+    { id: 'katsu', name: 'ソースカツ', icon: '🍖', rarity: 'rare', desc: '福井名物、甘辛ソースにくぐらせたカツ。' },
+    { id: 'amaebi', name: '甘えび', icon: '🦐', rarity: 'rare', desc: '越前の海でとれる、とろける甘さのえび。' },
+    { id: 'kani', name: '越前ガニ', icon: '🦀', rarity: 'legendary', desc: '冬の日本海の王様。出会えたら幸運。' }
+];
+localizeList(TOPPINGS, 'toppings');
+const TOPPING_CLICK_CHANCE = 0.01;   // chance per click to find a topping
+const TOPPING_HARVEST_CHANCE = 0.3;  // chance per farm harvest
+const TOPPING_FIND_BONUS = 0.01;     // +1% production for each kind of topping ever found
+const DISH_MAX_LEVEL = 10;
+// Cooking a dish to level n costs its ingredients x n. effect.value is per level.
+const DISHES = [
+    { id: 'oroshi_soba', name: '越前おろしそば', icon: '🍜', needs: { oroshi: 3, katsuo: 2, negi: 2 }, effect: { type: 'cps', value: 0.03 }, desc: '辛み大根の汁をかけて食べる、越前そばの基本の一杯。' },
+    { id: 'nameko_soba', name: 'なめこおろしそば', icon: '🍄', needs: { nameko: 2, oroshi: 2 }, effect: { type: 'click', value: 0.05 }, desc: 'つるつるのなめこと大根おろしの名コンビ。' },
+    { id: 'sansai_soba', name: '山菜そば', icon: '🥬', needs: { sansai: 3, negi: 2 }, effect: { type: 'find', value: 0.05 }, desc: '山の恵みたっぷり。食べると不思議と具材が見つかりやすくなる。' },
+    { id: 'tsukimi_soba', name: '月見そば', icon: '🌕', needs: { tamago: 2, naruto: 1, negi: 2 }, effect: { type: 'golden', value: 0.04 }, desc: 'お月さまのような温泉たまごをのせた一杯。' },
+    { id: 'tempura_soba', name: '天ぷらそば', icon: '🍤', needs: { ebiten: 2, katsuo: 2, negi: 1 }, effect: { type: 'cps', value: 0.05 }, desc: '揚げたてのえび天がのった、ちょっとぜいたくな一杯。' },
+    { id: 'katsu_set', name: 'ソースカツ丼セット', icon: '🍱', needs: { katsu: 2, oroshi: 2, tamago: 1 }, effect: { type: 'click', value: 0.1 }, desc: 'おろしそばと福井名物ソースカツ丼の黄金セット。' },
+    { id: 'amaebi_zaru', name: '甘えびの天ざる', icon: '🦐', needs: { amaebi: 2, ebiten: 1, sansai: 1 }, effect: { type: 'cps', value: 0.06 }, desc: '甘えびと山菜の天ぷらを添えた冷たいざるそば。' },
+    { id: 'kani_soba', name: '越前ガニそば', icon: '🦀', needs: { kani: 1, oroshi: 3, negi: 3 }, effect: { type: 'cps', value: 0.1 }, desc: '冬の王様をまるごと使った、夢の一杯。' },
+    { id: 'kiwami', name: '極みの一杯', icon: '👑', secret: true, needs: { negi: 1, oroshi: 1, katsuo: 1, nameko: 1, sansai: 1, tamago: 1, naruto: 1, ebiten: 1, katsu: 1, amaebi: 1, kani: 1 }, effect: { type: 'cps', value: 0.15 }, desc: '全ての具材をひとつずつ。ふみ婆ちゃんも食べたことのない、究極のそば。' }
+];
+localizeList(DISHES, 'dishes');
+function createFreshPantry() {
+    return { items: {}, found: [], dishes: {}, finds: 0 };
+}
+
+// --- Dan exams (そば打ち段位): make a goal amount within a time limit; endless, each dan a lasting bonus ---
+const DAN_EXAM_SEC = 30;
+const DAN_BONUS = 0.02;          // +2% production per dan
+const DAN_RETRY_MS = 3 * 60 * 1000; // wait after a failed exam
+function getDanGoal(dan) {
+    // Goal for dan n (1 = 初段): 1,000 bowls x 10^(n-1) within the time limit
+    return 1000 * Math.pow(10, dan - 1);
+}
+
+// --- Titles (称号): earned by playing, one is shown under the shop name; each earned title is +1% production ---
+const TITLE_BONUS = 0.01;
+const TITLES = [
+    { id: 't_rookie', name: '見習い職人', icon: '🔰', desc: '最初から持っている称号。', when: () => true },
+    { id: 't_clicker', name: 'そば好き', icon: '🥢', desc: '1,000回クリックする。', when: () => state.clicks >= 1000 },
+    { id: 't_clicker2', name: '連打の鬼', icon: '👹', desc: '50,000回クリックする。', when: () => state.clicks >= 50000 },
+    { id: 't_owner', name: '店主', icon: '🏮', desc: '施設を合計100個持つ。', when: () => getTotalBuildings() >= 100 },
+    { id: 't_tycoon', name: '越前の豪商', icon: '💰', desc: 'そばを累計1兆杯打つ。', when: () => state.allTimeSoba + state.pastSoba >= 1e12 },
+    { id: 't_lucky', name: '幸運の人', icon: '🍀', desc: 'ゴールデンそばを50回捕まえる。', when: () => state.goldenClicks >= 50 },
+    { id: 't_cursed', name: '呪いに打ち勝つ者', icon: '🧿', desc: '呪われしそばに20回触れる。', when: () => state.wrathClicks >= 20 },
+    { id: 't_farmer', name: '畑の守り人', icon: '🌾', desc: 'そば畑の在来種を全て見つける。', when: () => state.farm.discovered.length >= CROPS.length },
+    { id: 't_hunter', name: '具材ハンター', icon: '🧺', desc: '全ての具材を見つける。', when: () => state.pantry.found.length >= TOPPINGS.length },
+    { id: 't_chef', name: '料理長', icon: '👨‍🍳', desc: 'お品書きの料理を全て作る。', when: () => DISHES.every(d => (state.pantry.dishes[d.id] || 0) > 0) },
+    { id: 't_dan1', name: '有段者', icon: '🥋', desc: 'そば打ち段位で初段になる。', when: () => state.dan >= 1 },
+    { id: 't_dan10', name: 'そば打ち名人', icon: '🎖️', desc: 'そば打ち段位で十段になる。', when: () => state.dan >= 10 },
+    { id: 't_dan20', name: '生ける伝説', icon: '🐉', desc: 'そば打ち段位で二十段になる。', when: () => state.dan >= 20 },
+    { id: 't_artisan', name: '道場の主', icon: '🏯', desc: '手打ちそば道場で会心の一撃を25回出す。', when: () => state.artisanCrits >= 25 },
+    { id: 't_regular', name: '常連さん', icon: '📅', desc: '30日連続で遊ぶ。', when: () => state.bestLoginStreak >= 30 },
+    { id: 't_local', name: '福井の顔', icon: '🗾', desc: '福井の支店を全て出す。', when: () => state.regions.length >= REGIONS.length },
+    { id: 't_challenger', name: '挑戦の覇者', icon: '⚔️', desc: '挑戦モードを全てクリアする。', when: () => CHALLENGES.every(c => state.challengesCompleted.includes(c.id)) },
+    { id: 't_decor', name: '飾り道楽', icon: '🎏', desc: 'お店の飾りを全てそろえる。', when: () => state.decorations.length >= DECORATIONS.length },
+    { id: 't_reborn', name: '輪廻の旅人', icon: '♻️', desc: '転生を10回する。', when: () => state.prestigeCount >= 10 },
+    { id: 't_god', name: '越前の守り神', icon: '✨', desc: '神格の儀を行う。', when: () => state.divinityCount >= 1 },
+    { id: 't_collector', name: '実績コレクター', icon: '🏆', desc: '実績を150個集める。', when: () => state.achievements.length >= 150 }
+];
+localizeList(TITLES, 'titles');
+
+// --- Shop decorations (お店の飾りつけ): bought once with soba, kept forever, shown around the bowl ---
+const DECOR_BONUS = 0.02; // +2% production each
+const DECORATIONS = [
+    { id: 'noren', name: 'のれん', icon: '🎌', cost: 1e4, desc: '「越前そば」と染め抜いた紺ののれん。' },
+    { id: 'chochin', name: '赤ちょうちん', icon: '🏮', cost: 1e6, desc: '夜道に灯る、あたたかい赤ちょうちん。' },
+    { id: 'maneki', name: '招き猫', icon: '🐈', cost: 1e8, desc: 'お客さんとそばの神様を招く猫。' },
+    { id: 'furin', name: '風鈴', icon: '🎐', cost: 1e10, desc: '夏の店先で涼しげに鳴る風鈴。' },
+    { id: 'bonsai', name: '盆栽', icon: '🪴', cost: 1e13, desc: '先代から受け継いだ松の盆栽。' },
+    { id: 'kakejiku', name: '掛け軸', icon: '📜', cost: 1e16, desc: '「一杯入魂」と書かれた掛け軸。' },
+    { id: 'washi', name: '越前和紙の障子', icon: '🪟', cost: 1e19, desc: 'やわらかな光を通す越前和紙の障子。' },
+    { id: 'tsubo', name: '越前焼の壺', icon: '🏺', cost: 1e22, desc: '素朴な風合いの越前焼の大壺。' },
+    { id: 'shikki', name: '越前漆器の膳', icon: '🍱', cost: 1e26, desc: 'つややかな越前漆器のお膳。' },
+    { id: 'kaseki', name: '恐竜の化石', icon: '🦕', cost: 1e30, desc: '勝山の知り合いから譲ってもらった化石。' },
+    { id: 'kanban', name: '金の看板', icon: '🪧', cost: 1e34, desc: '金箔で「越前そば」と書かれた大看板。' },
+    { id: 'byobu', name: '東尋坊の屏風', icon: '🌊', cost: 1e38, desc: '荒波の東尋坊を描いた見事な屏風。' }
+];
+localizeList(DECORATIONS, 'decorations');
+
 // --- Limited-time events, by real calendar date (start/end are [month, day], inclusive; may wrap the new year) ---
 const EVENTS = [
     { id: 'golden_week', name: 'GW観光ラッシュ', icon: '🎏', start: [4, 29], end: [5, 6], prodBonus: 1.1, particle: '🎏',
@@ -476,6 +607,7 @@ const ORDER_CUSTOMERS = [
 ];
 localizeList(ORDER_CUSTOMERS, 'customers', (c, i) => i);
 const ORDER_FIRST_DELAY = 90 * 1000;
+const ORDER_REWARD_MULT = 1; // reward: production over the time limit x this
 const ORDER_MIN_GAP = 180 * 1000;
 const ORDER_MAX_GAP = 360 * 1000;
 const REPUTATION_MAX = 100; // raised to 150 by the heavenly upgrade 老舗の信用 (see getReputationMax)
@@ -495,8 +627,8 @@ const DAILY_MISSIONS = [
     { id: 'produce', icon: '🍜', text: 'そばを{0}杯作る', produceMinutes: 30 }
 ];
 const DAILY_MISSION_COUNT = 3;
-const DAILY_REWARD_SECONDS = 900;   // each mission: 15 minutes of base production
-const DAILY_MIN_REWARD = 1000;
+const DAILY_REWARD_SECONDS = 600;   // each mission: 10 minutes of base production (was 15)
+const DAILY_MIN_REWARD = 100;
 
 // --- Story: short scenes that unlock as the shop grows (re-readable under Records → Story) ---
 const STORY_CHARACTERS = {
@@ -689,7 +821,7 @@ const GLOSSARY = [
     { category: '基本', term: 'アップグレード', icon: '⭐', desc: '施設やクリックの効率を倍増させる一度きりの購入。特定の条件を満たすと出現する。各施設には所有数10・25・50・100個で段階的な強化が用意されている。' },
     { category: '基本', term: '実績', icon: '🏆', desc: '特定の条件を満たすと解除される。実績の数が「だし」レベルに影響する。' },
     { category: '特殊出現物', term: 'ゴールデンそば', icon: '✨', desc: '画面にランダムで出現。クリックするとフィーバー・ボーナス・クリックフィーバー・大量ボーナスのいずれかが発生する。' },
-    { category: '特殊出現物', term: '呪われしそば', icon: '😈', desc: 'ゴールデンそばの代わりに稀に出現する黒いそば。クリックするとそばを失うか、逆に大量ボーナスを得るかの賭け。' },
+    { category: '特殊出現物', term: '呪われしそば', icon: '😈', desc: 'ゴールデンそばの代わりに稀に出現する黒いそば。クリックすると、多くの場合は悪いことが起きる(66秒間生産が半分・そばを失う・30秒間クリックの力が1/10)。5回に1回くらいは大当たりのボーナス。触らずに放っておけば何も起きない。' },
     { category: '特殊出現物', term: '季節限定そば', icon: '🎐', desc: '現在の季節に応じた特別なそばが稀に出現し、大きな一括ボーナスをくれる。' },
     { category: '特殊出現物', term: 'フィーバータイム', icon: '🔥', desc: 'ゴールデンそばの効果の一つ。一定時間、全生産量が7倍になる。' },
     { category: '転生システム', term: '転生(プレステージ)', icon: '♻️', desc: '累計そば生産量が1兆杯を超えると可能。施設やそばをリセットする代わりに「越前魂」を獲得する。オフライン中の生産は自動では発生せず、天界の力「まどろみの生産」を取得することで解放される。' },
@@ -699,7 +831,7 @@ const GLOSSARY = [
     { category: '育成要素', term: 'だし', icon: '🍲', desc: '実績7個ごとに1レベル上がる。「だし猫」系アップグレードの効果を強化する。' },
     { category: '育成要素', term: '祭壇・そばの精霊', icon: '⛩️', desc: '施設合計50個で解放。6柱の精霊から最大2柱(天界の力で3柱・4柱)を選んで祀れる。それぞれ強力な恩恵と引き換えのデメリットを持つので、組み合わせを考える必要がある。' },
     { category: '育成要素', term: '季節イベント', icon: '🌸', desc: '現実の日付に応じて春夏秋冬が自動で切り替わり、季節ごとに異なる永続ボーナスがかかる。' },
-    { category: 'ミニゲーム', term: '手打ちそば道場', icon: '🥢', desc: '5分に1回挑戦できるタイミングゲーム。真ん中で「切る！」を押せるほど「職人ポイント」(永続の生産ボーナス)がたくさん貯まる。' },
+    { category: 'ミニゲーム', term: '手打ちそば道場', icon: '🥢', desc: '5分に1回挑戦できるタイミングゲーム。真ん中で「切る！」を押せるほど「職人ポイント」(永続の生産ボーナス、最大+25%)がたくさん貯まる。' },
     { category: '隠し要素', term: '隠された熟練の力', icon: '🧠', desc: '実績10個ごとに自動で発動する非公開の生産ボーナス。ショップには表示されない。' },
     { category: 'ミニゲーム', term: '挑戦モード', icon: '⚔️', desc: '初回転生後に解放。特殊なルール(クリック不可・特殊出現物なし・施設コスト1.5倍など)の中で目標達成を目指す。開始すると今の進行状況は安全に退避され、クリアか中断でいつでも戻せる。クリアすると永久に+3%(天界の力「挑戦者の誇り」で+6%)の生産ボーナスがもらえる。' },
     { category: '育成要素', term: '福井ご当地MAP・支店', icon: '🗾', desc: '施設合計350個で「育成 → 地図」が解放。勝山・大野・永平寺・敦賀・鯖江・小浜・東尋坊・武生・越前海岸に、施設数の条件を満たしそばを払うことで支店を設立できる(前の支店が必要な、かなり長期的な目標)。支店ごとに恐竜ボーナス・名水ボーナスなど、その土地ならではの永続効果が手に入る。' },
@@ -712,7 +844,8 @@ const GLOSSARY = [
     { category: '基本', term: '設定・引き継ぎ', icon: '⚙️', desc: '「設定」タブで効果音・演出・数字の表示を変えられる。セーブデータを文字列やファイルで書き出し、別の端末で読み込むこともできる。' },
     { category: '隠し要素', term: '裏実績', icon: '🌑', desc: '通常の実績数にはカウントされない、少し変わった条件で解除される隠し実績。統計タブで確認できる。' },
     { category: '基本', term: '今日のお題', icon: '📅', desc: '毎日3つ出る日替わりのお題。達成すると報酬のそばがもらえ、3つ全て達成するとそば粉の塊もおまけでもらえる。日付が変わると新しいお題になる。挑戦モード中は進まない。' },
-    { category: '転生システム', term: '神格・神徳', icon: '✨', desc: '越前魂を1000個以上集めると行える、転生のさらに上の段階。越前魂と天界の力も含めて全てを捧げる代わりに「神徳」を得る。神徳1つにつき全生産+100%で、ずっと残る。神徳は捧げた越前魂の最高記録で決まり(1000個で10、8000個で20、100万個で100)、記録を超えた分だけ増える。実績・熟成・そば畑・評判・支店・挑戦の報酬は残る。' }
+    { category: '転生システム', term: '神格・神徳', icon: '✨', desc: '越前魂を1000個以上集めると行える、転生のさらに上の段階。越前魂と天界の力も含めて全てを捧げる代わりに「神徳」を得る。神徳1つにつき全生産+100%で、ずっと残る。神徳は捧げた越前魂の最高記録で決まり(1000個で10、8000個で20、100万個で100)、記録を超えた分だけ増える。実績・熟成・そば畑・評判・支店・挑戦の報酬は残る。' },
+    { category: '育成要素', term: '具材とお品書き', icon: '🍤', desc: 'そばを打つと、まれに具材が見つかる(ゴールデンそば・注文の達成・畑の収穫でも)。見つけた種類ごとに全生産+1%。具材を集めて「お品書き」の料理を作ると、ずっと続くボーナスがもらえる。料理はLv.10まで作り直せて、レベルが上がるほど必要な具材も増える。具材と料理は転生・神格でもなくならない。' }
 ];
 localizeList(GLOSSARY, 'glossary', (g, i) => i);
 

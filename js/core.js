@@ -39,6 +39,13 @@ function createFreshState() {
         challengeStartTime: 0,
         regions: [],
         farm: createFreshFarm(),
+        pantry: createFreshPantry(),
+        dan: 0,
+        danExams: 0,
+        lastDanFail: 0,
+        titles: ['t_rookie'],
+        title: 't_rookie',
+        decorations: [],
         reputation: 0,
         ordersCompleted: 0,
         ordersFailed: 0,
@@ -121,7 +128,7 @@ function calculateCps() {
     BUILDINGS.forEach(b => {
         let count = state.buildings[b.id];
         let level = state.buildingLevels[b.id] || 0;
-        let bCps = b.baseCps * count * Math.pow(1.01, level);
+        let bCps = b.baseCps * count * Math.pow(1.01, level) * getLateBuildingMult(b);
         UPGRADES.filter(u => u.type === 'building' && u.target === b.id && state.upgrades.includes(u.id))
                 .forEach(u => bCps *= u.mult);
         buildingRawCps[b.id] = bCps;
@@ -169,6 +176,12 @@ function calculateCps() {
     apply(t('評判'), 1 + state.reputation * REPUTATION_BONUS);
     apply(t('そば畑'), getFarmCpsMult());
 
+    // Toppings found and dishes cooked from the menu, dan exams, titles and shop decorations
+    apply(t('具材とお品書き'), getPantryCpsMult());
+    apply(t('そば打ち段位'), getDanMult());
+    apply(t('称号'), getTitleMult());
+    apply(t('お店の飾り'), getDecorMult());
+
     // Limited-time event running today
     const event = getActiveEvent();
     if (event) apply(t('期間限定イベント'), event.prodBonus);
@@ -187,7 +200,7 @@ function calculateCps() {
     let clickBaseBonus = 0;
     HEAVENLY_UPGRADES.filter(h => h.effect === 'clickBase' && state.heavenlyUpgrades.includes(h.id))
             .forEach(h => clickBaseBonus += h.amount);
-    let spiritClickMult = getSpiritEffectMult('clickMult') * getRegionEffectMult('clickMult') * (1 + getFarmEffectBonus('click'));
+    let spiritClickMult = getSpiritEffectMult('clickMult') * getRegionEffectMult('clickMult') * (1 + getFarmEffectBonus('click')) * (1 + getDishEffectBonus('click'));
     if (season && season.effect === 'clickMult') spiritClickMult *= season.value;
     let clickCpsPercent = 0.04;
     UPGRADES.filter(u => u.type === 'clickCps' && state.upgrades.includes(u.id))
@@ -197,12 +210,17 @@ function calculateCps() {
     if (state.isChallengeRun === 'no_click') clickPower = 0;
 }
 
+// 龍神の導き (heav_42): the four buildings beyond "you" produce 3x
+function getLateBuildingMult(b) {
+    return b.late && state.heavenlyUpgrades.includes('heav_42') ? 3 : 1;
+}
+
 function getChallengeBonusPerClear() {
     return state.heavenlyUpgrades.includes('heav_35') ? 0.06 : 0.03;
 }
 
 function getGoldenBonusMult() {
-    let mult = getSpiritEffectMult('goldenBonus') * (1 + getFarmEffectBonus('golden'));
+    let mult = getSpiritEffectMult('goldenBonus') * (1 + getFarmEffectBonus('golden')) * (1 + getDishEffectBonus('golden'));
     if (state.heavenlyUpgrades.includes('heav_28')) mult *= 1.5;
     const season = getCurrentSeason();
     if (season && season.effect === 'goldenBonus') mult *= season.value;
@@ -284,10 +302,11 @@ function update() {
         buffTimer -= dt;
         if (buffTimer <= 0) {
             buffTimer = 0;
+            const wasCurse = buffMult < 1;
             buffMult = 1;
             document.getElementById('app').classList.remove('fever');
             calculateCps();
-            notify(t('フィーバータイム終了！'));
+            notify(wasCurse ? t('呪いが解けた。生産が元に戻った。') : t('フィーバータイム終了！'));
         }
     }
 
@@ -295,9 +314,10 @@ function update() {
         clickBuffTimer -= dt;
         if (clickBuffTimer <= 0) {
             clickBuffTimer = 0;
+            const wasCurse = clickBuffMult < 1;
             clickBuffMult = 1;
             calculateCps();
-            notify(t('クリックフィーバー終了！'));
+            notify(wasCurse ? t('手のしびれが治った。') : t('クリックフィーバー終了！'));
         }
     }
 
@@ -319,6 +339,8 @@ function update() {
     clickTimestamps = clickTimestamps.filter(t => now - t < 1000);
     checkAchievements();
     checkShadowAchievements();
+    checkTitles();
+    danTick(now);
     render();
 }
 
@@ -385,6 +407,10 @@ function render() {
     renderChallengeBanner();
     renderOrderBanner();
     if (activeView === 'farm') renderFarm();
+    if (activeView === 'dan') renderDan();
+    if (activeView === 'decor') renderDecor();
+    renderTitleDisplay();
+    renderShopDecor();
     if (activeView === 'lump') renderLumpList();
     if (activeView === 'prestige') renderPrestigeView();
     if (activeView === 'daily') renderDaily();
@@ -429,7 +455,7 @@ const shopItemEls = {};
 
 // Production of one more of this building, with every global multiplier but no temporary buff
 function getBuildingUnitCps(b) {
-    let unit = b.baseCps * Math.pow(1.01, state.buildingLevels[b.id] || 0);
+    let unit = b.baseCps * Math.pow(1.01, state.buildingLevels[b.id] || 0) * getLateBuildingMult(b);
     UPGRADES.filter(u => u.type === 'building' && u.target === b.id && state.upgrades.includes(u.id)).forEach(u => unit *= u.mult);
     return unit * cpsFactors.reduce((m, f) => m * f[1], 1);
 }
@@ -651,6 +677,7 @@ function renderStats() {
         <div class="stat-row"><span class="stat-label">${t('福井支店展開')}</span><span>${t('{0}/{1} 箇所', (state.regions || []).length, REGIONS.length)}</span></div>
         <div class="stat-row"><span class="stat-label">${t('お客さんの注文')}</span><span>${t('達成 {0} 回 / 失敗 {1} 回', state.ordersCompleted, state.ordersFailed)}</span></div>
         <div class="stat-row"><span class="stat-label">${t('評判')}</span><span>${t('⭐ {0} (全生産+{1}%)', state.reputation, (state.reputation * REPUTATION_BONUS * 100).toFixed(1))}</span></div>
+        <div class="stat-row"><span class="stat-label">${t('具材とお品書き')}</span><span>${t('図鑑 {0}/{1}・料理 {2}/{3}・見つけた具材 {4} 個', state.pantry.found.length, TOPPINGS.length, Object.keys(state.pantry.dishes).length, DISHES.length, state.pantry.finds)}</span></div>
         <div class="stat-row"><span class="stat-label">${t('そば畑')}</span><span>${t('図鑑 {0}/{1}・収穫 {2} 回', state.farm.discovered.length, CROPS.length, state.farm.harvests)}</span></div>
         <div class="stat-row"><span class="stat-label">${t('今日のお題')}</span><span>${t('全達成 {0} 日', state.dailyFullDays)}</span></div>
         ${state.divinityCount > 0 ? `<div class="stat-row"><span class="stat-label">${t('神徳')}</span><span>${t('✨ {0} (神格 {1} 回)', state.divinity, state.divinityCount)}</span></div>
@@ -792,6 +819,11 @@ function renderSeasonBar() {
 // --- 手打ちそば道場: this game's original minigame (not derived from any other clicker) ---
 const ARTISAN_STAGES = ['💧 水回し中...', '👐 こね中...', '🪵 延し中...', '📖 たたみ中...', '🔪 切りどき！今だ！'].map(s => t(s));
 const ARTISAN_BASE_COOLDOWN = 5 * 60 * 1000; // 5 minutes
+const ARTISAN_REWARD_SEC = { crit: 90, good: 30, miss: 8 }; // seconds of base production
+const ARTISAN_POINTS = { crit: 0.5, good: 0.2, miss: 0.05 };
+function getArtisanPointsCap() {
+    return state.heavenlyUpgrades.includes('heav_29') ? 50 : 25;
+}
 let artisanRunning = false;
 let artisanMarkerAnim = null;
 let artisanStageTimer = null;
@@ -865,24 +897,26 @@ function stopArtisanChallenge() {
     const pointsMult = artisanMaster ? 1.5 : 1;
     const pts = (n) => t('職人ポイント+{0}%', Math.round(n * pointsMult * 100) / 100);
     let bonus, pointsGain;
+    // Rebalanced again: the fixed floors (up to 1,000 bowls) were worth an hour of play at the start,
+    // and +50% production from points came within a day. Points now cap at +25% (+50% with 名人の手).
     if (pos >= 45 && pos <= 55) {
         state.artisanCrits++;
-        bonus = Math.max(1000, base * 300);
-        pointsGain = 1.5;
-        notify(t('会心の一撃！極上の一杯が打てた！{0}杯獲得。({1})', fmt(bonus), pts(1.5)), "🥢✨");
+        bonus = Math.max(30, base * ARTISAN_REWARD_SEC.crit);
+        pointsGain = ARTISAN_POINTS.crit;
+        notify(t('会心の一撃！極上の一杯が打てた！{0}杯獲得。({1})', fmt(bonus), pts(pointsGain)), "🥢✨");
     } else if (pos >= 25 && pos <= 75) {
-        bonus = Math.max(400, base * 100);
-        pointsGain = 0.5;
-        notify(t('上手に打てた！{0}杯獲得。({1})', fmt(bonus), pts(0.5)), "🥢");
+        bonus = Math.max(15, base * ARTISAN_REWARD_SEC.good);
+        pointsGain = ARTISAN_POINTS.good;
+        notify(t('上手に打てた！{0}杯獲得。({1})', fmt(bonus), pts(pointsGain)), "🥢");
     } else {
-        bonus = Math.max(50, base * 20);
-        pointsGain = 0.1;
-        notify(t('ちょっと不揃いになったが、{0}杯は打てた。({1})', fmt(bonus), pts(0.1)), "🥢💦");
+        bonus = Math.max(5, base * ARTISAN_REWARD_SEC.miss);
+        pointsGain = ARTISAN_POINTS.miss;
+        notify(t('ちょっと不揃いになったが、{0}杯は打てた。({1})', fmt(bonus), pts(pointsGain)), "🥢💦");
     }
     state.soba += bonus;
     state.totalSoba += bonus;
     state.allTimeSoba += bonus;
-    state.artisanPoints = Math.min(artisanMaster ? 100 : 50, state.artisanPoints + pointsGain * pointsMult);
+    state.artisanPoints = Math.min(getArtisanPointsCap(), state.artisanPoints + pointsGain * pointsMult);
 
     calculateCps();
     artisanRunning = false;
@@ -970,6 +1004,8 @@ function completeChallenge() {
     backup.achievements = Array.from(new Set([...backup.achievements, ...state.achievements]));
     backup.shadowAchievements = Array.from(new Set([...backup.shadowAchievements, ...state.shadowAchievements]));
     backup.farm.discovered = Array.from(new Set([...backup.farm.discovered, ...state.farm.discovered]));
+    mergePantryInto(backup.pantry, state.pantry);
+    backup.titles = Array.from(new Set([...(backup.titles || []), ...state.titles]));
     Object.entries(state.eventOrders).forEach(([id, n]) => { backup.eventOrders[id] = (backup.eventOrders[id] || 0) + n; });
 
     let rewardMsg = '';
@@ -1015,6 +1051,8 @@ function returnFromChallenge(message, icon) {
     backup.achievements = Array.from(new Set([...backup.achievements, ...state.achievements]));
     backup.shadowAchievements = Array.from(new Set([...backup.shadowAchievements, ...state.shadowAchievements]));
     backup.farm.discovered = Array.from(new Set([...backup.farm.discovered, ...state.farm.discovered]));
+    mergePantryInto(backup.pantry, state.pantry);
+    backup.titles = Array.from(new Set([...(backup.titles || []), ...state.titles]));
     Object.entries(state.eventOrders).forEach(([id, n]) => { backup.eventOrders[id] = (backup.eventOrders[id] || 0) + n; });
     state = backup;
     state.isChallengeRun = null;
@@ -1426,6 +1464,7 @@ function clickBowl(e) {
     state.allTimeSoba += clickPower;
     state.clicks++;
     progressDaily('click');
+    rollTopping('click', e);
     clickTimestamps.push(Date.now());
     playSound('click');
     if (settings.reduceEffects) { calculateCps(); return; }
@@ -1607,6 +1646,16 @@ function checkAchievements() {
         if (a.req.regionsAll && (!state.regions || state.regions.length < REGIONS.length)) met = false;
         if (a.req.dailyFullDays && state.dailyFullDays < a.req.dailyFullDays) met = false;
         if (a.req.divinityCount && state.divinityCount < a.req.divinityCount) met = false;
+        if (a.req.toppingsFound && state.pantry.found.length < a.req.toppingsFound) met = false;
+        if (a.req.toppingsAll && state.pantry.found.length < TOPPINGS.length) met = false;
+        if (a.req.toppingFound && !state.pantry.found.includes(a.req.toppingFound)) met = false;
+        if (a.req.toppingFinds && state.pantry.finds < a.req.toppingFinds) met = false;
+        if (a.req.dishesCooked && Object.keys(state.pantry.dishes).length < a.req.dishesCooked) met = false;
+        if (a.req.dishesAll && DISHES.some(d => !state.pantry.dishes[d.id])) met = false;
+        if (a.req.dan && state.dan < a.req.dan) met = false;
+        if (a.req.decorCount && state.decorations.length < a.req.decorCount) met = false;
+        if (a.req.titlesCount && state.titles.length < a.req.titlesCount) met = false;
+        if (a.req.dishMax && !DISHES.some(d => (state.pantry.dishes[d.id] || 0) >= DISH_MAX_LEVEL)) met = false;
 
         if (met) {
             state.achievements.push(a.id);
@@ -1742,19 +1791,7 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
 
     if (type === 'wrath') {
         state.wrathClicks++;
-        if (Math.random() < 0.55) {
-            const lost = state.soba * 0.15 * getWrathShieldMult();
-            playSound('wrath');
-            state.soba = Math.max(0, state.soba - lost);
-            notify(t('呪われしそば...そばを{0}杯失った。', fmt(lost)), "😈");
-            flashWrath();
-        } else {
-            const bonus = Math.max(500, cps * 666) * getGoldenBonusMult();
-            state.soba += bonus;
-            state.totalSoba += bonus;
-            state.allTimeSoba += bonus;
-            notify(t('怨念の一撃！リスクを乗り越え{0}杯を獲得！', fmt(bonus)), "🩸");
-        }
+        applyWrath(Math.random());
         calculateCps();
         return;
     }
@@ -1764,7 +1801,7 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
         state.seasonSobaClicks++;
         if (!state.seasonsExperienced.includes(season.id)) state.seasonsExperienced.push(season.id);
         playSound('golden');
-        const bonus = Math.max(2000, cps * 3000) * getGoldenBonusMult();
+        const bonus = getLuckyAmount(0.2, 1200) * getGoldenBonusMult();
         state.soba += bonus;
         state.totalSoba += bonus;
         state.allTimeSoba += bonus;
@@ -1775,27 +1812,33 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
 
     state.goldenClicks++;
     progressDaily('golden');
+    rollTopping('golden');
     playSound('golden');
     const goldenBonusMult = getGoldenBonusMult();
     const rand = Math.random();
-    if (rand < 0.35) {
+    // 35% fever, 25% lucky, 25% click fever, 15% big harvest. While cursed, or before click fever
+    // is available, those turn into a lucky payout instead.
+    let outcome = rand < 0.35 ? 'fever' : rand < 0.60 ? 'lucky' : rand < 0.85 ? 'click' : 'harvest';
+    if (outcome === 'fever' && buffMult < 1) outcome = 'lucky';
+    if (outcome === 'click' && state.allTimeSoba + state.pastSoba < CLICK_FEVER_MIN_SOBA) outcome = 'lucky';
+    if (outcome === 'fever') {
         buffMult = 7;
         buffTimer = 77 * getFeverTimeMult();
         state.feverCount++;
         document.getElementById('app').classList.add('fever');
         notify(t('フィーバータイム！{0}秒間、生産力が7倍！', Math.round(buffTimer)), "🔥");
-    } else if (rand < 0.60) {
-        const bonus = Math.max(777, cps * 900) * goldenBonusMult;
+    } else if (outcome === 'lucky') {
+        const bonus = getLuckyAmount(0.15, 900) * goldenBonusMult;
         state.soba += bonus;
         state.totalSoba += bonus;
         state.allTimeSoba += bonus;
         notify(t('ゴールデンそば！{0}杯のそばを獲得！', fmt(bonus)), "✨");
-    } else if (rand < 0.85) {
-        clickBuffMult = 777;
+    } else if (outcome === 'click') {
+        clickBuffMult = CLICK_FEVER_MULT;
         clickBuffTimer = 13 * getFeverTimeMult();
-        notify(t('クリックフィーバー！{0}秒間、クリックパワーが777倍！', Math.round(clickBuffTimer)), "👆");
+        notify(t('クリックフィーバー！{0}秒間、クリックパワーが{1}倍！', Math.round(clickBuffTimer), CLICK_FEVER_MULT), "👆");
     } else {
-        const bonus = Math.max(1000, cps * 7200) * goldenBonusMult;
+        const bonus = getLuckyAmount(0.25, 1800) * goldenBonusMult;
         state.soba += bonus;
         state.totalSoba += bonus;
         state.allTimeSoba += bonus;
@@ -1803,6 +1846,58 @@ document.getElementById('golden-soba').onpointerdown = function(e) {
     }
     calculateCps();
 };
+
+// Bank-limited reward, as in many idle games: at most `bankShare` of the soba on hand and `cpsSec`
+// seconds of production. Rewards used to be "N seconds of production" with a fixed floor (777-2000),
+// which was worth hours of play right at the start and multiplied production about tenfold overall.
+function getLuckyAmount(bankShare, cpsSec) {
+    return Math.min(state.soba * bankShare, getBaseCps() * cpsSec) + 13;
+}
+
+// Cursed soba: mostly bad, sometimes a payout. The shield (spirits, 厄除けの護符) softens every bad outcome.
+// It used to take 15% of the soba on hand (usually little, since soba is spent) or pay 666 seconds of production,
+// so on average it was a reward.
+const WRATH_CURSE_SEC = 66;
+const WRATH_NUMB_SEC = 30;
+function applyWrath(roll) {
+    const shield = getWrathShieldMult();
+    if (roll < 0.4) {
+        // A fever running is cancelled by the curse
+        buffMult = 0.5;
+        buffTimer = WRATH_CURSE_SEC * shield;
+        document.getElementById('app').classList.remove('fever');
+        playSound('wrath');
+        flashWrath();
+        notify(t('呪われしそば…{0}秒間、生産が半分になった！', Math.round(buffTimer)), "😈");
+        return 'curse';
+    }
+    if (roll < 0.65) {
+        const lost = Math.min(state.soba, state.soba * 0.2 * shield + getBaseCps() * 60 * shield);
+        state.soba = Math.max(0, state.soba - lost);
+        playSound('wrath');
+        flashWrath();
+        notify(t('呪われしそば…そばを{0}杯失った。', fmt(lost)), "😈");
+        return 'loss';
+    }
+    if (roll < 0.8) {
+        clickBuffMult = 0.1;
+        clickBuffTimer = WRATH_NUMB_SEC * shield;
+        playSound('wrath');
+        flashWrath();
+        notify(t('呪われしそば…手がしびれて{0}秒間、クリックの力が1/10になった！', Math.round(clickBuffTimer)), "🫨");
+        return 'numb';
+    }
+    const bonus = getLuckyAmount(0.15, 900) * getGoldenBonusMult();
+    state.soba += bonus;
+    state.totalSoba += bonus;
+    state.allTimeSoba += bonus;
+    notify(t('怨念の一撃！リスクを乗り越え{0}杯を獲得！', fmt(bonus)), "🩸");
+    return 'bonus';
+}
+
+// Click fever appears only once the shop has grown a little: at the start it was worth more than an hour of play
+const CLICK_FEVER_MIN_SOBA = 1e6;
+const CLICK_FEVER_MULT = 77;
 
 function getFeverTimeMult() {
     return state.heavenlyUpgrades.includes('heav_27') ? 1.5 : 1;
@@ -1815,10 +1910,12 @@ function flashWrath() {
     el.classList.add('show');
 }
 
+// Chance every 10 seconds (on average one every ~5.5 minutes; was 5%, one every ~3.3 minutes)
+const GOLDEN_SPAWN_CHANCE = 0.03;
 setInterval(() => {
     if (state.isChallengeRun === 'no_golden') return;
     const freqBonus = state.heavenlyUpgrades.includes('heav_2') ? 1.6 : 1;
-    if (Math.random() < 0.05 * freqBonus * getSpawnFreqMult()) spawnGoldenSoba();
+    if (Math.random() < GOLDEN_SPAWN_CHANCE * freqBonus * getSpawnFreqMult()) spawnGoldenSoba();
 }, 10000);
 
 function showTooltip(e, name, desc, cost) {

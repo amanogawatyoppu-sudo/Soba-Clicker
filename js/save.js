@@ -60,6 +60,8 @@ function normalizeState() {
     if (!state.shadowAchievements) state.shadowAchievements = [];
     if (state.lastMasteryTier === undefined) state.lastMasteryTier = Math.floor(state.achievements.length / 10);
     if (state.artisanPoints === undefined) state.artisanPoints = 0;
+    // The cap was lowered (50% → 25%, 100% → 50% with 名人の手): old saves above it come down to it
+    state.artisanPoints = Math.min(state.artisanPoints, (state.heavenlyUpgrades || []).includes('heav_29') ? 50 : 25);
     if (state.artisanAttempts === undefined) state.artisanAttempts = 0;
     if (state.artisanCrits === undefined) state.artisanCrits = 0;
     if (state.lastArtisanTime === undefined) state.lastArtisanTime = 0;
@@ -76,6 +78,17 @@ function normalizeState() {
     if (!Array.isArray(state.farm.plots) || state.farm.plots.length !== FARM_MAX_SIZE * FARM_MAX_SIZE) state.farm.plots = createFreshFarm().plots;
     if (!state.farm.discovered) state.farm.discovered = ['common'];
     if (state.farm.harvests === undefined) state.farm.harvests = 0;
+    if (!state.pantry || typeof state.pantry !== 'object') state.pantry = createFreshPantry();
+    ['items', 'dishes'].forEach(k => { if (!state.pantry[k] || typeof state.pantry[k] !== 'object') state.pantry[k] = {}; });
+    if (!Array.isArray(state.pantry.found)) state.pantry.found = [];
+    if (typeof state.dan !== 'number') state.dan = 0;
+    if (typeof state.danExams !== 'number') state.danExams = 0;
+    if (typeof state.lastDanFail !== 'number') state.lastDanFail = 0;
+    if (!Array.isArray(state.titles)) state.titles = ['t_rookie'];
+    if (!state.titles.includes('t_rookie')) state.titles.unshift('t_rookie');
+    if (typeof state.title !== 'string') state.title = 't_rookie';
+    if (!Array.isArray(state.decorations)) state.decorations = [];
+    if (typeof state.pantry.finds !== 'number') state.pantry.finds = 0;
     if (state.reputation === undefined) state.reputation = 0;
     if (state.ordersCompleted === undefined) state.ordersCompleted = 0;
     if (state.ordersFailed === undefined) state.ordersFailed = 0;
