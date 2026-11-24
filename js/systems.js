@@ -76,7 +76,7 @@ function renderTabs() {
         if (views.length === 0) return;
         const btn = document.createElement('button');
         btn.className = `main-tab ${g === activeGroup ? 'active' : ''}`;
-        btn.innerHTML = `<span class="mt-icon">${g.icon}</span><span>${g.label}</span>`;
+        btn.innerHTML = `<span class="mt-icon">${iconHTML(EMOJI_ICON[g.icon], g.icon)}</span><span>${g.label}</span>`;
         btn.onclick = () => {
             const remembered = views.find(v => v.id === lastViewInGroup[g.id]);
             switchTab((remembered || views[0]).id);
@@ -91,7 +91,7 @@ function renderTabs() {
     views.forEach(v => {
         const btn = document.createElement('button');
         btn.className = `sub-tab ${v.id === activeView ? 'active' : ''}`;
-        btn.textContent = v.label + (v.badge ? ` ${v.badge()}` : '');
+        btn.innerHTML = iconizeLabel(v.label) + (v.badge ? ` ${v.badge()}` : '');
         btn.onclick = () => switchTab(v.id);
         sub.appendChild(btn);
     });
@@ -1323,7 +1323,7 @@ function spawnBuyPop(buildingId, text) {
     const rect = el.getBoundingClientRect();
     const pop = document.createElement('div');
     pop.className = 'buy-pop';
-    pop.textContent = text;
+    pop.innerHTML = text; // our own markup: a number and an icon
     pop.style.left = (rect.right - 90) + 'px';
     pop.style.top = (rect.top + rect.height / 2 - 14) + 'px';
     document.body.appendChild(pop);

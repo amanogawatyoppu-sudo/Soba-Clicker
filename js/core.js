@@ -509,10 +509,10 @@ function getBuyItemView(b, bestId) {
     const share = rawTotal > 0 ? (buildingRawCps[b.id] || 0) / rawTotal * 100 : 0;
     return {
         className: `building-item ${canBuy ? 'can-buy' : ''}`,
-        html: `<div class="b-icon">${b.icon}</div>
+        html: `<div class="b-icon">${buildingIconHTML(b)}</div>
             <div class="b-info">
                 <div class="b-name">${b.name}${level > 0 ? ` <span style="color:var(--accent); font-size:11px">Lv.${level}</span>` : ''}${bestId === b.id ? ` <span class="b-best">${t('⭐おすすめ')}</span>` : ''}</div>
-                <div class="b-cost">🍜 ${fmt(cost)}${qtyLabel}${paybackLabel}</div>
+                <div class="b-cost">${iconHTML('bowl', '🍜', 'ico ico-inline')} ${fmt(cost)}${qtyLabel}${paybackLabel}</div>
             </div>
             <div class="b-count">${owned}</div>`,
         action: () => buyBuilding(b.id),
@@ -529,7 +529,7 @@ function getSellItemView(b) {
     const refund = quantity > 0 ? getSellRefund(b, quantity) : 0;
     return {
         className: `building-item ${quantity > 0 ? 'can-sell' : 'locked'}`,
-        html: `<div class="b-icon">${b.icon}</div>
+        html: `<div class="b-icon">${buildingIconHTML(b)}</div>
             <div class="b-info">
                 <div class="b-name">${b.name}</div>
                 <div class="b-cost" style="color:${quantity > 0 ? '#ff8a8a' : 'var(--muted)'}">${quantity > 0 ? t('💸 +{0} ({1}個売却)', fmt(refund), quantity) : t('所有していません')}</div>
@@ -590,7 +590,7 @@ function renderUpgrades() {
     visible.forEach(u => {
         const div = document.createElement('div');
         div.className = `upgrade-item ${state.soba >= u.cost ? '' : 'disabled'}`;
-        div.innerHTML = u.icon;
+        div.innerHTML = upgradeIconHTML(u);
         div.onpointerdown = (e) => { e.preventDefault(); buyUpgrade(u.id); };
         div.onmouseenter = (e) => showTooltip(e, u.name, u.desc, u.cost);
         div.onmouseleave = hideTooltip;
@@ -635,7 +635,7 @@ function renderCpsBreakdown() {
     const rows = BUILDINGS.filter(b => buildingRawCps[b.id] > 0)
         .map(b => ({ b, share: buildingRawCps[b.id] / rawTotal * 100 }))
         .sort((x, y) => y.share - x.share).slice(0, 8)
-        .map(({ b, share }) => `<div class="breakdown-row"><span class="breakdown-name">${b.icon} ${b.name}</span>
+        .map(({ b, share }) => `<div class="breakdown-row"><span class="breakdown-name">${iconHTML(b.id, b.icon, 'ico ico-inline')} ${b.name}</span>
             <span class="breakdown-bar"><span style="width:${share.toFixed(1)}%"></span></span><span class="breakdown-val">${share.toFixed(1)}%</span></div>`).join('');
     const factors = cpsFactors.slice().sort((x, y) => y[1] - x[1])
         .map(([label, m]) => `<div class="stat-row"><span class="stat-label">${label}</span><span style="color:${m >= 1 ? 'var(--accent)' : '#ff8a8a'}">${fmtMult(m)}</span></div>`).join('');
@@ -1507,7 +1507,7 @@ function renderLumpList() {
             const div = document.createElement('div');
             div.className = `building-item ${canAge ? 'can-buy' : 'locked'}`;
             div.innerHTML = `
-                <div class="b-icon">${b.icon}</div>
+                <div class="b-icon">${buildingIconHTML(b)}</div>
                 <div class="b-info">
                     <div class="b-name">${b.name} <span style="color:var(--accent)">Lv.${level}</span></div>
                     <div class="b-cost">${canAge ? t('🍡 塊1個で熟成 (+1%)') : t('塊が足りません')}</div>
@@ -1676,7 +1676,7 @@ function buyBuilding(id) {
     state.buildings[id] = (state.buildings[id] || 0) + quantity;
     progressDaily('buy', quantity);
     playSound('buy');
-    spawnBuyPop(id, `+${quantity} ${b.icon}`);
+    spawnBuyPop(id, `+${quantity} ${iconHTML(b.id, b.icon, 'ico ico-inline')}`);
     calculateCps();
     render();
 }

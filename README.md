@@ -23,7 +23,7 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 3. アップグレードで効率を上げ、累計1兆杯を超えたら「転生」して、ずっと続く強化「越前魂」を手に入れます。
 
 ### おもな要素
-- **施設28種・アップグレード**: そば打ち見習いから宇宙そば農場、そばの龍神、「終わりなき一杯」、そして最後は「あなた」。
+- **施設28種・アップグレード**: そば打ち見習いから宇宙そば農場、そばの龍神、「終わりなき一杯」、そして最後は「あなた」。施設・アップグレード・タブは、このゲームのために描いた和風のイラストで表示されます。
 - **転生と天界の力**: 越前魂で買える、43項目のスキルツリー。転生すると画面いっぱいの星空(天界)に移り、ドラッグや拡大縮小でツリーを見ながら天界の力を選んでから、新しい人生を始めます。
 - **神格**: 越前魂を1000個集めると行える、転生のさらに上の段階。全てを捧げて「神徳」を得る、終盤の目標です。
 - **今日のお題**: 毎日3つ出る日替わりのお題。全部達成するとおまけつき。
@@ -53,7 +53,7 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 3. Buy upgrades, and once you pass 1 trillion bowls, prestige for Echizen Souls, a bonus that lasts forever.
 
 ### Features
-- **28 buildings and upgrades**, from a soba apprentice to a space soba farm, a soba dragon god, "the endless bowl", and finally "you".
+- **28 buildings and upgrades**, from a soba apprentice to a space soba farm, a soba dragon god, "the endless bowl", and finally "you". Buildings, upgrades and tabs use hand-drawn Japanese-style pictures made for this game.
 - **Prestige and heavenly powers**: a 43-node skill tree bought with Echizen Souls. Prestige takes you to a full-screen night sky where you drag and zoom the tree, choose your powers, then begin a new life.
 - **Divinity**: a step beyond prestige at 1,000 souls. Offer everything for divine virtue, a late-game goal.
 - **Today's tasks**: three new tasks every day, with a bonus for finishing them all.
@@ -84,6 +84,7 @@ Plain HTML, CSS and JavaScript with no build step: open `soba_clicker.html` in a
 js/i18n.js     言語の切り替え / language support
 js/lang-en.js  英語の翻訳 / English translations
 js/data.js     ゲームデータ / game data
+js/icons.js    手描きアイコン(SVG) / hand-drawn icons (SVG)
 js/core.js     生産・表示・操作 / production, rendering, actions
 js/systems.js  画面切り替え・注文・畑・お題など / navigation, orders, farm, daily tasks…
 js/save.js     セーブと起動 / saving and startup (loaded last)
