@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#5a3510"/>
+      <stop offset="0.55" stop-color="#2a1703"/>
+      <stop offset="1" stop-color="#120a00"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#f5c842" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#f5c842" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bowl" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c8361c"/>
+      <stop offset="0.5" stop-color="#8e1f0e"/>
+      <stop offset="1" stop-color="#4a0d04"/>
+    </linearGradient>
+    <linearGradient id="bowlShine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="0.25" stop-color="#fff" stop-opacity="0.28"/>
+      <stop offset="0.4" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="broth" cx="50%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#7a4a1c"/>
+      <stop offset="1" stop-color="#3c2208"/>
+    </radialGradient>
+    <clipPath id="inside"><ellipse cx="256" cy="268" rx="150" ry="52"/></clipPath>
+    <radialGradient id="daikon" cx="45%" cy="35%" r="70%">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#d9dccf"/>
+    </radialGradient>
+  </defs>
+
+  <!-- full-bleed background (safe for maskable) -->
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="250" r="200" fill="url(#glow)"/>
+  <circle cx="256" cy="256" r="196" fill="none" stroke="#f5c842" stroke-opacity="0.35" stroke-width="3"/>
+
+  <!-- steam -->
+  <g fill="none" stroke="#f5e6c8" stroke-opacity="0.55" stroke-width="9" stroke-linecap="round">
+    <path d="M176 200 q-18 -26 0 -50 q18 -24 0 -48"/>
+    <path d="M226 192 q-18 -28 0 -56 q18 -26 0 -54"/>
+    <path d="M276 200 q-18 -26 0 -50 q18 -24 0 -48"/>
+  </g>
+
+  <!-- bowl body -->
+  <path d="M100 268 C 104 360, 176 404, 256 404 C 336 404, 408 360, 412 268 Z" fill="url(#bowl)"/>
+  <path d="M100 268 C 104 360, 176 404, 256 404 C 336 404, 408 360, 412 268 Z" fill="url(#bowlShine)"/>
+  <!-- foot -->
+  <path d="M196 396 h120 l-8 22 h-104 z" fill="#3a0b03"/>
+  <!-- gold band -->
+  <path d="M124 330 C 170 372, 342 372, 388 330" fill="none" stroke="#f5c842" stroke-width="6" stroke-opacity="0.9"/>
+
+  <!-- rim -->
+  <ellipse cx="256" cy="268" rx="158" ry="58" fill="#1c0600"/>
+  <ellipse cx="256" cy="268" rx="158" ry="58" fill="none" stroke="#e0502a" stroke-width="8"/>
+
+  <!-- inside: broth + noodles -->
+  <g clip-path="url(#inside)">
+    <rect x="90" y="200" width="340" height="140" fill="url(#broth)"/>
+    <g fill="none" stroke-linecap="round" stroke-width="7">
+      <path d="M110 300 C 150 240, 190 320, 230 262 S 300 300, 340 250 S 400 290, 420 260" stroke="#9c8466"/>
+      <path d="M100 282 C 140 228, 180 300, 222 246 S 292 284, 334 236 S 392 270, 420 240" stroke="#b49c7c"/>
+      <path d="M108 262 C 150 222, 196 280, 236 232 S 306 270, 344 226 S 396 252, 418 228" stroke="#8a7254"/>
+      <path d="M120 312 C 160 262, 210 326, 252 280 S 316 318, 358 270 S 404 300, 420 286" stroke="#c2ab8b"/>
+      <path d="M140 244 C 180 226, 216 262, 256 236 S 320 254, 366 232" stroke="#a68e70"/>
+      <path d="M96 270 C 136 300, 170 236, 212 280 S 270 236, 310 282 S 380 236, 420 274" stroke="#8a7254"/>
+      <path d="M104 292 C 146 320, 186 262, 226 300 S 290 262, 330 304 S 392 262, 420 296" stroke="#b49c7c"/>
+      <path d="M150 322 C 196 290, 236 330, 280 300 S 340 324, 380 296" stroke="#9c8466"/>
+    </g>
+  </g>
+
+  <!-- grated daikon (oroshi) + katsuobushi-ish + negi -->
+  <path d="M206 262 C 200 236, 230 214, 256 218 C 284 214, 308 238, 300 262 C 286 274, 222 276, 206 262 Z" fill="url(#daikon)"/>
+  <g fill="#ffffff" opacity="0.9">
+    <circle cx="238" cy="232" r="4"/><circle cx="262" cy="226" r="3"/><circle cx="276" cy="240" r="3.5"/>
+  </g>
+  <g fill="#6cbf3a" stroke="#2f6b12" stroke-width="2">
+    <circle cx="190" cy="258" r="9"/><circle cx="172" cy="250" r="8"/><circle cx="176" cy="268" r="8"/>
+    <circle cx="156" cy="262" r="7"/><circle cx="196" cy="274" r="7"/>
+  </g>
+  <g fill="#9ee06a"><circle cx="188" cy="255" r="3"/><circle cx="170" cy="247" r="3"/></g>
+
+  <!-- chopsticks resting in the bowl -->
+  <g stroke-linecap="round">
+    <line x1="292" y1="262" x2="404" y2="140" stroke="#3a1a04" stroke-width="16"/>
+    <line x1="292" y1="262" x2="404" y2="140" stroke="#e8c27a" stroke-width="11"/>
+    <line x1="314" y1="270" x2="420" y2="162" stroke="#3a1a04" stroke-width="16"/>
+    <line x1="314" y1="270" x2="420" y2="162" stroke="#d8ad5e" stroke-width="11"/>
+  </g>
+</svg>
