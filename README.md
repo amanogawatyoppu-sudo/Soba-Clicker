@@ -24,7 +24,7 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 
 ### おもな要素
 - **施設28種・アップグレード**: そば打ち見習いから宇宙そば農場、そばの龍神、「終わりなき一杯」、そして最後は「あなた」。
-- **転生と天界の力**: 越前魂で買える、43項目のスキルツリー。
+- **転生と天界の力**: 越前魂で買える、43項目のスキルツリー。転生すると画面いっぱいの星空(天界)に移り、ドラッグや拡大縮小でツリーを見ながら天界の力を選んでから、新しい人生を始めます。
 - **神格**: 越前魂を1000個集めると行える、転生のさらに上の段階。全てを捧げて「神徳」を得る、終盤の目標です。
 - **今日のお題**: 毎日3つ出る日替わりのお題。全部達成するとおまけつき。
 - **物語**: お店の成長に合わせて進む全13話のお話。ふみ婆ちゃん、見習いの健太、常連の源さん、AI製麺ロボのソバ太郎たちと、小さなそば屋から宇宙の果てまで。期間限定イベント・精霊・福井の支店ごとの「寄り道のお話」も20話あります。
@@ -54,7 +54,7 @@ It runs in the browser on computers and phones, with no install. Available in Ja
 
 ### Features
 - **28 buildings and upgrades**, from a soba apprentice to a space soba farm, a soba dragon god, "the endless bowl", and finally "you".
-- **Prestige and heavenly powers**: a 43-node skill tree bought with Echizen Souls.
+- **Prestige and heavenly powers**: a 43-node skill tree bought with Echizen Souls. Prestige takes you to a full-screen night sky where you drag and zoom the tree, choose your powers, then begin a new life.
 - **Divinity**: a step beyond prestige at 1,000 souls. Offer everything for divine virtue, a late-game goal.
 - **Today's tasks**: three new tasks every day, with a bonus for finishing them all.
 - **Story**: 13 chapters that unfold as your shop grows, with Grandma Fumi, Kenta the apprentice, Gen the regular and Sobataro the noodle robot, from a tiny shop to the edge of the universe. Plus 20 side stories for events, spirits and Fukui branches.

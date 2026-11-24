@@ -272,30 +272,42 @@
 </div>
 
 <div id="ascension-screen">
-    <div id="ascension-header">
-        <div id="ascension-header-box">
-            <div style="font-size:13px; color:var(--muted)">現在のプレステージボーナス</div>
-            <div id="ascension-bonus" style="font-size:26px; font-weight:900; color:var(--prestige)">+0%</div>
-            <div style="font-size:12px; margin-top:6px;">越前魂: <span id="ascension-souls" style="color:var(--prestige); font-weight:bold">0</span> 個(使用可能: <span id="ascension-available" style="color:var(--prestige); font-weight:bold">0</span> 個)</div>
-        </div>
-        <button id="ascension-transcend-btn" class="prestige-btn" onclick="prestige()" style="max-width:420px; margin:14px auto;">
-            転生して 0 個の「越前魂」を獲得
-        </button>
-        <button id="ascension-back-btn" onclick="closeAscensionScreen()" style="padding:8px 20px; background:var(--border); border:1px solid var(--muted); color:var(--text); border-radius:6px; cursor:pointer; font-size:12px;">↩ 転生せずに戻る</button>
-    </div>
-
-    <div id="skill-tree-legend" style="display:flex; gap:14px; flex-wrap:wrap; justify-content:center; font-size:11px; color:var(--text); margin-bottom:8px;">
-        <span>🟡 取得済み</span>
-        <span>🔵 取得可能</span>
-        <span>⚪ 魂が足りない</span>
-        <span>🔒 前提条件が未達成</span>
-    </div>
-
+    <div id="heaven-sky"></div>
     <div id="skill-tree-wrap">
         <div id="skill-tree-canvas">
             <svg id="skill-tree-svg" width="1400" height="1200" style="position:absolute; top:0; left:0; pointer-events:none;"></svg>
         </div>
     </div>
+
+    <div id="ascension-hud">
+        <div id="ascension-header-box">
+            <div class="heaven-title">☁️ 天界</div>
+            <div class="heaven-stats">
+                <div><span class="heaven-stat-label">越前魂のボーナス</span><span id="ascension-bonus" class="heaven-stat-value">+0%</span></div>
+                <div><span class="heaven-stat-label">越前魂</span><span class="heaven-stat-value"><span id="ascension-souls">0</span></span></div>
+                <div><span class="heaven-stat-label">使える越前魂</span><span class="heaven-stat-value"><span id="ascension-available">0</span></span></div>
+            </div>
+            <div id="ascension-limbo-msg">天界の力を選んでから、新しい人生を始めましょう。</div>
+            <div id="ascension-actions">
+                <button id="ascension-transcend-btn" class="heaven-btn main" onclick="prestige()">転生して 0 個の「越前魂」を獲得</button>
+                <button id="ascension-rebirth-btn" class="heaven-btn main" onclick="finishRebirth()">🍜 新しい人生を始める</button>
+                <button id="ascension-back-btn" class="heaven-btn" onclick="closeAscensionScreen()">↩ 転生せずに戻る</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="skill-tree-legend">
+        <span>🟡 取得済み</span>
+        <span>✨ 取得できる</span>
+        <span>⚪ 魂が足りない</span>
+        <span>🔒 前の力が必要</span>
+    </div>
+    <div id="heaven-zoom">
+        <button onclick="zoomSkillTree(1.25)" aria-label="zoom in">＋</button>
+        <button onclick="zoomSkillTree(0.8)" aria-label="zoom out">－</button>
+        <button onclick="centerSkillTree(true)" aria-label="center">◎</button>
+    </div>
+    <div id="heaven-hint">ドラッグで動かす・ホイールやピンチで拡大縮小</div>
 </div>
 
 <div id="modal-overlay" onclick="if (event.target === this) closeModal()"><div id="modal-box"></div></div>
