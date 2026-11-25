@@ -807,3 +807,28 @@ test('buildings, upgrades and tabs show hand-drawn pictures instead of emoji', a
     assert.deepEqual(errors, []);
     await close();
 });
+
+test('page has search and share information for Google and social sites', async () => {
+    const fs = require('node:fs');
+    const root = path.resolve(__dirname, '..');
+    const { page, errors, close } = await openGame();
+    const meta = await page.evaluate(() => {
+        const get = sel => document.querySelector(sel)?.getAttribute('content') || document.querySelector(sel)?.getAttribute('href');
+        const ld = JSON.parse(document.querySelector('script[type="application/ld+json"]').textContent);
+        return {
+            title: document.title, description: get('meta[name="description"]'), canonical: get('link[rel="canonical"]'),
+            ogImage: get('meta[property="og:image"]'), ogTitle: get('meta[property="og:title"]'), ldName: ld.name,
+        };
+    });
+    assert.match(meta.title, /越前そばクリッカー/);
+    assert.ok(meta.description && meta.description.length >= 50 && meta.description.length <= 160, 'description length');
+    assert.match(meta.canonical, /^https:\/\/.+\/soba_clicker\.html$/);
+    assert.ok(meta.ogTitle);
+    assert.equal(meta.ldName, '越前そばクリッカー');
+    // The share image the tags point at must exist in the repository
+    assert.ok(fs.existsSync(path.join(root, meta.ogImage.replace(/^https:\/\/[^/]+\/Soba-Clicker\//, ''))), 'og:image file');
+    const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
+    assert.ok(sitemap.includes(`<loc>${meta.canonical}</loc>`), 'sitemap lists the canonical page');
+    assert.deepEqual(errors, []);
+    await close();
+});

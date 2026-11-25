@@ -98,3 +98,11 @@ npm ci
 npx playwright install chromium
 npm test
 ```
+
+### Google検索・SNSでの見え方 / Search and sharing
+
+- `soba_clicker.html` の `<head>` に、検索結果に出る説明文、LINEやXでURLを貼ったときのカード(`icons/og-image.jpg`)、ゲームであることを伝える情報(JSON-LD)が入っています。説明文を変えるときはここを直します。
+- `sitemap.xml` は Google Search Console に登録するためのページ一覧です。
+- `google0adbc83616644d6f.html` は Search Console の持ち主確認用のファイルなので消さないでください。
+
+The page head carries the search description, the share card image and VideoGame structured data. `sitemap.xml` is submitted in Google Search Console; keep the `google…html` verification file.
